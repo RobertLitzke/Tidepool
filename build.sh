@@ -5,8 +5,11 @@
 cd "$(dirname "$0")"
 python3 - <<'PY'
 import os, shutil, hashlib
+import datetime
 ui = open('ui.html').read(); eng = open('engine.js').read()
-page = ui.replace('/*ENGINE*/', eng)
+src_hash = hashlib.sha1((ui + eng + open('pwa/sw.js').read() + open('pwa/tail.html').read()).encode()).hexdigest()[:7]
+build = datetime.datetime.now(datetime.timezone.utc).strftime('%b %d %H:%M UTC') + ' · ' + src_hash
+page = ui.replace('/*ENGINE*/', eng).replace('__BUILD__', build)
 open('tidepool.html', 'w').write(page)
 os.makedirs('dist/icons', exist_ok=True)
 html = open('pwa/head.html').read() + page + open('pwa/tail.html').read()
@@ -16,5 +19,5 @@ open('dist/sw.js', 'w').write(open('pwa/sw.js').read().replace('__VERSION__', ve
 shutil.copy('pwa/manifest.webmanifest', 'dist/manifest.webmanifest')
 for f in os.listdir('pwa/icons'): shutil.copy('pwa/icons/' + f, 'dist/icons/' + f)
 open('dist/.nojekyll', 'w').close()
-print('built tidepool.html and dist/ (version ' + ver + ')')
+print('built tidepool.html and dist/ (build ' + build + ')')
 PY

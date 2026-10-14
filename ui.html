@@ -278,6 +278,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .sheet .row { display: flex; gap: 8px; }
 .sheet .row .btn { flex: 1; }
 .sheet .btn.go { flex-direction: row; font-size: 16px; }
+.sheet .build { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
 .big-score { font-family: var(--font-display); font-weight: 700; font-size: 54px; line-height: 1; display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
 .big-score svg { width: 40px; height: 40px; }
 .stars { font-size: 34px; letter-spacing: 4px; color: var(--shell); }
@@ -753,6 +754,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       </ol>
       <p>When you pick a shop tile, each spot shows what it would add to your next tide. Tap a placed tile to see what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
       <div class="dex">${dex}</div>
+      <p class="build">Build __BUILD__</p>
       <div class="row"><button class="btn" id="helpDaily">Daily reef</button><button class="btn" id="helpNew">New reef</button></div>
       <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > CONFIG.startTiles.length) ? 'Keep playing' : 'Play'}</button></div>
     </div></div>`;
