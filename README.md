@@ -24,6 +24,8 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Late value per level per tide: Anemone 36, Oyster 22, Coral 18, Whale 14, Octopus 12, Clownfish 10, Shrimp 10, Kelp 4 (the one-step bot doesn't build forests).
 - v4 (2026-10-14, after drop-one test): Hermit Crab counts touching tiles once (levels don't add). Sea Otter: up to 6 shells per level, 3 pearls per 2 shells. Octopus 7 → 5 shells. Clownfish parked (CONFIG.disabled) because it overlapped Anemone.
   Greedy bot: 85% finish, median 846, stars 0/1/2/3 = 66/189/123/49. Drop-one test (ablation-v4.txt): Conch −29%, Crab −22%, Anemone −14%; Otter +36%, Octopus +25%, Whale +21% still look like traps.
+- v5 (2026-10-14, Rob: first charm market came before the tide 4 goal; rocks unclear): charm markets at tides 5/7/9. Rocks are striped "New spot" cells with a price, plus tips in the info line at the start and when the reef is nearly full.
+  Greedy bot: 85% finish, median 860; charms bought in about 80% of runs (Deep Echo 29%).
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

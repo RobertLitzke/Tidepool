@@ -131,7 +131,9 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .cell .delta .s { color: var(--shell); }
 .cell .delta .z { color: var(--ink-soft); opacity: .7; }
 .cell .lvlup { position: absolute; top: 3px; right: 5px; font-size: 11px; font-weight: 700; color: var(--panel); background: var(--coral); border-radius: 99px; padding: 1px 5px; }
-.cell.rock { background: var(--rock); box-shadow: inset 0 -4px 0 rgba(0,0,0,.12); }
+.cell.rock { background: repeating-linear-gradient(135deg, var(--rock) 0 8px, color-mix(in srgb, var(--rock) 85%, var(--sand)) 8px 16px); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rock) 70%, var(--ink-soft)); }
+.cell.rock .price.poor { color: var(--ink-soft); opacity: .7; }
+.cell .open { position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--ink-soft); }
 .cell.rock .emo { font-size: clamp(22px, 8vw, 36px); opacity: .85; }
 .cell .price { position: absolute; bottom: 4px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; color: var(--pearl); }
 .cell .price svg { width: 11px; height: 11px; }
@@ -466,7 +468,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const def = t && TILES[t.kind];
       let html = '';
       if (G.rock[i]) {
-        html += `<span class="emo">🪨</span><span class="price">${TP.rockCost(G)}${icon('pearl')}</span>`;
+        html += `<span class="open">New spot</span><span class="emo">🪨</span><span class="price${G.pearls < TP.rockCost(G) ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}</span>`;
       } else if (t) {
         html += `<span class="emo">${def.emoji}</span>`;
         const y = fc && fc.per[i];
@@ -549,7 +551,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     }
     if (sel && sel.type === 'rock') {
       const cost = TP.rockCost(G);
-      el.innerHTML = `<div class="txt"><span class="name">Rock</span> Break it to open a new spot on the reef. Each rock costs more than the last.</div>` +
+      el.innerHTML = `<div class="txt"><span class="name">Rock</span> Your reef can grow. Spend pearls to break this rock and get a new spot for tiles. Each rock costs more than the last.</div>` +
         `<button class="chip" id="breakBtn" ${G.pearls < cost ? 'disabled' : ''}>Break: ${cost} pearls</button>`;
       $('breakBtn').addEventListener('click', () => {
         undo.push(TP.clone(G));
@@ -568,7 +570,12 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       $('overNew').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
       return;
     }
-    el.innerHTML = `<div class="txt">Tap a tile to see what feeds it and what it feeds. Tiles fire in order, 1 to 16.</div>`;
+    const open = G.grid.filter((t, i) => !t && !G.rock[i]).length;
+    const rocks = G.rock.filter(Boolean).length;
+    const tip = rocks && open <= 1 ? 'Your reef is nearly full. Tap a rock to break it with pearls and open a new spot.'
+      : rocks && G.tide <= 2 ? 'The striped rocks are locked spots. Later you can break them with pearls to grow your reef.'
+      : 'Tap a tile to see what feeds it and what it feeds. Tiles fire in order, 1 to 16.';
+    el.innerHTML = `<div class="txt">${tip}</div>`;
   }
 
   function renderActions() {

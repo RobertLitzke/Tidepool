@@ -14,7 +14,7 @@
     disabled: ['clown'],          // tile kinds kept out of the shop. Clownfish is parked: it overlapped Anemone.
     rocks: [12, 13, 14, 15],      // cells that start as rock
     rockCosts: [5, 10, 16, 24],   // pearls to break the 1st, 2nd, ... rock
-    charmTides: [3, 6, 9],        // a Tide Charm market opens at the start of these tides
+    charmTides: [5, 7, 9],        // a Tide Charm market opens at the start of these tides (after the tide 4 goal)
     charmOffers: 3,
     charmPriceStep: 6,            // charm price = base + step * (market number - 1)
     maxLevel: 3,
