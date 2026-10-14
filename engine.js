@@ -17,7 +17,7 @@
     charmTides: [5, 7, 9],        // a Tide Charm market opens at the start of these tides (after the tide 4 goal)
     charmOffers: 3,
     charmPriceStep: 6,            // charm price = base + step * (market number - 1)
-    maxLevel: 99,           // effectively no cap; each tile's growth curve decides what levels are worth
+    maxLevel: 3,            // level cap for most tiles; tiles marked stack: true have no cap
     sellRate: 0.5,          // refund = floor(cost * level * sellRate)
     // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
     checkpoints: { 4: 15, 8: 120 },
@@ -31,69 +31,67 @@
   };
 
   // Effects return {s, p} (shells, pearls) for one activation at level 1..3.
-  // fire(c, P) and text(P) take the tile's power P, which comes from its level through its growth curve:
-  //   steady:   power = level, forever.
-  //   tapering: power = level up to ★3, then +1 for every 2 more levels.
-  //   crowding: power = level up to ★3, then -1 per level, going negative from ★7.
-  // Neighbor counts (a ★2 Kelp counts as two Kelp) use the raw level.
+  // fire(c, L) and text(L) take the tile's level. Most tiles cap at ★3; a few cheap tiles
+  // (stack: true) level up forever at a steady rate, so they stay useful and can snowball late.
+  // Neighbor counts weight by level: a ★2 Kelp counts as two Kelp.
   // ctx: { grid, i, t, state, nb (8-touching indices), filled }.
   const TILES = {
-    scallop: { name: 'Conch', emoji: '🐚', cost: 2, rarity: 'common', tag: 'shellfish', curve: 'steady',
+    scallop: { name: 'Conch', emoji: '🐚', cost: 2, rarity: 'common', tag: 'shellfish', stack: true,
       text: (L) => `+${2 * L} shells.`,
       fire: (c, L) => ({ s: 2 * L, p: 0 }) },
-    oyster: { name: 'Oyster', emoji: '🦪', cost: 3, rarity: 'common', tag: 'shellfish', curve: 'steady',
+    oyster: { name: 'Oyster', emoji: '🦪', cost: 3, rarity: 'common', tag: 'shellfish',
       text: (L) => `+${L} pearl, +${L} more for each touching shellfish.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && TILES[c.grid[j].kind].tag === 'shellfish'),
       fire: (c, L) => ({ s: 0, p: L * (1 + count(c, n => TILES[n.kind].tag === 'shellfish')) }) },
-    kelp: { name: 'Kelp', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', curve: 'steady',
+    kelp: { name: 'Kelp', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', stack: true,
       text: (L) => `+${L} shell. +${L} pearl for each touching Kelp.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => n.kind === 'kelp')(c.grid[j])),
       fire: (c, L) => ({ s: L, p: L * count(c, n => n.kind === 'kelp') }) },
-    crab: { name: 'Hermit Crab', emoji: '🦀', cost: 3, rarity: 'common', tag: 'critter', curve: 'crowding',
-      text: (L) => `${sg(L)} shell for each touching tile (levels don't add).`,
+    crab: { name: 'Hermit Crab', emoji: '🦀', cost: 3, rarity: 'common', tag: 'critter',
+      text: (L) => `+${L} shell for each touching tile (levels don't add).`,
       reads: (c) => c.nb.filter(j => c.grid[j]),
       fire: (c, L) => ({ s: L * c.nb.filter(j => c.grid[j]).length, p: 0 }) },
-    shrimp: { name: 'Shrimp', emoji: '🦐', cost: 3, rarity: 'common', tag: 'critter', curve: 'steady',
+    shrimp: { name: 'Shrimp', emoji: '🦐', cost: 3, rarity: 'common', tag: 'critter',
       text: (L) => `+${L} pearl for each touching plant.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => TILES[n.kind].tag === 'plant')(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * count(c, n => TILES[n.kind].tag === 'plant') }) },
-    anemone: { name: 'Anemone', emoji: '🪻', cost: 4, rarity: 'uncommon', tag: 'plant', curve: 'tapering',
+    anemone: { name: 'Anemone', emoji: '🪻', cost: 4, rarity: 'uncommon', tag: 'plant',
       text: (L) => `+${L} pearl for each touching critter.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => TILES[n.kind].tag === 'critter')(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * count(c, n => TILES[n.kind].tag === 'critter') }) },
-    clown: { name: 'Clownfish', emoji: '🐠', cost: 4, rarity: 'uncommon', tag: 'critter', curve: 'tapering',
+    clown: { name: 'Clownfish', emoji: '🐠', cost: 4, rarity: 'uncommon', tag: 'critter',
       text: (L) => `+${2 * L} pearls, +${2 * L} more for each touching Anemone.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && c.grid[j].kind === 'anemone'),
       fire: (c, L) => ({ s: 0, p: 2 * L * (1 + count(c, n => n.kind === 'anemone')) }) },
-    jelly: { name: 'Jellyfish', emoji: '🪼', cost: 3, rarity: 'uncommon', tag: 'critter', curve: 'crowding',
-      text: (L) => `${sg(L)} pearl for each Jellyfish level on the reef.`,
+    jelly: { name: 'Jellyfish', emoji: '🪼', cost: 3, rarity: 'uncommon', tag: 'critter',
+      text: (L) => `+${L} pearl for each Jellyfish level on the reef.`,
       reads: (c) => c.grid.map((t, j) => t && t.kind === 'jelly' && j !== c.i ? j : -1).filter(j => j >= 0),
       fire: (c, L) => ({ s: 0, p: L * c.grid.reduce((n, t) => n + (t && t.kind === 'jelly' ? t.lvl : 0), 0) }) },
-    coral: { name: 'Coral', emoji: '🪸', cost: 4, rarity: 'uncommon', tag: 'plant', curve: 'steady',
+    coral: { name: 'Coral', emoji: '🪸', cost: 4, rarity: 'uncommon', tag: 'plant',
       text: (L) => `Grows each tide. +${L} pearl for each tide it has grown.`,
       fire: (c, L) => ({ s: 0, p: L * c.t.age }) },
-    urn: { name: 'Sunken Urn', emoji: '🏺', cost: 3, rarity: 'uncommon', tag: 'object', curve: 'tapering',
+    urn: { name: 'Sunken Urn', emoji: '🏺', cost: 3, rarity: 'uncommon', tag: 'object',
       text: (L) => `+${L} shell for every 4 shells you hold (up to +${6 * L}).`,
       fire: (c, L) => ({ s: L * Math.min(6, Math.floor(c.state.shells / 4)), p: 0 }) },
-    puffer: { name: 'Pufferfish', emoji: '🐡', cost: 5, rarity: 'uncommon', tag: 'critter', curve: 'tapering',
+    puffer: { name: 'Pufferfish', emoji: '🐡', cost: 5, rarity: 'uncommon', tag: 'critter',
       text: (L) => `The next tile to fire makes ×${1 + L}.`,
       boosts: (c) => { for (let j = c.i + 1; j < c.grid.length; j++) if (c.grid[j]) return [j]; return []; },
       fire: (c, L) => { c.state._mult = Math.max(c.state._mult, 1 + L); return { s: 0, p: 0 }; } },
-    star: { name: 'Starfish', emoji: '⭐', cost: 5, rarity: 'uncommon', tag: 'critter', curve: 'tapering', echo: true,
+    star: { name: 'Starfish', emoji: '⭐', cost: 5, rarity: 'uncommon', tag: 'critter', echo: true,
       text: (L) => `Echo: fires the tile above it again${L > 1 ? `, ${L} times` : ''}.`,
       targets: (i) => [i - CONFIG.cols].filter(j => j >= 0) },
-    otter: { name: 'Sea Otter', emoji: '🦦', cost: 6, rarity: 'rare', tag: 'critter', curve: 'tapering',
+    otter: { name: 'Sea Otter', emoji: '🦦', cost: 6, rarity: 'rare', tag: 'critter',
       text: (L) => `Trades up to ${6 * L} shells for pearls: 3 pearls for every 2 shells.`,
       fire: (c, L) => { const n = Math.min(c.state.shells, 6 * L) & ~1; return { s: -n, p: n / 2 * 3, conv: true }; } },
-    octo: { name: 'Octopus', emoji: '🐙', cost: 5, rarity: 'rare', tag: 'critter', curve: 'tapering',
+    octo: { name: 'Octopus', emoji: '🐙', cost: 5, rarity: 'rare', tag: 'critter',
       text: (L) => `+${L} pearl for each different kind of tile touching it.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (() => true)(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * new Set(c.nb.map(j => c.grid[j]).filter(Boolean).map(t => t.kind)).size }) },
-    whale: { name: 'Whale', emoji: '🐋', cost: 8, rarity: 'rare', tag: 'critter', curve: 'tapering',
+    whale: { name: 'Whale', emoji: '🐋', cost: 8, rarity: 'rare', tag: 'critter',
       text: (L) => `+${L} pearl for every 2 tiles on the reef.`,
       reads: (c) => c.grid.map((t, j) => t && j !== c.i ? j : -1).filter(j => j >= 0),
       fire: (c, L) => ({ s: 0, p: L * Math.floor(c.filled / 2) }) },
-    turtle: { name: 'Sea Turtle', emoji: '🐢', cost: 9, rarity: 'rare', tag: 'critter', curve: 'tapering', echo: true,
+    turtle: { name: 'Sea Turtle', emoji: '🐢', cost: 9, rarity: 'rare', tag: 'critter', echo: true,
       text: (L) => `Echo: fires the tiles to its left and right again${L > 1 ? `, ${L} times` : ''}.`,
       targets: (i) => {
         const col = i % CONFIG.cols, out = [];
@@ -117,14 +115,8 @@
     riptide: { name: 'Riptide', emoji: '🌀', base: 4, text: 'Your first New tiles each tide is free.' },
   };
   const has = (state, id) => state.charms.includes(id);
-  const sg = (n) => n < 0 ? `−${-n}` : `+${n}`;
 
-  const CURVES = {
-    steady: { label: 'Grows steadily with every level', power: (lv) => lv },
-    tapering: { label: 'Each level past ★3 adds less', power: (lv) => lv <= 3 ? lv : 3 + Math.ceil((lv - 3) / 2) },
-    crowding: { label: 'Overcrowds past ★3, and turns negative from ★7', power: (lv) => lv <= 3 ? lv : 6 - lv },
-  };
-  const power = (kind, lv) => CURVES[TILES[kind].curve || 'steady'].power(lv);
+  const maxLevel = (kind) => TILES[kind].stack ? Infinity : CONFIG.maxLevel;
 
   // Counts touching tiles that match, weighted by level: a ★2 Kelp counts as two Kelp.
   function count(c, pred) {
@@ -240,7 +232,7 @@
   function canPlace(state, kind, cell) {
     const t = state.grid[cell];
     if (state.rock[cell]) return false;
-    return !t || (t.kind === kind && t.lvl < CONFIG.maxLevel);
+    return !t || (t.kind === kind && t.lvl < maxLevel(kind));
   }
 
   function buy(state, offerIdx, cell) {
@@ -279,7 +271,7 @@
       if (def.echo) {
         events.push({ cell: i, type: 'echo', targets: def.targets(i).filter(j => state.grid[j]), from, depth, shells: state.shells, pearls: state.pearls, s: 0, p: 0 });
         if (depth > 0) return; // echoes of echoes do nothing, which keeps chains finite
-        for (let k = 0; k < power(t.kind, t.lvl) + (has(state, 'deep') ? 1 : 0); k++) for (const j of def.targets(i)) {
+        for (let k = 0; k < t.lvl + (has(state, 'deep') ? 1 : 0); k++) for (const j of def.targets(i)) {
           if (state.grid[j] && !TILES[state.grid[j].kind].echo) activate(j, depth + 1, i);
         }
         return;
@@ -288,7 +280,7 @@
       const mult = isPuffer ? 1 : state._mult;
       if (!isPuffer) state._mult = 1;
       const nb = neighbors(i);
-      const r = def.fire({ grid: state.grid, i, t, state, nb, filled }, power(t.kind, t.lvl));
+      const r = def.fire({ grid: state.grid, i, t, state, nb, filled }, t.lvl);
       let bonus = 0;
       if (has(state, 'current') && def.tag === 'plant') bonus++;
       if (has(state, 'pearlbed') && def.tag === 'shellfish') bonus++;
@@ -355,6 +347,6 @@
   const clone = (s) => JSON.parse(JSON.stringify(s));
 
   const api = { CONFIG, TILES, CHARMS, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
-    CURVES, power, tileCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has };
+    maxLevel, tileCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tidepool = api;
 })(typeof window !== 'undefined' ? window : globalThis);

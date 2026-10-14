@@ -28,6 +28,8 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Greedy bot: 85% finish, median 860; charms bought in about 80% of runs (Deep Echo 29%).
 - v6 (2026-10-14, Rob: some tiles should scale forever at a fixed rate, some with declining or negative returns): no level cap. Growth curves: Steady (Conch, Oyster, Kelp, Shrimp, Coral) power = level; Tapering (Anemone, Urn, Pufferfish, Starfish, Otter, Octopus, Whale, Turtle) +1 per 2 levels past ★3; Crowding (Hermit Crab, Jellyfish) falls past ★3 and goes negative from ★7. Stars 500/1000/2000.
   Greedy bot: 85% finish, median 973, p90 3048 (more snowball). Highest level on board p50 5, p90 9, max 15 (Conch). Bot still levels crowded Crabs because neighbors count them by level.
+- v7 (2026-10-14, Rob: only a few cheap tiles should stack without limit; most stop at ★3): growth curves removed. All tiles cap at ★3 except Kelp and Conch (stack: true), which level forever at a steady rate.
+  Greedy bot: 85% finish, median 883, p90 2259, stars 0/1/2/3 = 69/163/134/58. Highest Conch p50 ★3, p90 ★8, max ★15; highest Kelp p50 ★1, p90 ★4, max ★12. Kelp and Conch make about 5% of final-tide pearls directly (most Conch value shows up in Oysters).
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.
