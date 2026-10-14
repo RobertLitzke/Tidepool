@@ -35,7 +35,7 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - v9 (2026-10-14, Rob: Octopus, Hermit Crab, Shrimp and Anemone feel alike; plant vs animal unclear; wants a pricey tile that moves another tile):
   New Dolphin (rare, 7 shells, "Mover"), in the shop only after the tide 4 goal. Place it on an empty spot touching a tile, then move that tile one space up, down, left or right; a filled spot swaps. It makes nothing and leaves the reef at once. Each play is logged in the run (`state.moves`) and in a cross-run `tidepool.playlog` in localStorage.
   Anemone parked to make room. Greedy drop-one test (500 runs, before the Dolphin): none 90% finish / avg 946; without Octopus 88% / 1017; without Hermit Crab 91% / 814; without Shrimp 95% / 1045; without Anemone 92% / 996. Shrimp scored a little better, but Anemone was the "plant" that is really an animal, so cutting it also fixes the kinds: plants are now just Kelp and Coral.
-  Kinds are shown everywhere: a Plant / Shellfish / Critter chip on shop cards and the info line, tinted reef tiles, a kinds list in the help, and rules text names the members ("each touching plant (Kelp, Coral)").
+  Kinds are shown by color: shop cards and reef tiles are tinted green (plant), orange (shellfish) or lilac (critter); the help screen labels each tile and has a kinds list in the help, and rules text names the members ("each touching plant (Kelp, Coral)").
   Greedy bot: 91% finish (was 90%), median 850 (was 835), p90 1953, stars 0/1/2/3 = 84/185/146/42. Dolphin played in 11% of runs (0.12 per run).
 
 ## Installable app (PWA)

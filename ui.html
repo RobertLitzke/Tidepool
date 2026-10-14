@@ -167,9 +167,12 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .cell.best { box-shadow: inset 0 0 0 3px var(--coral), 0 0 0 3px var(--glow); }
 .cell.invalid { opacity: .45; }
 .cell.picked { box-shadow: inset 0 0 0 3px var(--ink-soft); }
-.cell.k-plant { background: color-mix(in srgb, var(--ok) 13%, var(--sand)); }
-.cell.k-shellfish { background: color-mix(in srgb, var(--shell) 15%, var(--sand)); }
-.cell.k-critter { background: color-mix(in srgb, var(--pearl) 12%, var(--sand)); }
+.cell.k-plant { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
+.cell.k-shellfish { background: color-mix(in srgb, var(--shell) 22%, var(--sand)); }
+.cell.k-critter { background: color-mix(in srgb, var(--pearl) 20%, var(--sand)); }
+.card.k-plant { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); }
+.card.k-shellfish { background: color-mix(in srgb, var(--shell) 22%, var(--panel)); }
+.card.k-critter { background: color-mix(in srgb, var(--pearl) 20%, var(--panel)); }
 .cell .ghost { opacity: .55; }
 .kind { font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 0 6px; border-radius: 99px; line-height: 16px; }
 .kind.plant { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
@@ -545,12 +548,13 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       b.className = 'card';
       if (!k) { b.classList.add('sold'); b.disabled = true; shop.appendChild(b); return; }
       const def = TILES[k];
+      b.classList.add('k-' + def.tag);
       const cost = TP.tileCost(G, k);
       if (cost > G.shells) b.classList.add('poor');
       if (sel && (sel.type === 'offer' || sel.type === 'move') && sel.i === i) b.classList.add('sel');
       if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
       const twin = G.grid.find(t => t && t.kind === k && t.lvl < TP.maxLevel(k));
-      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span>${kindChip(def.tag)}<span class="cost">${icon('shell')}${cost}</span>`;
+      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${cost}</span>`;
       b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
       b.addEventListener('click', () => onOffer(i));
       shop.appendChild(b);
@@ -577,7 +581,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         return;
       }
       const twin = G.grid.filter(t => t && t.kind === k && t.lvl < TP.maxLevel(k)).sort((a, b) => b.lvl - a.lvl)[0];
-      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${kindChip(def.tag)} ${def.text(1)}` +
+      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}` +
         (twin ? `<span class="next">On your ★${twin.lvl} ${def.name}: ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
         `<span class="chip">${poor ? `Need ${cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
       return;
@@ -586,7 +590,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const t = G.grid[sel.i], def = TILES[t.kind];
       const y = yieldOf(G).per[sel.i] || { p: 0, s: 0 };
       const l = TP.links(G, sel.i);
-      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${kindChip(def.tag)} ${def.text(t.lvl)}` +
+      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${def.text(t.lvl)}` +
         (t.lvl < TP.maxLevel(t.kind) ? `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(t.lvl + 1)}</span>` : `<span class="next">Max level.</span>`) +
         `<span class="curve">${def.stack ? 'Stacks without limit.' : `Levels up to ★${CONFIG.maxLevel}.`}</span>` +
         `<div class="legend"><span>Next tide: ${(y.p || y.s) ? `${y.p} pearls, ${y.s} shells` : 'nothing yet'}</span>` +
