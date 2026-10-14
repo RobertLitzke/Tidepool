@@ -1,0 +1,650 @@
+<title>Tidepool</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#CFEDEA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Figtree:wght@400;600;700&display=swap">
+<style>
+/* Layout: one portrait screen. Status on top, the reef as a square sand tray in the middle, shop and tide controls in the thumb zone. */
+:root {
+  --water: #CFEDEA;
+  --water-2: #B4E1DC;
+  --sand: #FCF5E8;
+  --sand-edge: #E9D7B5;
+  --ink: #173248;
+  --ink-soft: #557184;
+  --coral: #FF6B5E;
+  --coral-ink: #FFFFFF;
+  --shell: #E39B2D;
+  --pearl: #8C7BD8;
+  --panel: #FFFFFF;
+  --ok: #2E9C6A;
+  --bad: #D9473B;
+  --glow: rgba(255, 214, 102, .85);
+  --shadow: 0 2px 0 var(--sand-edge), 0 6px 14px rgba(23, 50, 72, .10);
+  --font-display: "Fredoka", "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --water: #0F2C38; --water-2: #0B2230; --sand: #1B3C4A; --sand-edge: #0E2631;
+    --ink: #E8F6F3; --ink-soft: #9DBEC6; --coral: #FF8274; --coral-ink: #1A1012;
+    --shell: #F2B85C; --pearl: #B7AAF5; --panel: #163746; --ok: #5ED39C; --bad: #FF7B6E;
+    --glow: rgba(255, 214, 102, .55); --shadow: 0 2px 0 var(--sand-edge), 0 6px 14px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --water: #0F2C38; --water-2: #0B2230; --sand: #1B3C4A; --sand-edge: #0E2631;
+  --ink: #E8F6F3; --ink-soft: #9DBEC6; --coral: #FF8274; --coral-ink: #1A1012;
+  --shell: #F2B85C; --pearl: #B7AAF5; --panel: #163746; --ok: #5ED39C; --bad: #FF7B6E;
+  --glow: rgba(255, 214, 102, .55); --shadow: 0 2px 0 var(--sand-edge), 0 6px 14px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  background:
+    radial-gradient(120% 60% at 20% 0%, var(--water-2), transparent 60%),
+    radial-gradient(90% 50% at 100% 100%, var(--water-2), transparent 70%),
+    var(--water);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+
+.app {
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 12px;
+  box-sizing: border-box;
+}
+
+/* Top status */
+.top { display: flex; align-items: center; gap: 10px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .2px; }
+.tide-pill { font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--panel); color: var(--ink-soft); box-shadow: var(--shadow); white-space: nowrap; }
+.spacer { flex: 1; }
+.counter { display: flex; align-items: center; gap: 4px; font-family: var(--font-display); font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; min-width: 52px; justify-content: flex-end; }
+.counter svg { width: 22px; height: 22px; flex: none; }
+.counter.bump { animation: bump .22s ease-out; }
+@keyframes bump { 50% { transform: scale(1.22); } }
+.icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--panel); box-shadow: var(--shadow); font-family: var(--font-display); font-weight: 700; color: var(--ink-soft); flex: none; }
+
+.goal { display: grid; gap: 5px; }
+.goal-text { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); }
+.goal-text b { color: var(--ink); font-weight: 700; }
+.bar { height: 8px; border-radius: 99px; background: var(--panel); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.08); }
+.bar i { display: block; height: 100%; width: 0; background: var(--pearl); border-radius: 99px; transition: width .25s ease-out; }
+.bar.met i { background: var(--ok); }
+
+/* Reef */
+.reef-wrap { flex: 1; min-height: 0; display: grid; place-items: center; }
+.reef {
+  position: relative;
+  width: min(100%, 50svh);
+  aspect-ratio: 1;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  padding: 9px;
+  box-sizing: border-box;
+  border-radius: 22px;
+  background: var(--sand-edge);
+  box-shadow: 0 10px 24px rgba(23, 50, 72, .14);
+}
+.cell {
+  position: relative;
+  border-radius: 14px;
+  background: var(--sand);
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.05);
+  transition: transform .12s, box-shadow .12s, opacity .12s;
+}
+.cell .emo { font-size: clamp(26px, 9.5vw, 44px); line-height: 1; filter: drop-shadow(0 2px 0 rgba(0,0,0,.08)); }
+.cell .lvl { position: absolute; top: 4px; left: 6px; font-size: 11px; font-weight: 700; color: var(--shell); letter-spacing: -1px; }
+.cell .age { position: absolute; bottom: 3px; right: 6px; font-size: 11px; font-weight: 700; color: var(--pearl); font-variant-numeric: tabular-nums; }
+.cell .order { position: absolute; top: 3px; right: 6px; font-size: 10px; color: var(--ink-soft); opacity: .45; font-variant-numeric: tabular-nums; }
+.cell .delta { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cell .delta svg { width: 10px; height: 10px; vertical-align: -1px; margin-left: 1px; }
+.cell .delta { display: flex; justify-content: center; gap: 4px; }
+.cell .delta .p { color: var(--pearl); }
+.cell .delta .s { color: var(--shell); }
+.cell .delta .z { color: var(--ink-soft); opacity: .7; }
+.cell .lvlup { position: absolute; top: 3px; right: 5px; font-size: 11px; font-weight: 700; color: var(--panel); background: var(--coral); border-radius: 99px; padding: 1px 5px; }
+.cell.valid { box-shadow: inset 0 0 0 2px var(--coral), inset 0 -3px 0 rgba(0,0,0,.05); }
+.cell.best { box-shadow: inset 0 0 0 3px var(--coral), 0 0 0 3px var(--glow); }
+.cell.invalid { opacity: .45; }
+.cell.picked { box-shadow: inset 0 0 0 3px var(--ink-soft); }
+.cell.fire { animation: fire .3s ease-out; }
+.cell.echoing { animation: echo .45s ease-out; }
+@keyframes fire { 0% { transform: scale(1); } 40% { transform: scale(1.14); box-shadow: 0 0 0 5px var(--glow); } 100% { transform: scale(1); } }
+@keyframes echo { 0% { box-shadow: 0 0 0 0 var(--pearl); } 100% { box-shadow: 0 0 0 14px transparent; } }
+.cell.placed { animation: placed .35s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes placed { 0% { transform: scale(.5) rotate(-8deg); } 100% { transform: scale(1); } }
+
+.float {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 21px;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  animation: floatUp .8s ease-out forwards;
+  text-shadow: 0 1px 0 var(--sand), 0 0 6px var(--sand);
+  z-index: 3;
+}
+.float.p { color: var(--pearl); }
+.float.s { color: var(--shell); }
+.float.m { color: var(--coral); font-size: 14px; }
+@keyframes floatUp { 0% { opacity: 0; margin-top: 4px; } 15% { opacity: 1; } 100% { opacity: 0; margin-top: -38px; } }
+
+/* Info line */
+.info { min-height: 58px; display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.3; color: var(--ink-soft); }
+.info .name { font-family: var(--font-display); font-weight: 600; color: var(--ink); font-size: 16px; }
+.info .txt { flex: 1; min-width: 0; }
+.info .next { display: block; font-size: 13px; color: var(--coral); font-weight: 600; margin-top: 2px; }
+.chip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 99px; background: var(--panel); box-shadow: var(--shadow); white-space: nowrap; }
+
+/* Shop */
+.shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.card {
+  position: relative;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 8px 6px 7px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 92px;
+  transition: transform .12s;
+}
+.card .emo { font-size: 32px; line-height: 1.15; }
+.card .nm { font-family: var(--font-display); font-weight: 600; font-size: 13px; text-align: center; line-height: 1.1; }
+.card .cost { display: flex; align-items: center; gap: 3px; font-weight: 700; font-size: 13px; color: var(--shell); font-variant-numeric: tabular-nums; }
+.card .cost svg { width: 14px; height: 14px; }
+.card .rar { position: absolute; top: 6px; right: 8px; width: 7px; height: 7px; border-radius: 50%; }
+.card .rar.uncommon { background: var(--pearl); }
+.card .rar.rare { background: var(--coral); }
+.card .twin { position: absolute; top: 5px; left: 6px; font-size: 11px; font-weight: 700; color: var(--panel); background: var(--coral); border-radius: 99px; padding: 1px 6px; }
+.card.sel { transform: translateY(-6px); box-shadow: 0 0 0 3px var(--coral), var(--shadow); }
+.card.poor .cost { color: var(--bad); }
+.card.poor .emo { opacity: .55; }
+.card.sold { visibility: hidden; }
+.card.new { animation: deal .3s cubic-bezier(.3, 1.5, .5, 1) backwards; }
+@keyframes deal { 0% { transform: translateY(20px) scale(.9); opacity: 0; } }
+
+/* Actions */
+.actions { display: flex; gap: 8px; align-items: stretch; }
+.btn {
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  white-space: nowrap;
+}
+.btn svg { width: 15px; height: 15px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.go {
+  flex: 1;
+  background: var(--coral);
+  color: var(--coral-ink);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--coral) 60%, black), 0 8px 18px rgba(255, 107, 94, .3);
+  font-size: 18px;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.1;
+}
+.btn.go small { font-family: var(--font-body); font-weight: 600; font-size: 12px; opacity: .9; }
+.btn:active:not(:disabled) { transform: translateY(2px); }
+
+/* Overlays */
+.sheet-bg, .sheet { box-sizing: border-box; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(10, 28, 38, .45); display: grid; place-items: center; z-index: 10; padding: 16px; animation: fade .2s; }
+@keyframes fade { from { opacity: 0; } }
+.sheet {
+  width: min(100%, 380px);
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  display: grid;
+  gap: 12px;
+  max-height: 85svh;
+  overflow: auto;
+  animation: pop .3s cubic-bezier(.3, 1.4, .5, 1);
+}
+@keyframes pop { from { transform: scale(.9); opacity: 0; } }
+.sheet h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 26px; text-wrap: balance; }
+.sheet p { margin: 0; color: var(--ink-soft); line-height: 1.45; font-size: 15px; }
+.sheet ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.4; font-size: 15px; }
+.sheet .row { display: flex; gap: 8px; }
+.sheet .row .btn { flex: 1; }
+.sheet .btn.go { flex-direction: row; font-size: 16px; }
+.big-score { font-family: var(--font-display); font-weight: 700; font-size: 54px; line-height: 1; display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.big-score svg { width: 40px; height: 40px; }
+.stars { font-size: 34px; letter-spacing: 4px; color: var(--shell); }
+.stars .off { color: var(--ink-soft); opacity: .3; }
+.dex { display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; }
+.dex div { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; }
+.dex .e { font-size: 20px; }
+.dex .c { color: var(--shell); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.toast {
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px);
+  transform: translateX(-50%);
+  background: var(--ink); color: var(--panel);
+  padding: 8px 14px; border-radius: 99px;
+  font-weight: 700; font-size: 14px; white-space: nowrap;
+  z-index: 9; animation: toast 2.2s ease forwards; pointer-events: none;
+}
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%, -8px); } 10%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-shell" viewBox="0 0 24 24">
+      <path d="M12 3C6.5 3 2.5 7.6 3.2 12.6c.3 2.2 1.6 4.3 3.4 5.4l1.4 2.5c.3.5.8.8 1.4.8h5.2c.6 0 1.1-.3 1.4-.8l1.4-2.5c1.8-1.1 3.1-3.2 3.4-5.4C21.5 7.6 17.5 3 12 3z" fill="var(--shell)"/>
+      <path d="M12 5v14M8 6.2l2.4 12.6M16 6.2l-2.4 12.6M5 9.5l4 9M19 9.5l-4 9" stroke="rgba(255,255,255,.55)" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+    </symbol>
+    <symbol id="i-pearl" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="var(--pearl)"/>
+      <circle cx="9" cy="8.6" r="3" fill="rgba(255,255,255,.7)"/>
+      <circle cx="15.5" cy="16" r="1.4" fill="rgba(255,255,255,.35)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app">
+  <div class="top">
+    <div class="brand">Tidepool</div>
+    <div class="tide-pill" id="tidePill">Tide 1 of 12</div>
+    <div class="spacer"></div>
+    <div class="counter" id="shells" aria-label="Shells"><svg><use href="#i-shell"/></svg><span>0</span></div>
+    <div class="counter" id="pearls" aria-label="Pearls"><svg><use href="#i-pearl"/></svg><span>0</span></div>
+    <button class="icon-btn" id="helpBtn" aria-label="How to play">?</button>
+  </div>
+
+  <div class="goal">
+    <div class="goal-text"><span id="goalText">Reach 8 pearls by tide 4</span><span id="goalNum"></span></div>
+    <div class="bar" id="goalBar"><i></i></div>
+  </div>
+
+  <div class="reef-wrap"><div class="reef" id="reef"></div></div>
+
+  <div class="info" id="info"></div>
+
+  <div class="shop" id="shop"></div>
+
+  <div class="actions">
+    <button class="btn" id="undoBtn" aria-label="Undo">↶</button>
+    <button class="btn" id="rerollBtn">New tiles <svg><use href="#i-shell"/></svg><span id="rerollCost">1</span></button>
+    <button class="btn go" id="tideBtn">Let the tide in<small id="forecast"></small></button>
+  </div>
+</div>
+
+<div id="overlay"></div>
+
+<script>
+/*ENGINE*/
+</script>
+<script>
+(() => {
+  const TP = window.Tidepool;
+  const { CONFIG, TILES } = TP;
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem('tidepool.' + k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem('tidepool.' + k, JSON.stringify(v)); } catch {} },
+  };
+  const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
+  const icon = (n) => `<svg><use href="#i-${n}"/></svg>`;
+
+  let G, sel = null, undo = [], busy = false, skip = false, dealt = true;
+
+  const todaySeed = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
+
+  function start(data) {
+    G = (data && data.G) || store.get('run');
+    if (!G || !G.grid || G.grid.length !== CONFIG.cols * CONFIG.rows) G = TP.newGame(Math.floor(Math.random() * 1e9));
+    sel = null; undo = []; busy = false;
+    buildReef();
+    render();
+    if (G.over) endRun();
+    else if (!store.get('seenHelp')) showHelp();
+  }
+
+  function newRun(seed, daily) {
+    G = TP.newGame(seed);
+    G.daily = !!daily;
+    sel = null; undo = []; dealt = true;
+    closeOverlay();
+    save(); render();
+  }
+
+  const save = () => store.set('run', G);
+
+  // ---------- Forecast: what the reef would make next tide if frozen ----------
+  function yieldOf(state) {
+    const c = TP.clone(state); c.over = false;
+    const s0 = c.shells, p0 = c.pearls;
+    TP.runTide(c);
+    return { p: c.pearls - p0, s: c.shells - s0 - CONFIG.tideIncome };
+  }
+
+  // ---------- Rendering ----------
+  function buildReef() {
+    const reef = $('reef'); reef.innerHTML = '';
+    for (let i = 0; i < CONFIG.cols * CONFIG.rows; i++) {
+      const b = document.createElement('button');
+      b.className = 'cell'; b.dataset.i = i;
+      b.addEventListener('click', () => onCell(i));
+      reef.appendChild(b);
+    }
+  }
+
+  function render() {
+    $('tidePill').textContent = G.over ? 'Run over' : `Tide ${G.tide} of ${CONFIG.tides}`;
+    setCounter('shells', G.shells); setCounter('pearls', G.pearls);
+    renderGoal(); renderReef(); renderShop(); renderInfo(); renderActions();
+  }
+
+  function setCounter(id, v) { $(id).querySelector('span').textContent = v; }
+
+  function renderGoal() {
+    const cp = TP.nextCheckpoint(G);
+    const bar = $('goalBar');
+    if (cp) {
+      $('goalText').innerHTML = `Reach <b>${cp.need} pearls</b> by tide ${cp.tide}`;
+      $('goalNum').textContent = `${Math.min(G.pearls, cp.need)} / ${cp.need}`;
+      bar.querySelector('i').style.width = Math.min(100, 100 * G.pearls / cp.need) + '%';
+      bar.classList.toggle('met', G.pearls >= cp.need);
+    } else {
+      const next = CONFIG.stars.find(x => G.pearls < x);
+      const st = TP.starsFor(G.pearls);
+      $('goalText').innerHTML = next ? `Next star at <b>${next} pearls</b>` : '<b>Three stars.</b> Keep going.';
+      $('goalNum').textContent = '★'.repeat(st) + '☆'.repeat(3 - st);
+      bar.querySelector('i').style.width = Math.min(100, 100 * G.pearls / (next || G.pearls || 1)) + '%';
+      bar.classList.toggle('met', !next);
+    }
+  }
+
+  function renderReef() {
+    const kind = sel && sel.type === 'offer' ? G.offers[sel.i] : null;
+    let deltas = null, bestCell = -1;
+    if (kind && !busy) {
+      const base = yieldOf(G); deltas = {};
+      let bestV = -Infinity;
+      G.grid.forEach((_, i) => {
+        if (!TP.canPlace(G, kind, i)) return;
+        const c = TP.clone(G); c.shells += 999; TP.buy(c, sel.i, i); c.shells -= 999;
+        const y = yieldOf(c); const d = { p: y.p - base.p, s: y.s - base.s };
+        deltas[i] = d;
+        const v = d.p + d.s * 0.5;
+        if (v > bestV) { bestV = v; bestCell = i; }
+      });
+    }
+    [...$('reef').children].forEach((el, i) => {
+      const t = G.grid[i];
+      const def = t && TILES[t.kind];
+      let html = '';
+      if (t) {
+        html += `<span class="emo">${def.emoji}</span>`;
+        if (t.lvl > 1) html += `<span class="lvl">${'★'.repeat(t.lvl)}</span>`;
+        if (t.kind === 'coral') html += `<span class="age">${t.age}</span>`;
+      } else {
+        html += `<span class="order">${i + 1}</span>`;
+      }
+      if (deltas && deltas[i]) {
+        const d = deltas[i];
+        const part = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
+        const txt = part(d.p, 'pearl') + part(d.s, 'shell') || '<span class="z">+0</span>';
+        html += `<span class="delta">${txt}</span>`;
+        if (t) html += `<span class="lvlup">★${t.lvl + 1}</span>`;
+      }
+      el.innerHTML = html;
+      el.classList.toggle('valid', !!deltas && i in deltas && i !== bestCell);
+      el.classList.toggle('best', !!deltas && i === bestCell);
+      el.classList.toggle('invalid', !!deltas && !(i in deltas));
+      el.classList.toggle('picked', !!sel && sel.type === 'cell' && sel.i === i);
+      el.setAttribute('aria-label', t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}` : `Empty spot ${i + 1}`);
+    });
+  }
+
+  function renderShop() {
+    const shop = $('shop'); shop.innerHTML = '';
+    G.offers.forEach((k, i) => {
+      const b = document.createElement('button');
+      b.className = 'card';
+      if (!k) { b.classList.add('sold'); b.disabled = true; shop.appendChild(b); return; }
+      const def = TILES[k];
+      if (def.cost > G.shells) b.classList.add('poor');
+      if (sel && sel.type === 'offer' && sel.i === i) b.classList.add('sel');
+      if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
+      const twin = G.grid.find(t => t && t.kind === k && t.lvl < CONFIG.maxLevel);
+      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${def.cost}</span>`;
+      b.setAttribute('aria-label', `${def.name}, costs ${def.cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
+      b.addEventListener('click', () => onOffer(i));
+      shop.appendChild(b);
+    });
+    dealt = false;
+  }
+
+  function renderInfo() {
+    const el = $('info');
+    if (sel && sel.type === 'offer') {
+      const k = G.offers[sel.i], def = TILES[k];
+      const poor = def.cost > G.shells;
+      const twin = G.grid.find(t => t && t.kind === k && t.lvl < CONFIG.maxLevel);
+      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}` +
+        (twin ? `<span class="next">On your ${def.name}: ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
+        `<span class="chip">${poor ? `Need ${def.cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
+      return;
+    }
+    if (sel && sel.type === 'cell' && G.grid[sel.i]) {
+      const t = G.grid[sel.i], def = TILES[t.kind];
+      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${def.text(t.lvl)}` +
+        (t.lvl < CONFIG.maxLevel ? `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(t.lvl + 1)}</span>` : `<span class="next">Max level.</span>`) + `</div>` +
+        `<button class="chip" id="sellBtn">Sell +${TP.sellValue(t)}</button>`;
+      $('sellBtn').addEventListener('click', () => {
+        undo.push(TP.clone(G));
+        TP.sell(G, sel.i); sel = null; buzz(8); save(); render();
+      });
+      return;
+    }
+    if (G.over) {
+      el.innerHTML = `<div class="txt">The run is over.</div><button class="chip" id="overNew">New reef</button>`;
+      $('overNew').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
+      return;
+    }
+    el.innerHTML = `<div class="txt">Tiles fire in reading order, 1 to 16. Drop a tile on its twin to level it up.</div>`;
+  }
+
+  function renderActions() {
+    const y = yieldOf(G);
+    $('forecast').textContent = G.over ? '' : `Reef makes ${y.p} pearls, ${y.s} shells`;
+    const rc = TP.rerollCost(G);
+    $('rerollCost').textContent = rc;
+    $('rerollBtn').disabled = busy || G.over || G.shells < rc;
+    $('tideBtn').disabled = busy || G.over;
+    $('undoBtn').disabled = busy || !undo.length;
+  }
+
+  // ---------- Input ----------
+  function onOffer(i) {
+    if (busy || G.over) return;
+    sel = sel && sel.type === 'offer' && sel.i === i ? null : { type: 'offer', i };
+    buzz(5); render();
+  }
+
+  function onCell(i) {
+    if (busy) { skip = true; return; }
+    if (G.over) return;
+    if (sel && sel.type === 'offer') {
+      const k = G.offers[sel.i];
+      if (TILES[k].cost > G.shells) { toast(`You need ${TILES[k].cost} shells`); return; }
+      if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
+      undo.push(TP.clone(G));
+      const lvlUp = !!G.grid[i];
+      TP.buy(G, sel.i, i);
+      sel = null; buzz(lvlUp ? [10, 40, 18] : 12); save(); render();
+      const el = $('reef').children[i];
+      el.classList.remove('placed'); void el.offsetWidth; el.classList.add('placed');
+      if (lvlUp) floatAt(i, `★${G.grid[i].lvl}`, 'm');
+      return;
+    }
+    sel = G.grid[i] && !(sel && sel.type === 'cell' && sel.i === i) ? { type: 'cell', i } : null;
+    render();
+  }
+
+  $('undoBtn').addEventListener('click', () => {
+    if (busy || !undo.length) return;
+    G = undo.pop(); sel = null; save(); render();
+  });
+  $('rerollBtn').addEventListener('click', () => {
+    if (busy) return;
+    undo.push(TP.clone(G));
+    if (TP.reroll(G)) { sel = null; dealt = true; buzz(8); save(); render(); } else undo.pop();
+  });
+  $('tideBtn').addEventListener('click', runTide);
+  $('helpBtn').addEventListener('click', showHelp);
+  document.addEventListener('pointerdown', () => { if (busy) skip = true; });
+
+  // ---------- The tide: fire the reef with a paced, skippable animation ----------
+  const wait = (ms) => new Promise(r => setTimeout(r, skip ? 0 : ms));
+
+  function floatAt(i, text, cls, offsetY = 0) {
+    const reef = $('reef'), cell = reef.children[i];
+    const f = document.createElement('div');
+    f.className = 'float ' + cls; f.textContent = text;
+    f.style.left = (cell.offsetLeft + cell.offsetWidth / 2) + 'px';
+    f.style.top = (cell.offsetTop + cell.offsetHeight / 2 + offsetY) + 'px';
+    reef.appendChild(f);
+    setTimeout(() => f.remove(), 850);
+  }
+
+  function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  async function runTide() {
+    if (busy || G.over) return;
+    busy = true; skip = false; sel = null; undo = [];
+    render();
+    const startS = G.shells, startP = G.pearls;
+    const before = TP.clone(G);
+    const events = TP.runTide(G);
+    const cells = $('reef').children;
+    // Show counters climbing from the pre-tide values.
+    setCounter('shells', startS); setCounter('pearls', startP);
+    let step = 0;
+    for (const e of events) {
+      const d = Math.max(110, 300 - step * 12); step++;
+      const el = cells[e.cell];
+      if (e.type === 'echo') {
+        pulse(el, 'echoing');
+        for (const j of e.targets) pulse(cells[j], 'echoing');
+        floatAt(e.cell, 'echo', 'm');
+        buzz(6);
+        await wait(d * 0.8);
+        continue;
+      }
+      pulse(el, 'fire');
+      if (e.mult > 1) floatAt(e.cell, `×${e.mult}`, 'm', -22);
+      if (e.p) floatAt(e.cell, `${e.p > 0 ? '+' : ''}${e.p}`, 'p', e.s ? -8 : 0);
+      if (e.s) floatAt(e.cell, `${e.s > 0 ? '+' : ''}${e.s}`, 's', e.p ? 14 : 0);
+      if (G.grid[e.cell] && G.grid[e.cell].kind === 'puffer') floatAt(e.cell, 'puff!', 'm');
+      setCounter('shells', e.shells); setCounter('pearls', e.pearls);
+      if (e.p) pulse($('pearls'), 'bump');
+      if (e.s) pulse($('shells'), 'bump');
+      if (e.p || e.s) buzz(e.p >= 10 ? 14 : 7);
+      await wait(d);
+    }
+    await wait(250);
+    setCounter('shells', G.shells); pulse($('shells'), 'bump');
+    busy = false; skip = false; dealt = true;
+    save();
+    render();
+    const earned = G.lastTide.earned;
+    if (G.over) { endRun(before); return; }
+    const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
+    toast(passed ? `Goal reached! +${earned} pearls this tide` : `+${earned} pearls · the tide brings ${CONFIG.tideIncome} shells`);
+  }
+
+  // ---------- Overlays ----------
+  function closeOverlay() { $('overlay').innerHTML = ''; }
+
+  function toast(msg) {
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 2300);
+  }
+
+  function endRun(before) {
+    const best = store.get('best') || 0;
+    const isBest = G.won && G.pearls > best;
+    if (isBest) store.set('best', G.pearls);
+    const st = G.won ? TP.starsFor(G.pearls) : 0;
+    buzz(G.won ? [20, 60, 20, 60, 40] : [40]);
+    const title = G.won ? (st === 3 ? 'A legendary reef' : st === 2 ? 'A lively reef' : st === 1 ? 'A cozy reef' : 'The tide goes out') : `Missed the goal at tide ${G.failedAt}`;
+    const need = CONFIG.checkpoints[G.failedAt];
+    $('overlay').innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Run summary">
+      <h2>${title}</h2>
+      <div class="big-score">${icon('pearl')}${G.pearls}</div>
+      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed ${need} pearls by tide ${G.failedAt}. Pearl makers like Oysters and Shrimp beside Kelp help early.</p>`}
+      <p>${isBest ? 'New best reef!' : `Best reef: ${Math.max(best, 0)} pearls.`} ${G.daily ? 'Daily reef for today.' : ''}</p>
+      <div class="row"><button class="btn" id="dailyBtn">Daily reef</button><button class="btn go" id="againBtn">New reef</button></div>
+    </div></div>`;
+    $('againBtn').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
+    $('dailyBtn').addEventListener('click', () => newRun(todaySeed(), true));
+  }
+
+  function showHelp() {
+    store.set('seenHelp', true);
+    const dex = Object.entries(TILES).map(([k, d]) => `<div><span class="e">${d.emoji}</span><span><b>${d.name}</b> ${d.text(1)}</span><span class="c">${d.cost}</span></div>`).join('');
+    $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
+      <h2>Grow a reef that pays you back</h2>
+      <ol>
+        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up. Each level adds the base numbers again: ★2 makes double, ★3 triple.</li>
+        <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
+        <li>Hit the pearl goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}, then score as many pearls as you can by tide ${CONFIG.tides}.</li>
+      </ol>
+      <p>When you pick a tile, each spot shows what it would add to your next tide. Daily reef and New reef start over from here.</p>
+      <div class="dex">${dex}</div>
+      <div class="row"><button class="btn" id="helpDaily">Daily reef</button><button class="btn" id="helpNew">New reef</button></div>
+      <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > CONFIG.startTiles.length) ? 'Keep playing' : 'Play'}</button></div>
+    </div></div>`;
+    $('helpClose').addEventListener('click', closeOverlay);
+    $('helpDaily').addEventListener('click', () => newRun(todaySeed(), true));
+    $('helpNew').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
+    $('helpBg').addEventListener('click', (e) => { if (e.target.id === 'helpBg') closeOverlay(); });
+  }
+
+  window.claude?.hot?.snapshot?.(() => ({ G }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
