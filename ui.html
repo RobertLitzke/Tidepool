@@ -167,6 +167,18 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .cell.best { box-shadow: inset 0 0 0 3px var(--coral), 0 0 0 3px var(--glow); }
 .cell.invalid { opacity: .45; }
 .cell.picked { box-shadow: inset 0 0 0 3px var(--ink-soft); }
+.cell.k-plant { background: color-mix(in srgb, var(--ok) 13%, var(--sand)); }
+.cell.k-shellfish { background: color-mix(in srgb, var(--shell) 15%, var(--sand)); }
+.cell.k-critter { background: color-mix(in srgb, var(--pearl) 12%, var(--sand)); }
+.cell .ghost { opacity: .55; }
+.kind { font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 0 6px; border-radius: 99px; line-height: 16px; }
+.kind.plant { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.kind.shellfish { color: var(--shell); background: color-mix(in srgb, var(--shell) 16%, transparent); }
+.kind.critter { color: var(--pearl); background: color-mix(in srgb, var(--pearl) 16%, transparent); }
+.kind.object, .kind.mover { color: var(--ink-soft); background: color-mix(in srgb, var(--ink-soft) 14%, transparent); }
+.kinds { display: grid; gap: 6px; font-size: 13px; line-height: 1.35; }
+.kinds div { display: flex; gap: 8px; align-items: baseline; }
+.kinds .kind { flex: none; min-width: 64px; text-align: center; }
 .cell.fire { animation: fire .3s ease-out; }
 .cell.echoing { animation: echo .45s ease-out; }
 @keyframes fire { 0% { transform: scale(1); } 40% { transform: scale(1.14); box-shadow: 0 0 0 5px var(--glow); } 100% { transform: scale(1); } }
@@ -356,7 +368,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 <script>
 (() => {
   const TP = window.Tidepool;
-  const { CONFIG, TILES, CHARMS } = TP;
+  const { CONFIG, TILES, CHARMS, KINDS } = TP;
+  const kindChip = (tag) => `<span class="kind ${tag}">${KINDS[tag].name}</span>`;
   const $ = (id) => document.getElementById(id);
   const store = {
     get(k) { try { return JSON.parse(localStorage.getItem('tidepool.' + k)); } catch { return null; } },
@@ -443,7 +456,12 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   }
 
   function renderReef() {
-    const kind = sel && sel.type === 'offer' ? G.offers[sel.i] : null;
+    const offerKind = sel && sel.type === 'offer' ? G.offers[sel.i] : null;
+    const kind = offerKind && !TILES[offerKind].mover ? offerKind : null;
+    // Mover steps: pick a spot for it, then the touching tile to move, then where that tile goes.
+    let moveOk = null;
+    if (offerKind && TILES[offerKind].mover) moveOk = new Set(TP.moverSpots(G));
+    else if (sel && sel.type === 'move' && sel.from == null) moveOk = new Set(TP.moverTargets(G, sel.cell));
     const fc = !busy ? yieldOf(G) : null;
     // Hint overlay for a selected tile: what it counts, what it powers, and who counts it.
     let hint = null;
@@ -465,6 +483,17 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         if (v > bestV) { bestV = v; bestCell = i; }
       });
     }
+    if (sel && sel.type === 'move' && sel.from != null && !busy) {
+      const base = yieldOf(G); deltas = {};
+      let bestV = -Infinity;
+      for (const i of TP.moverDests(G, sel.from)) {
+        const c = TP.clone(G); c.shells += 999; TP.useMover(c, sel.i, sel.cell, sel.from, i); c.shells -= 999;
+        const y = yieldOf(c); const d = { p: y.p - base.p, s: y.s - base.s };
+        deltas[i] = d;
+        const v = d.p + d.s * 0.5;
+        if (v > bestV) { bestV = v; bestCell = i; }
+      }
+    }
     [...$('reef').children].forEach((el, i) => {
       const t = G.grid[i];
       const def = t && TILES[t.kind];
@@ -477,6 +506,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         if (!deltas && y && (y.p || y.s)) html += `<span class="yield">${mini(y.p, 'pearl')}${mini(y.s, 'shell')}</span>`;
         if (t.lvl > 1) html += `<span class="lvl">${t.lvl <= 3 ? '★'.repeat(t.lvl) : '★' + t.lvl}</span>`;
         if (t.kind === 'coral') html += `<span class="age">${t.age}</span>`;
+      } else if (sel && sel.type === 'move' && sel.cell === i) {
+        html += `<span class="emo ghost">${TILES[G.offers[sel.i]].emoji}</span>`;
       } else {
         html += `<span class="order">${i + 1}</span>`;
       }
@@ -485,7 +516,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         const part = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
         const txt = part(d.p, 'pearl') + part(d.s, 'shell') || '<span class="z">+0</span>';
         html += `<span class="delta">${txt}</span>`;
-        if (t) html += `<span class="lvlup">★${t.lvl + 1}</span>`;
+        if (t && !(sel && sel.type === 'move')) html += `<span class="lvlup">★${t.lvl + 1}</span>`;
       }
       if (hint) {
         const tag = hint.boosts.has(i) ? 'powered' : hint.reads.has(i) ? 'feeds' : hint.usedBy.has(i) ? 'fed' : '';
@@ -496,11 +527,13 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       el.classList.toggle('reads', !!hint && hint.reads.has(i) && !hint.boosts.has(i));
       el.classList.toggle('boosts', !!hint && hint.boosts.has(i));
       el.classList.toggle('usedby', !!hint && hint.usedBy.has(i) && !hint.reads.has(i) && !hint.boosts.has(i));
-      el.classList.toggle('valid', !!deltas && i in deltas && i !== bestCell);
+      for (const k in KINDS) el.classList.toggle('k-' + k, !!t && def.tag === k);
+      const moving = sel && sel.type === 'move' && (sel.from === i || sel.cell === i);
+      el.classList.toggle('valid', (!!deltas && i in deltas && i !== bestCell) || (!!moveOk && moveOk.has(i)));
       el.classList.toggle('best', !!deltas && i === bestCell);
-      el.classList.toggle('invalid', !!deltas && !(i in deltas));
-      el.classList.toggle('picked', !!sel && sel.type === 'cell' && sel.i === i);
-      el.setAttribute('aria-label', G.rock[i] ? `Rock, break for ${TP.rockCost(G)} pearls` : t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}` : `Empty spot ${i + 1}`);
+      el.classList.toggle('invalid', (!!deltas && !(i in deltas) && !moving) || (!!moveOk && !moveOk.has(i) && !moving));
+      el.classList.toggle('picked', (!!sel && sel.type === 'cell' && sel.i === i) || !!moving);
+      el.setAttribute('aria-label', G.rock[i] ? `Rock, break for ${TP.rockCost(G)} pearls` : t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}, ${KINDS[def.tag].name.toLowerCase()}` : `Empty spot ${i + 1}`);
     });
   }
 
@@ -514,11 +547,11 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const def = TILES[k];
       const cost = TP.tileCost(G, k);
       if (cost > G.shells) b.classList.add('poor');
-      if (sel && sel.type === 'offer' && sel.i === i) b.classList.add('sel');
+      if (sel && (sel.type === 'offer' || sel.type === 'move') && sel.i === i) b.classList.add('sel');
       if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
-      const twin = G.grid.find(t => t && t.kind === k && t.lvl < CONFIG.maxLevel);
-      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${cost}</span>`;
-      b.setAttribute('aria-label', `${def.name}, costs ${cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
+      const twin = G.grid.find(t => t && t.kind === k && t.lvl < TP.maxLevel(k));
+      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span>${kindChip(def.tag)}<span class="cost">${icon('shell')}${cost}</span>`;
+      b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
       b.addEventListener('click', () => onOffer(i));
       shop.appendChild(b);
     });
@@ -527,11 +560,24 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   function renderInfo() {
     const el = $('info');
+    if (sel && sel.type === 'move') {
+      const def = TILES[G.offers[sel.i]];
+      const step = sel.from == null ? 'Tap the touching tile to move.' : 'Tap where it goes: one space up, down, left or right. A filled spot swaps.';
+      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${step}</div><button class="chip" id="moveCancel">Cancel</button>`;
+      $('moveCancel').addEventListener('click', () => { sel = null; render(); });
+      return;
+    }
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i], def = TILES[k];
       const cost = TP.tileCost(G, k), poor = cost > G.shells;
+      if (def.mover) {
+        const spots = TP.moverSpots(G).length;
+        el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}</div>` +
+          `<span class="chip">${poor ? `Need ${cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : spots ? 'Tap an empty spot' : 'No empty spot beside a tile'}</span>`;
+        return;
+      }
       const twin = G.grid.filter(t => t && t.kind === k && t.lvl < TP.maxLevel(k)).sort((a, b) => b.lvl - a.lvl)[0];
-      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}` +
+      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${kindChip(def.tag)} ${def.text(1)}` +
         (twin ? `<span class="next">On your ★${twin.lvl} ${def.name}: ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
         `<span class="chip">${poor ? `Need ${cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
       return;
@@ -540,7 +586,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const t = G.grid[sel.i], def = TILES[t.kind];
       const y = yieldOf(G).per[sel.i] || { p: 0, s: 0 };
       const l = TP.links(G, sel.i);
-      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${def.text(t.lvl)}` +
+      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${kindChip(def.tag)} ${def.text(t.lvl)}` +
         (t.lvl < TP.maxLevel(t.kind) ? `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(t.lvl + 1)}</span>` : `<span class="next">Max level.</span>`) +
         `<span class="curve">${def.stack ? 'Stacks without limit.' : `Levels up to ★${CONFIG.maxLevel}.`}</span>` +
         `<div class="legend"><span>Next tide: ${(y.p || y.s) ? `${y.p} pearls, ${y.s} shells` : 'nothing yet'}</span>` +
@@ -594,16 +640,22 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   // ---------- Input ----------
   function onOffer(i) {
     if (busy || G.over) return;
-    sel = sel && sel.type === 'offer' && sel.i === i ? null : { type: 'offer', i };
+    sel = sel && (sel.type === 'offer' || sel.type === 'move') && sel.i === i ? null : { type: 'offer', i };
     buzz(5); render();
   }
 
   function onCell(i) {
     if (busy) { skip = true; return; }
     if (G.over) return;
+    if (sel && sel.type === 'move') { onMoveCell(i); return; }
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i];
       if (TP.tileCost(G, k) > G.shells) { toast(`You need ${TP.tileCost(G, k)} shells`); return; }
+      if (TILES[k].mover) {
+        if (!TP.moverSpots(G).includes(i)) { toast(`Put the ${TILES[k].name} on an empty spot beside a tile`); return; }
+        sel = { type: 'move', i: sel.i, cell: i, from: null }; buzz(5); render();
+        return;
+      }
       if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
       undo.push(TP.clone(G));
       const lvlUp = !!G.grid[i];
@@ -617,6 +669,34 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     const again = sel && sel.i === i;
     sel = again ? null : G.rock[i] ? { type: 'rock', i } : G.grid[i] ? { type: 'cell', i } : null;
     render();
+  }
+
+  // Mover steps after its spot is picked: choose the touching tile, then where it goes.
+  function onMoveCell(i) {
+    const name = TILES[G.offers[sel.i]].name;
+    if (sel.from == null) {
+      if (i === sel.cell) { sel = { type: 'offer', i: sel.i }; render(); return; }
+      if (!TP.moverTargets(G, sel.cell).includes(i)) { toast(`The ${name} can only move a tile it touches`); return; }
+      sel.from = i; buzz(5); render();
+      return;
+    }
+    if (i === sel.from) { sel.from = null; render(); return; }
+    if (!TP.moverDests(G, sel.from).includes(i)) { toast('One space up, down, left or right'); return; }
+    undo.push(TP.clone(G));
+    const { from, cell } = sel, swapped = !!G.grid[i];
+    if (!TP.useMover(G, sel.i, cell, from, i)) { undo.pop(); toast('Can’t move there'); return; }
+    logPlaytest(G.moves[G.moves.length - 1]);
+    sel = null; buzz([10, 30, 10]); save(); render();
+    pulse($('reef').children[i], 'placed');
+    if (swapped) pulse($('reef').children[from], 'placed');
+    floatAt(cell, `${TILES[G.moves[G.moves.length - 1].mover].emoji} bye!`, 'm');
+  }
+
+  // Playtest record: every mover play, kept across runs (the run itself also keeps G.moves).
+  function logPlaytest(m) {
+    const log = store.get('playlog') || [];
+    log.push({ ...m, seed: G.seed, when: new Date().toISOString() });
+    store.set('playlog', log.slice(-500));
   }
 
   $('undoBtn').addEventListener('click', () => {
@@ -713,6 +793,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
       ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Shrimp beside Kelp make pearls early.</p>`}
+      ${G.moves && G.moves.length ? `<p>Moves made with a Dolphin this run: ${G.moves.length}.</p>` : ''}
       <p>${isBest ? 'New best reef!' : `Best reef: ${Math.max(best, 0)} pearls.`} ${G.daily ? 'Daily reef for today.' : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily reef</button><button class="btn go" id="againBtn">New reef</button></div>
     </div></div>`;
@@ -745,7 +826,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   function showHelp() {
     store.set('seenHelp', true);
-    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${d.emoji}</span><span><b>${d.name}</b> ${d.text(1)} ${d.stack ? '<i>Stacks without limit.</i>' : ''}</span><span class="c">${d.cost}</span></div>`).join('');
+    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${d.emoji}</span><span><b>${d.name}</b> ${kindChip(d.tag)} ${d.text(1)} ${d.stack ? '<i>Stacks without limit.</i>' : ''}${d.afterFirstGoal ? ' <i>In the shop after the first goal.</i>' : ''}</span><span class="c">${d.cost}</span></div>`).join('');
+    const kinds = Object.keys(KINDS).map(tag => [tag, TP.kindNames(tag)]).filter(([, n]) => n).map(([tag, n]) => `<div>${kindChip(tag)}<span>${n}</span></div>`).join('');
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       <h2>Grow a reef that pays you back</h2>
       <ol>
@@ -755,6 +837,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
       </ol>
       <p>When you pick a shop tile, each spot shows what it would add to your next tide. Tap a placed tile to see what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
+      <p>Every tile has a kind. When a rule says plant, shellfish or critter, it means these tiles:</p>
+      <div class="kinds">${kinds}</div>
       <div class="dex">${dex}</div>
       <p class="build">Build __BUILD__</p>
       <div class="row"><button class="btn" id="helpDaily">Daily reef</button><button class="btn" id="helpNew">New reef</button></div>

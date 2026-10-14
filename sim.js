@@ -61,6 +61,16 @@ const bots = {
       let best = null;
       state.offers.forEach((k, oi) => {
         if (!k || TP.tileCost(state, k) > state.shells) return;
+        if (TILES[k].mover) {
+          // Try every spot, touching tile and direction; the mover leaves, so only the move matters.
+          for (const cell of TP.moverSpots(state)) for (const from of TP.moverTargets(state, cell)) for (const to of TP.moverDests(state, from)) {
+            const c = TP.clone(state);
+            if (!TP.useMover(c, oi, cell, from, to)) continue;
+            const gain = score(tideYield(c)) - base - shellW * TP.tileCost(state, k);
+            if (!best || gain > best.gain) best = { gain, oi, cell, v: 'move', from, to };
+          }
+          return;
+        }
         for (let cell = 0; cell < state.grid.length; cell++) {
           const cur = state.grid[cell];
           const variants = [];
@@ -77,6 +87,7 @@ const bots = {
         }
       });
       if (best && best.gain > 0) {
+        if (best.v === 'move') { TP.useMover(state, best.oi, best.cell, best.from, best.to); continue; }
         if (best.v === 'replace') TP.sell(state, best.cell);
         TP.buy(state, best.oi, best.cell);
         continue;
@@ -91,9 +102,13 @@ function play(botName, seed) {
   const state = TP.newGame(seed);
   const picks = {}, pearlsBy = {};
   while (!state.over) {
-    const before = state.grid.map(t => t && `${t.kind}:${t.lvl}`);
+    // Picks = new levels of each kind on the reef (moves and swaps don't count), plus mover plays.
+    const levels = () => { const o = {}; for (const t of state.grid) if (t) o[t.kind] = (o[t.kind] || 0) + t.lvl; return o; };
+    const before = levels(), movesBefore = state.moves.length;
     bots[botName](state);
-    state.grid.forEach((t, i) => { if (t && before[i] !== `${t.kind}:${t.lvl}`) picks[t.kind] = (picks[t.kind] || 0) + 1; });
+    const after = levels();
+    for (const k in after) if (after[k] > (before[k] || 0)) picks[k] = (picks[k] || 0) + after[k] - (before[k] || 0);
+    for (const m of state.moves.slice(movesBefore)) picks[m.mover] = (picks[m.mover] || 0) + 1;
     for (const e of TP.runTide(state)) {
       if (e.type !== 'fire') continue;
       const k = state.grid[e.cell].kind;
@@ -117,7 +132,7 @@ function pct(arr, q) { const a = [...arr].sort((x, y) => x - y); return a[Math.m
 function report(botName, runs) {
   const results = [];
   const picks = {}, pearlsBy = {}, late = {}, charms = {};
-  let rocks = 0;
+  let rocks = 0, moves = 0, movedRuns = 0;
   for (let r = 0; r < runs; r++) {
     const res = play(botName, 1000 + r);
     results.push(res.state);
@@ -126,6 +141,7 @@ function report(botName, runs) {
     for (const k in res.late) { const o = late[k] || (late[k] = { v: 0, lv: 0 }); o.v += res.late[k].v; o.lv += res.late[k].lv; }
     for (const id of res.state.charms) charms[id] = (charms[id] || 0) + 1;
     rocks += res.state.rocksBroken;
+    moves += res.state.moves.length; if (res.state.moves.length) movedRuns++;
   }
   const won = results.filter(s => s.won);
   const fails = {};
@@ -147,6 +163,7 @@ function report(botName, runs) {
   const rows = Object.keys(TILES).map(k => ({ k, pick: picks[k] || 0, pearls: pearlsBy[k] || 0 }))
     .sort((a, b) => b.pick - a.pick);
   console.log(`rocks broken per run: ${(rocks / runs).toFixed(2)}   charms bought: ${Object.entries(charms).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${TP.CHARMS[id].name} ${(100 * n / runs).toFixed(0)}%`).join(', ') || 'none'}`);
+  console.log(`mover plays per run: ${(moves / runs).toFixed(2)} (in ${(100 * movedRuns / runs).toFixed(0)}% of runs)`);
   console.log('tile          picks%  pearls/run  late value per level per tide');
   for (const r of rows) console.log(`${TILES[r.k].name.padEnd(13)} ${(100 * r.pick / totalPicks).toFixed(1).padStart(5)}  ${(r.pearls / runs).toFixed(1).padStart(8)}  ${late[r.k] ? (late[r.k].v / late[r.k].lv).toFixed(1).padStart(8) : '       -'}`);
 }

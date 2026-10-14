@@ -11,7 +11,9 @@
     shopSize: 3,
     rerollBase: 2,          // first reroll cost in a tide
     rerollStep: 2,          // each further reroll in the same tide costs this much more
-    disabled: ['clown'],          // tile kinds kept out of the shop. Clownfish is parked: it overlapped Anemone.
+    // Tile kinds kept out of the shop. Clownfish is parked: it overlapped Anemone. Anemone made way for the Dolphin:
+    // it was one of four look-alike "count your neighbors" tiles, and as a "plant" that is really an animal it blurred the kinds.
+    disabled: ['clown', 'anemone'],
     rocks: [12, 13, 14, 15],      // cells that start as rock
     rockCosts: [5, 10, 16, 24],   // pearls to break the 1st, 2nd, ... rock
     charmTides: [5, 7, 9],        // a Tide Charm market opens at the start of these tides (after the tide 4 goal)
@@ -32,6 +34,17 @@
     pearlOfferUntil: 4,     // through this tide, every shop has at least one affordable early pearl tile
   };
 
+  // Tile kinds. Effects that count "plants", "shellfish" or "critters" mean exactly the tiles tagged with that kind.
+  const KINDS = {
+    plant: { name: 'Plant', emoji: '🌱' },
+    shellfish: { name: 'Shellfish', emoji: '🐚' },
+    critter: { name: 'Critter', emoji: '🐾' },
+    object: { name: 'Object', emoji: '📦' },
+    mover: { name: 'Mover', emoji: '↔️' },
+  };
+  // Names of the shop tiles of one kind, for rules text: "Kelp, Coral".
+  const kindNames = (tag) => Object.keys(TILES).filter(k => TILES[k].tag === tag && !CONFIG.disabled.includes(k)).map(k => TILES[k].name).join(', ');
+
   // Effects return {s, p} (shells, pearls) for one activation at level 1..3.
   // fire(c, L) and text(L) take the tile's level. Most tiles cap at ★3; a few cheap tiles
   // (stack: true) level up forever at a steady rate, so they stay useful and can snowball late.
@@ -42,7 +55,7 @@
       text: (L) => `+${2 * L} shells.`,
       fire: (c, L) => ({ s: 2 * L, p: 0 }) },
     oyster: { name: 'Oyster', emoji: '🦪', cost: 3, rarity: 'common', tag: 'shellfish',
-      text: (L) => `+${L} pearl, +${L} more for each touching shellfish.`,
+      text: (L) => `+${L} pearl, +${L} more for each touching shellfish (${kindNames('shellfish')}).`,
       reads: (c) => c.nb.filter(j => c.grid[j] && TILES[c.grid[j].kind].tag === 'shellfish'),
       fire: (c, L) => ({ s: 0, p: L * (1 + count(c, n => TILES[n.kind].tag === 'shellfish')) }) },
     kelp: { name: 'Kelp', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', stack: true,
@@ -54,11 +67,11 @@
       reads: (c) => c.nb.filter(j => c.grid[j]),
       fire: (c, L) => ({ s: L * c.nb.filter(j => c.grid[j]).length, p: 0 }) },
     shrimp: { name: 'Shrimp', emoji: '🦐', cost: 3, rarity: 'common', tag: 'critter',
-      text: (L) => `+${L} pearl for each touching plant.`,
+      text: (L) => `+${L} pearl for each touching plant (${kindNames('plant')}).`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => TILES[n.kind].tag === 'plant')(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * count(c, n => TILES[n.kind].tag === 'plant') }) },
     anemone: { name: 'Anemone', emoji: '🪻', cost: 4, rarity: 'uncommon', tag: 'plant',
-      text: (L) => `+${L} pearl for each touching critter.`,
+      text: (L) => `+${L} pearl for each touching critter (any animal that isn't shellfish).`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => TILES[n.kind].tag === 'critter')(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * count(c, n => TILES[n.kind].tag === 'critter') }) },
     clown: { name: 'Clownfish', emoji: '🐠', cost: 4, rarity: 'uncommon', tag: 'critter',
@@ -93,6 +106,10 @@
       text: (L) => `+${L} pearl for every 2 tiles on the reef.`,
       reads: (c) => c.grid.map((t, j) => t && j !== c.i ? j : -1).filter(j => j >= 0),
       fire: (c, L) => ({ s: 0, p: L * Math.floor(c.filled / 2) }) },
+    // Mover: never sits on the reef. Placed on an empty spot beside a tile, it moves that tile
+    // one space up, down, left or right (swapping if that spot is filled), then swims away.
+    dolphin: { name: 'Dolphin', emoji: '🐬', cost: 7, rarity: 'rare', tag: 'mover', mover: true, afterFirstGoal: true,
+      text: () => 'Place it beside a tile, then move that tile one space. A filled spot swaps. Swims away after: no pearls or shells.' },
     turtle: { name: 'Sea Turtle', emoji: '🐢', cost: 9, rarity: 'rare', tag: 'critter', echo: true,
       text: (L) => `Echo: fires the tiles to its left and right again${L > 1 ? `, ${L} times` : ''}.`,
       targets: (i) => {
@@ -117,6 +134,10 @@
     riptide: { name: 'Riptide', emoji: '🌀', base: 4, text: 'Your first New tiles each tide is free.' },
   };
   const has = (state, id) => state.charms.includes(id);
+
+  // Tiles marked afterFirstGoal stay out of the shop until the first pearl goal is behind you.
+  const firstGoalTide = () => Math.min(...Object.keys(CONFIG.checkpoints).map(Number));
+  const inShop = (state, k) => !CONFIG.disabled.includes(k) && !(TILES[k].afterFirstGoal && state.tide <= firstGoalTide());
 
   const maxLevel = (kind) => TILES[kind].stack ? Infinity : CONFIG.maxLevel;
 
@@ -151,7 +172,7 @@
       grid: Array(CONFIG.cols * CONFIG.rows).fill(null),
       offers: [], rerolls: 0, over: false, won: false, lastTide: null, history: [],
       rock: Array(CONFIG.cols * CONFIG.rows).fill(false), rocksBroken: 0,
-      charms: [], charmOffers: [], charmMarkets: 0, earned: 0,
+      charms: [], charmOffers: [], charmMarkets: 0, earned: 0, moves: [],
     };
     for (const r of CONFIG.rocks) state.rock[r] = true;
     for (const st of CONFIG.startTiles) state.grid[st.cell] = { kind: st.kind, lvl: 1, age: 1 };
@@ -199,7 +220,7 @@
   function rollOffers(state) {
     const kinds = Object.keys(TILES);
     const pick = (ok) => {
-      const pool = kinds.filter(k => ok(k) && !CONFIG.disabled.includes(k));
+      const pool = kinds.filter(k => ok(k) && inShop(state, k));
       const weights = pool.map(k => CONFIG.rarityWeight(TILES[k].rarity, state.tide));
       let r = rand(state) * weights.reduce((a, b) => a + b, 0), k = 0;
       while (k < pool.length - 1 && r >= weights[k]) r -= weights[k++];
@@ -209,7 +230,7 @@
     for (let n = 0; n < shopSize(state); n++) state.offers.push(pick(() => true));
     // Guarantee some buys: swap unaffordable offers for affordable ones until enough are affordable.
     const budget = Math.max(state.shells, Math.min(...kinds.map(k => tileCost(state, k))));
-    const affordable = (k) => tileCost(state, k) <= budget && CONFIG.rarityWeight(TILES[k].rarity, state.tide) > 0;
+    const affordable = (k) => tileCost(state, k) <= budget && CONFIG.rarityWeight(TILES[k].rarity, state.tide) > 0 && inShop(state, k);
     let have = state.offers.filter(affordable).length;
     for (let n = 0; n < state.offers.length && have < CONFIG.affordableOffers; n++) {
       if (affordable(state.offers[n])) continue;
@@ -241,7 +262,7 @@
   // A tile can go on an empty cell, or onto the same kind below max level to level it up.
   function canPlace(state, kind, cell) {
     const t = state.grid[cell];
-    if (state.rock[cell]) return false;
+    if (state.rock[cell] || TILES[kind].mover) return false;
     return !t || (t.kind === kind && t.lvl < maxLevel(kind));
   }
 
@@ -254,6 +275,34 @@
     const t = state.grid[cell];
     if (t) t.lvl++; else state.grid[cell] = { kind, lvl: 1, age: 1 };
     state.offers[offerIdx] = null;
+    return true;
+  }
+
+  // Mover tiles: which spots can take the mover, which tiles it can move, and where to.
+  const moverSpots = (state) => state.grid.map((t, i) => !t && !state.rock[i] && moverTargets(state, i).length ? i : -1).filter(i => i >= 0);
+  const moverTargets = (state, cell) => neighbors(cell).filter(j => state.grid[j] && moverDests(state, j).length);
+  function moverDests(state, from) {
+    const { cols } = CONFIG, col = from % cols, out = [];
+    if (from - cols >= 0) out.push(from - cols);
+    if (from + cols < state.grid.length) out.push(from + cols);
+    if (col > 0) out.push(from - 1);
+    if (col < cols - 1) out.push(from + 1);
+    return out.filter(j => !state.rock[j]);
+  }
+
+  // Buy a mover, place it on an empty cell touching tile `from`, and move that tile to `to`.
+  // The mover leaves the reef right away; every play is logged in state.moves for playtesting.
+  function useMover(state, offerIdx, cell, from, to) {
+    const kind = state.offers[offerIdx];
+    if (state.over || !kind || !TILES[kind].mover) return false;
+    const cost = tileCost(state, kind);
+    if (state.shells < cost || state.grid[cell] || state.rock[cell]) return false;
+    if (!neighbors(cell).includes(from) || !state.grid[from] || !moverDests(state, from).includes(to)) return false;
+    state.shells -= cost;
+    const moved = state.grid[from], other = state.grid[to];
+    state.grid[to] = moved; state.grid[from] = other;
+    state.offers[offerIdx] = null;
+    (state.moves || (state.moves = [])).push({ tide: state.tide, mover: kind, at: cell, kind: moved.kind, from, to, swapped: other ? other.kind : null });
     return true;
   }
 
@@ -356,7 +405,8 @@
 
   const clone = (s) => JSON.parse(JSON.stringify(s));
 
-  const api = { CONFIG, TILES, CHARMS, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
-    maxLevel, tileCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has };
+  const api = { CONFIG, TILES, CHARMS, KINDS, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
+    maxLevel, tileCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
+    inShop, moverSpots, moverTargets, moverDests, useMover };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tidepool = api;
 })(typeof window !== 'undefined' ? window : globalThis);

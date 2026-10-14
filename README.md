@@ -32,6 +32,11 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Greedy bot: 85% finish, median 883, p90 2259, stars 0/1/2/3 = 69/163/134/58. Highest Conch p50 ★3, p90 ★8, max ★15; highest Kelp p50 ★1, p90 ★4, max ★12. Kelp and Conch make about 5% of final-tide pearls directly (most Conch value shows up in Oysters).
 - v8 (2026-10-14, Rob: some early games are unwinnable without pearl tiles): through tide 4 every shop includes an affordable Oyster, Shrimp, Jellyfish or Coral (0 of 2,000 tide-1 shops lack one). Tide 4 goal 15 → 12.
   Greedy bot: 90% finish (was 85%), tide-4 failures 40 → 11 of 500, median 835, stars 0/1/2/3 = 82/194/123/49. With the guarantee alone (goal 15) tide-4 failures were 34, mostly near misses at 11 to 14 pearls.
+- v9 (2026-10-14, Rob: Octopus, Hermit Crab, Shrimp and Anemone feel alike; plant vs animal unclear; wants a pricey tile that moves another tile):
+  New Dolphin (rare, 7 shells, "Mover"), in the shop only after the tide 4 goal. Place it on an empty spot touching a tile, then move that tile one space up, down, left or right; a filled spot swaps. It makes nothing and leaves the reef at once. Each play is logged in the run (`state.moves`) and in a cross-run `tidepool.playlog` in localStorage.
+  Anemone parked to make room. Greedy drop-one test (500 runs, before the Dolphin): none 90% finish / avg 946; without Octopus 88% / 1017; without Hermit Crab 91% / 814; without Shrimp 95% / 1045; without Anemone 92% / 996. Shrimp scored a little better, but Anemone was the "plant" that is really an animal, so cutting it also fixes the kinds: plants are now just Kelp and Coral.
+  Kinds are shown everywhere: a Plant / Shellfish / Critter chip on shop cards and the info line, tinted reef tiles, a kinds list in the help, and rules text names the members ("each touching plant (Kelp, Coral)").
+  Greedy bot: 91% finish (was 90%), median 850 (was 835), p90 1953, stars 0/1/2/3 = 84/185/146/42. Dolphin played in 11% of runs (0.12 per run).
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.
