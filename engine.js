@@ -11,6 +11,7 @@
     shopSize: 3,
     rerollBase: 2,          // first reroll cost in a tide
     rerollStep: 2,          // each further reroll in the same tide costs this much more
+    disabled: [],                 // tile kinds kept out of the shop (used by tuning experiments)
     rocks: [12, 13, 14, 15],      // cells that start as rock
     rockCosts: [5, 10, 16, 24],   // pearls to break the 1st, 2nd, ... rock
     charmTides: [3, 6, 9],        // a Tide Charm market opens at the start of these tides
@@ -192,7 +193,7 @@
   function rollOffers(state) {
     const kinds = Object.keys(TILES);
     const pick = (ok) => {
-      const pool = kinds.filter(ok);
+      const pool = kinds.filter(k => ok(k) && !CONFIG.disabled.includes(k));
       const weights = pool.map(k => CONFIG.rarityWeight(TILES[k].rarity, state.tide));
       let r = rand(state) * weights.reduce((a, b) => a + b, 0), k = 0;
       while (k < pool.length - 1 && r >= weights[k]) r -= weights[k++];

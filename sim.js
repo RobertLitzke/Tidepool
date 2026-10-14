@@ -151,6 +151,10 @@ function report(botName, runs) {
   for (const r of rows) console.log(`${TILES[r.k].name.padEnd(13)} ${(100 * r.pick / totalPicks).toFixed(1).padStart(5)}  ${(r.pearls / runs).toFixed(1).padStart(8)}  ${late[r.k] ? (late[r.k].v / late[r.k].lv).toFixed(1).padStart(8) : '       -'}`);
 }
 
-const runs = +process.argv[2] || 500;
-const which = process.argv[3] || 'all';
-for (const b of which === 'all' ? Object.keys(bots) : [which]) report(b, runs);
+module.exports = { bots, play };
+
+if (require.main === module) {
+  const runs = +process.argv[2] || 500;
+  const which = process.argv[3] || 'all';
+  for (const b of which === 'all' ? Object.keys(bots) : [which]) report(b, runs);
+}
