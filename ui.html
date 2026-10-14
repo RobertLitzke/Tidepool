@@ -195,6 +195,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .info { min-height: 58px; display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.3; color: var(--ink-soft); }
 .info .name { font-family: var(--font-display); font-weight: 600; color: var(--ink); font-size: 16px; }
 .info .txt { flex: 1; min-width: 0; }
+.info .curve { display: block; font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
 .info .next { display: block; font-size: 13px; color: var(--coral); font-weight: 600; margin-top: 2px; }
 .chip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 99px; background: var(--panel); box-shadow: var(--shadow); white-space: nowrap; }
 
@@ -391,6 +392,11 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   // ---------- Forecast: what the reef would make next tide if frozen ----------
   const yieldOf = (state) => TP.forecast(state);
+  // Flags level-ups that add nothing or make a tile worse, from its growth curve.
+  const gainNote = (k, lv) => {
+    const d = TP.power(k, lv + 1) - TP.power(k, lv);
+    return d < 0 ? ' (worse: overcrowded)' : d === 0 ? ' (no gain this level)' : '';
+  };
   const mini = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
 
   // ---------- Rendering ----------
@@ -474,7 +480,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         html += `<span class="emo">${def.emoji}</span>`;
         const y = fc && fc.per[i];
         if (!deltas && y && (y.p || y.s)) html += `<span class="yield">${mini(y.p, 'pearl')}${mini(y.s, 'shell')}</span>`;
-        if (t.lvl > 1) html += `<span class="lvl">${'★'.repeat(t.lvl)}</span>`;
+        if (t.lvl > 1) html += `<span class="lvl">${t.lvl <= 3 ? '★'.repeat(t.lvl) : '★' + t.lvl}</span>`;
         if (t.kind === 'coral') html += `<span class="age">${t.age}</span>`;
       } else {
         html += `<span class="order">${i + 1}</span>`;
@@ -529,9 +535,9 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i], def = TILES[k];
       const cost = TP.tileCost(G, k), poor = cost > G.shells;
-      const twin = G.grid.find(t => t && t.kind === k && t.lvl < CONFIG.maxLevel);
+      const twin = G.grid.filter(t => t && t.kind === k && t.lvl < CONFIG.maxLevel).sort((a, b) => b.lvl - a.lvl)[0];
       el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}` +
-        (twin ? `<span class="next">On your ${def.name}: ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
+        (twin ? `<span class="next">On your ★${twin.lvl} ${def.name}: ★${twin.lvl + 1} ${def.text(TP.power(k, twin.lvl + 1))}${gainNote(k, twin.lvl)}</span>` : '') + `</div>` +
         `<span class="chip">${poor ? `Need ${cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
       return;
     }
@@ -539,8 +545,9 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const t = G.grid[sel.i], def = TILES[t.kind];
       const y = yieldOf(G).per[sel.i] || { p: 0, s: 0 };
       const l = TP.links(G, sel.i);
-      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${def.text(t.lvl)}` +
-        (t.lvl < CONFIG.maxLevel ? `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(t.lvl + 1)}</span>` : `<span class="next">Max level.</span>`) +
+      el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${def.text(TP.power(t.kind, t.lvl))}` +
+        `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(TP.power(t.kind, t.lvl + 1))}${gainNote(t.kind, t.lvl)}</span>` +
+        `<span class="curve">${TP.CURVES[def.curve].label}.</span>` +
         `<div class="legend"><span>Next tide: ${(y.p || y.s) ? `${y.p} pearls, ${y.s} shells` : 'nothing yet'}</span>` +
         `<span><i style="background:var(--ok)"></i>feeds this</span>${l.boosts.length ? `<span><i style="background:var(--coral)"></i>powered by this</span>` : ''}<span><i style="background:var(--pearl)"></i>fed by this</span></div></div>` +
         `<button class="chip" id="sellBtn">Sell +${TP.sellValue(t)}</button>`;
@@ -743,11 +750,11 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   function showHelp() {
     store.set('seenHelp', true);
-    const dex = Object.entries(TILES).map(([k, d]) => `<div><span class="e">${d.emoji}</span><span><b>${d.name}</b> ${d.text(1)}</span><span class="c">${d.cost}</span></div>`).join('');
+    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${d.emoji}</span><span><b>${d.name}</b> ${d.text(1)} <i>${{ steady: 'Steady', tapering: 'Tapering', crowding: 'Crowding' }[d.curve]}.</i></span><span class="c">${d.cost}</span></div>`).join('');
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       <h2>Grow a reef that pays you back</h2>
       <ol>
-        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Kelp counts as two Kelp for its neighbors.</li>
+        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up, with no cap. A ★2 Kelp counts as two Kelp for its neighbors. How much a level adds depends on the tile: <b>Steady</b> tiles grow the same every level, <b>Tapering</b> tiles add less past ★3, and <b>Crowding</b> tiles get worse past ★3 and eventually cost you.</li>
         <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
         <li>Pearls are your score and your money. Spend them to break rocks for more space and on Tide Charms (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
         <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
