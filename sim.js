@@ -3,12 +3,34 @@ const TP = require('./engine.js');
 const { CONFIG, TILES } = TP;
 
 // Value of one tide's output if this board were frozen, measured on a clone.
-function tideYield(state) {
-  const c = TP.clone(state);
-  c.over = false;
-  const s0 = c.shells, p0 = c.pearls;
-  TP.runTide(c);
-  return { p: c.pearls - p0, s: c.shells - s0 - CONFIG.tideIncome };
+const tideYield = (state) => TP.forecast(state);
+
+// Pearls the bot can spend now and still expect to clear the next checkpoint.
+function spare(state) {
+  const cp = TP.nextCheckpoint(state);
+  if (!cp) return state.pearls;
+  const tidesTo = cp.tide - state.tide + 1;
+  return state.pearls + tideYield(state).p * tidesTo * 0.8 - cp.need;
+}
+
+// Spend pearls on charms and rocks when the expected return beats the price.
+function spendPearls(state, left, shellW) {
+  const score = (y) => (y.p + shellW * y.s) * left;
+  const econ = { map: 2 * shellW, sandbar: 1.5 * shellW, riptide: 2 * shellW, bloom: 3 * shellW };
+  let best = null;
+  const base = score(tideYield(state));
+  for (const id of state.charmOffers) {
+    const price = TP.charmPrice(state, id);
+    if (price > spare(state)) continue;
+    const c = TP.clone(state);
+    if (!TP.buyCharm(c, id)) continue;
+    const gain = score(tideYield(c)) - base + (econ[id] || 0) * left - price;
+    if (!best || gain > best.gain) best = { gain, id };
+  }
+  if (best && best.gain > 0) TP.buyCharm(state, best.id);
+  const empties = state.grid.filter((t, i) => !t && !state.rock[i]).length;
+  const rock = state.rock.indexOf(true);
+  if (rock >= 0 && empties <= 1 && left >= 4 && TP.rockCost(state) <= spare(state)) TP.breakRock(state, rock);
 }
 
 const bots = {
@@ -16,7 +38,7 @@ const bots = {
     for (let tries = 0; tries < 6; tries++) {
       const opts = [];
       state.offers.forEach((k, oi) => {
-        if (!k || TILES[k].cost > state.shells) return;
+        if (!k || TP.tileCost(state, k) > state.shells) return;
         state.grid.forEach((_, cell) => { if (TP.canPlace(state, k, cell)) opts.push([oi, cell]); });
       });
       if (!opts.length) return;
@@ -32,12 +54,13 @@ const bots = {
     const cp = TP.nextCheckpoint(state);
     if (cp && cp.tide - state.tide <= 1 && state.pearls < cp.need) shellW = 0.05; // behind pace: chase pearls
     const score = (y) => (y.p + shellW * y.s) * left;
+    spendPearls(state, left, shellW);
     let rerolled = 0;
     for (let guard = 0; guard < 12; guard++) {
       const base = score(tideYield(state));
       let best = null;
       state.offers.forEach((k, oi) => {
-        if (!k || TILES[k].cost > state.shells) return;
+        if (!k || TP.tileCost(state, k) > state.shells) return;
         for (let cell = 0; cell < state.grid.length; cell++) {
           const cur = state.grid[cell];
           const variants = [];
@@ -48,7 +71,7 @@ const bots = {
             let refund = 0;
             if (v === 'replace') { refund = TP.sellValue(c.grid[cell]); TP.sell(c, cell); }
             if (!TP.buy(c, oi, cell)) continue;
-            const gain = score(tideYield(c)) - base - shellW * (TILES[k].cost - refund);
+            const gain = score(tideYield(c)) - base - shellW * (TP.tileCost(state, k) - refund);
             if (!best || gain > best.gain) best = { gain, oi, cell, v };
           }
         }
@@ -77,19 +100,32 @@ function play(botName, seed) {
       pearlsBy[k] = (pearlsBy[k] || 0) + e.p;
     }
   }
-  return { state, picks, pearlsBy };
+  // Late-game efficiency: what each kind on the final board makes per tide, per level.
+  const late = {};
+  const c = TP.clone(state); c.over = false;
+  const f = TP.forecast(c).per;
+  state.grid.forEach((t, i) => {
+    if (!t) return;
+    const o = late[t.kind] || (late[t.kind] = { v: 0, lv: 0 });
+    o.v += (f[i] ? f[i].p + 0.3 * f[i].s : 0); o.lv += t.lvl;
+  });
+  return { state, picks, pearlsBy, late };
 }
 
 function pct(arr, q) { const a = [...arr].sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(q * a.length))]; }
 
 function report(botName, runs) {
   const results = [];
-  const picks = {}, pearlsBy = {};
+  const picks = {}, pearlsBy = {}, late = {}, charms = {};
+  let rocks = 0;
   for (let r = 0; r < runs; r++) {
     const res = play(botName, 1000 + r);
     results.push(res.state);
     for (const k in res.picks) picks[k] = (picks[k] || 0) + res.picks[k];
     for (const k in res.pearlsBy) pearlsBy[k] = (pearlsBy[k] || 0) + res.pearlsBy[k];
+    for (const k in res.late) { const o = late[k] || (late[k] = { v: 0, lv: 0 }); o.v += res.late[k].v; o.lv += res.late[k].lv; }
+    for (const id of res.state.charms) charms[id] = (charms[id] || 0) + 1;
+    rocks += res.state.rocksBroken;
   }
   const won = results.filter(s => s.won);
   const fails = {};
@@ -110,8 +146,9 @@ function report(botName, runs) {
   const totalPicks = Object.values(picks).reduce((a, b) => a + b, 0);
   const rows = Object.keys(TILES).map(k => ({ k, pick: picks[k] || 0, pearls: pearlsBy[k] || 0 }))
     .sort((a, b) => b.pick - a.pick);
-  console.log('tile          picks%  pearls/run');
-  for (const r of rows) console.log(`${TILES[r.k].name.padEnd(13)} ${(100 * r.pick / totalPicks).toFixed(1).padStart(5)}  ${(r.pearls / runs).toFixed(1).padStart(8)}`);
+  console.log(`rocks broken per run: ${(rocks / runs).toFixed(2)}   charms bought: ${Object.entries(charms).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${TP.CHARMS[id].name} ${(100 * n / runs).toFixed(0)}%`).join(', ') || 'none'}`);
+  console.log('tile          picks%  pearls/run  late value per level per tide');
+  for (const r of rows) console.log(`${TILES[r.k].name.padEnd(13)} ${(100 * r.pick / totalPicks).toFixed(1).padStart(5)}  ${(r.pearls / runs).toFixed(1).padStart(8)}  ${late[r.k] ? (late[r.k].v / late[r.k].lv).toFixed(1).padStart(8) : '       -'}`);
 }
 
 const runs = +process.argv[2] || 500;

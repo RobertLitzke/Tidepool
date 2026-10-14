@@ -21,6 +21,7 @@
   --ok: #2E9C6A;
   --bad: #D9473B;
   --glow: rgba(255, 214, 102, .85);
+  --rock: #CDBFA6;
   --shadow: 0 2px 0 var(--sand-edge), 0 6px 14px rgba(23, 50, 72, .10);
   --font-display: "Fredoka", "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
   --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -31,6 +32,7 @@
     --ink: #E8F6F3; --ink-soft: #9DBEC6; --coral: #FF8274; --coral-ink: #1A1012;
     --shell: #F2B85C; --pearl: #B7AAF5; --panel: #163746; --ok: #5ED39C; --bad: #FF7B6E;
     --glow: rgba(255, 214, 102, .55); --shadow: 0 2px 0 var(--sand-edge), 0 6px 14px rgba(0, 0, 0, .3);
+    --rock: #2B4752;
     color-scheme: dark;
   }
 }
@@ -39,6 +41,7 @@
   --ink: #E8F6F3; --ink-soft: #9DBEC6; --coral: #FF8274; --coral-ink: #1A1012;
   --shell: #F2B85C; --pearl: #B7AAF5; --panel: #163746; --ok: #5ED39C; --bad: #FF7B6E;
   --glow: rgba(255, 214, 102, .55); --shadow: 0 2px 0 var(--sand-edge), 0 6px 14px rgba(0, 0, 0, .3);
+  --rock: #2B4752;
   color-scheme: dark;
 }
 
@@ -128,6 +131,36 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .cell .delta .s { color: var(--shell); }
 .cell .delta .z { color: var(--ink-soft); opacity: .7; }
 .cell .lvlup { position: absolute; top: 3px; right: 5px; font-size: 11px; font-weight: 700; color: var(--panel); background: var(--coral); border-radius: 99px; padding: 1px 5px; }
+.cell.rock { background: var(--rock); box-shadow: inset 0 -4px 0 rgba(0,0,0,.12); }
+.cell.rock .emo { font-size: clamp(22px, 8vw, 36px); opacity: .85; }
+.cell .price { position: absolute; bottom: 4px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; color: var(--pearl); }
+.cell .price svg { width: 11px; height: 11px; }
+.cell .yield { position: absolute; bottom: 3px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: .9; }
+.cell .yield svg { width: 9px; height: 9px; vertical-align: -1px; margin-left: 1px; }
+.cell .yield .p { color: var(--pearl); }
+.cell .yield .s { color: var(--shell); }
+.cell.reads { box-shadow: inset 0 0 0 3px var(--ok); }
+.cell.boosts { box-shadow: inset 0 0 0 3px var(--coral); }
+.cell.usedby { box-shadow: inset 0 0 0 3px var(--pearl); }
+.cell .tag { position: absolute; top: 3px; right: 5px; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 99px; color: var(--panel); }
+.cell.reads .tag { background: var(--ok); }
+.cell.boosts .tag { background: var(--coral); }
+.cell.usedby .tag { background: var(--pearl); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; margin-top: 3px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.charms { display: flex; align-items: center; gap: 6px; min-height: 26px; }
+.charms .owned { display: flex; gap: 4px; }
+.charms .owned button { width: 26px; height: 26px; border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); font-size: 15px; line-height: 26px; }
+.charms .market { font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--pearl); color: var(--panel); animation: glowPulse 1.6s ease-in-out infinite; }
+@keyframes glowPulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pearl) 35%, transparent); } }
+.charm-list { display: grid; gap: 8px; }
+.charm { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 16px; background: var(--sand); text-align: left; }
+.charm .e { font-size: 26px; }
+.charm b { font-family: var(--font-display); font-weight: 600; font-size: 16px; display: block; }
+.charm span { font-size: 13px; color: var(--ink-soft); line-height: 1.35; }
+.charm .pr { display: flex; align-items: center; gap: 3px; font-weight: 700; color: var(--pearl); font-size: 15px; }
+.charm .pr svg { width: 15px; height: 15px; }
+.charm:disabled { opacity: .5; }
 .cell.valid { box-shadow: inset 0 0 0 2px var(--coral), inset 0 -3px 0 rgba(0,0,0,.05); }
 .cell.best { box-shadow: inset 0 0 0 3px var(--coral), 0 0 0 3px var(--glow); }
 .cell.invalid { opacity: .45; }
@@ -164,7 +197,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .chip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 99px; background: var(--panel); box-shadow: var(--shadow); white-space: nowrap; }
 
 /* Shop */
-.shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.shop { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .card {
   position: relative;
   border-radius: 16px;
@@ -253,7 +286,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .dex .c { color: var(--shell); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .toast {
-  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px);
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 150px);
   transform: translateX(-50%);
   background: var(--ink); color: var(--panel);
   padding: 8px 14px; border-radius: 99px;
@@ -292,9 +325,11 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   </div>
 
   <div class="goal">
-    <div class="goal-text"><span id="goalText">Reach 8 pearls by tide 4</span><span id="goalNum"></span></div>
+    <div class="goal-text"><span id="goalText"></span><span id="goalNum"></span></div>
     <div class="bar" id="goalBar"><i></i></div>
   </div>
+
+  <div class="charms" id="charms"></div>
 
   <div class="reef-wrap"><div class="reef" id="reef"></div></div>
 
@@ -317,7 +352,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 <script>
 (() => {
   const TP = window.Tidepool;
-  const { CONFIG, TILES } = TP;
+  const { CONFIG, TILES, CHARMS } = TP;
   const $ = (id) => document.getElementById(id);
   const store = {
     get(k) { try { return JSON.parse(localStorage.getItem('tidepool.' + k)); } catch { return null; } },
@@ -332,12 +367,13 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   function start(data) {
     G = (data && data.G) || store.get('run');
-    if (!G || !G.grid || G.grid.length !== CONFIG.cols * CONFIG.rows) G = TP.newGame(Math.floor(Math.random() * 1e9));
+    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows) G = TP.newGame(Math.floor(Math.random() * 1e9));
     sel = null; undo = []; busy = false;
     buildReef();
     render();
     if (G.over) endRun();
     else if (!store.get('seenHelp')) showHelp();
+    else if (G.charmOffers.length && G.charmSeen !== G.tide) showCharms();
   }
 
   function newRun(seed, daily) {
@@ -351,12 +387,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   const save = () => store.set('run', G);
 
   // ---------- Forecast: what the reef would make next tide if frozen ----------
-  function yieldOf(state) {
-    const c = TP.clone(state); c.over = false;
-    const s0 = c.shells, p0 = c.pearls;
-    TP.runTide(c);
-    return { p: c.pearls - p0, s: c.shells - s0 - CONFIG.tideIncome };
-  }
+  const yieldOf = (state) => TP.forecast(state);
+  const mini = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
 
   // ---------- Rendering ----------
   function buildReef() {
@@ -372,7 +404,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   function render() {
     $('tidePill').textContent = G.over ? 'Run over' : `Tide ${G.tide} of ${CONFIG.tides}`;
     setCounter('shells', G.shells); setCounter('pearls', G.pearls);
-    renderGoal(); renderReef(); renderShop(); renderInfo(); renderActions();
+    renderGoal(); renderCharms(); renderReef(); renderShop(); renderInfo(); renderActions();
   }
 
   function setCounter(id, v) { $(id).querySelector('span').textContent = v; }
@@ -381,7 +413,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     const cp = TP.nextCheckpoint(G);
     const bar = $('goalBar');
     if (cp) {
-      $('goalText').innerHTML = `Reach <b>${cp.need} pearls</b> by tide ${cp.tide}`;
+      $('goalText').innerHTML = `Hold <b>${cp.need} pearls</b> at the end of tide ${cp.tide}`;
       $('goalNum').textContent = `${Math.min(G.pearls, cp.need)} / ${cp.need}`;
       bar.querySelector('i').style.width = Math.min(100, 100 * G.pearls / cp.need) + '%';
       bar.classList.toggle('met', G.pearls >= cp.need);
@@ -395,8 +427,27 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     }
   }
 
+  function renderCharms() {
+    const el = $('charms');
+    const owned = G.charms.map(id => `<button data-charm="${id}" aria-label="${CHARMS[id].name}">${CHARMS[id].emoji}</button>`).join('');
+    el.innerHTML = `<div class="owned">${owned}</div><div class="spacer"></div>` +
+      (G.charmOffers.length && !G.over ? `<button class="market" id="marketBtn">Tide Charms</button>` : '');
+    el.querySelectorAll('[data-charm]').forEach(b => b.addEventListener('click', () => {
+      const c = CHARMS[b.dataset.charm]; sel = { type: 'charm', id: b.dataset.charm }; render();
+    }));
+    if ($('marketBtn')) $('marketBtn').addEventListener('click', showCharms);
+  }
+
   function renderReef() {
     const kind = sel && sel.type === 'offer' ? G.offers[sel.i] : null;
+    const fc = !busy ? yieldOf(G) : null;
+    // Hint overlay for a selected tile: what it counts, what it powers, and who counts it.
+    let hint = null;
+    if (sel && sel.type === 'cell' && G.grid[sel.i]) {
+      const l = TP.links(G, sel.i);
+      const usedBy = G.grid.map((t, j) => t && j !== sel.i && TP.links(G, j).reads.includes(sel.i) ? j : -1).filter(j => j >= 0);
+      hint = { reads: new Set(l.reads), boosts: new Set(l.boosts), usedBy: new Set(usedBy) };
+    }
     let deltas = null, bestCell = -1;
     if (kind && !busy) {
       const base = yieldOf(G); deltas = {};
@@ -414,8 +465,12 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const t = G.grid[i];
       const def = t && TILES[t.kind];
       let html = '';
-      if (t) {
+      if (G.rock[i]) {
+        html += `<span class="emo">🪨</span><span class="price">${TP.rockCost(G)}${icon('pearl')}</span>`;
+      } else if (t) {
         html += `<span class="emo">${def.emoji}</span>`;
+        const y = fc && fc.per[i];
+        if (!deltas && y && (y.p || y.s)) html += `<span class="yield">${mini(y.p, 'pearl')}${mini(y.s, 'shell')}</span>`;
         if (t.lvl > 1) html += `<span class="lvl">${'★'.repeat(t.lvl)}</span>`;
         if (t.kind === 'coral') html += `<span class="age">${t.age}</span>`;
       } else {
@@ -428,28 +483,38 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         html += `<span class="delta">${txt}</span>`;
         if (t) html += `<span class="lvlup">★${t.lvl + 1}</span>`;
       }
+      if (hint) {
+        const tag = hint.boosts.has(i) ? 'powered' : hint.reads.has(i) ? 'feeds' : hint.usedBy.has(i) ? 'fed' : '';
+        if (tag) html += `<span class="tag">${tag}</span>`;
+      }
       el.innerHTML = html;
+      el.classList.toggle('rock', !!G.rock[i]);
+      el.classList.toggle('reads', !!hint && hint.reads.has(i) && !hint.boosts.has(i));
+      el.classList.toggle('boosts', !!hint && hint.boosts.has(i));
+      el.classList.toggle('usedby', !!hint && hint.usedBy.has(i) && !hint.reads.has(i) && !hint.boosts.has(i));
       el.classList.toggle('valid', !!deltas && i in deltas && i !== bestCell);
       el.classList.toggle('best', !!deltas && i === bestCell);
       el.classList.toggle('invalid', !!deltas && !(i in deltas));
       el.classList.toggle('picked', !!sel && sel.type === 'cell' && sel.i === i);
-      el.setAttribute('aria-label', t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}` : `Empty spot ${i + 1}`);
+      el.setAttribute('aria-label', G.rock[i] ? `Rock, break for ${TP.rockCost(G)} pearls` : t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}` : `Empty spot ${i + 1}`);
     });
   }
 
   function renderShop() {
     const shop = $('shop'); shop.innerHTML = '';
+    shop.style.gridTemplateColumns = `repeat(${G.offers.length}, minmax(0, 1fr))`;
     G.offers.forEach((k, i) => {
       const b = document.createElement('button');
       b.className = 'card';
       if (!k) { b.classList.add('sold'); b.disabled = true; shop.appendChild(b); return; }
       const def = TILES[k];
-      if (def.cost > G.shells) b.classList.add('poor');
+      const cost = TP.tileCost(G, k);
+      if (cost > G.shells) b.classList.add('poor');
       if (sel && sel.type === 'offer' && sel.i === i) b.classList.add('sel');
       if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
       const twin = G.grid.find(t => t && t.kind === k && t.lvl < CONFIG.maxLevel);
-      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${def.cost}</span>`;
-      b.setAttribute('aria-label', `${def.name}, costs ${def.cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
+      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${cost}</span>`;
+      b.setAttribute('aria-label', `${def.name}, costs ${cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
       b.addEventListener('click', () => onOffer(i));
       shop.appendChild(b);
     });
@@ -460,17 +525,21 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     const el = $('info');
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i], def = TILES[k];
-      const poor = def.cost > G.shells;
+      const cost = TP.tileCost(G, k), poor = cost > G.shells;
       const twin = G.grid.find(t => t && t.kind === k && t.lvl < CONFIG.maxLevel);
       el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}` +
         (twin ? `<span class="next">On your ${def.name}: ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
-        `<span class="chip">${poor ? `Need ${def.cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
+        `<span class="chip">${poor ? `Need ${cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
       return;
     }
     if (sel && sel.type === 'cell' && G.grid[sel.i]) {
       const t = G.grid[sel.i], def = TILES[t.kind];
+      const y = yieldOf(G).per[sel.i] || { p: 0, s: 0 };
+      const l = TP.links(G, sel.i);
       el.innerHTML = `<div class="txt"><span class="name">${def.name} ★${t.lvl}</span> ${def.text(t.lvl)}` +
-        (t.lvl < CONFIG.maxLevel ? `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(t.lvl + 1)}</span>` : `<span class="next">Max level.</span>`) + `</div>` +
+        (t.lvl < CONFIG.maxLevel ? `<span class="next">★${t.lvl + 1} (add a twin): ${def.text(t.lvl + 1)}</span>` : `<span class="next">Max level.</span>`) +
+        `<div class="legend"><span>Next tide: ${(y.p || y.s) ? `${y.p} pearls, ${y.s} shells` : 'nothing yet'}</span>` +
+        `<span><i style="background:var(--ok)"></i>feeds this</span>${l.boosts.length ? `<span><i style="background:var(--coral)"></i>powered by this</span>` : ''}<span><i style="background:var(--pearl)"></i>fed by this</span></div></div>` +
         `<button class="chip" id="sellBtn">Sell +${TP.sellValue(t)}</button>`;
       $('sellBtn').addEventListener('click', () => {
         undo.push(TP.clone(G));
@@ -478,19 +547,35 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       });
       return;
     }
+    if (sel && sel.type === 'rock') {
+      const cost = TP.rockCost(G);
+      el.innerHTML = `<div class="txt"><span class="name">Rock</span> Break it to open a new spot on the reef. Each rock costs more than the last.</div>` +
+        `<button class="chip" id="breakBtn" ${G.pearls < cost ? 'disabled' : ''}>Break: ${cost} pearls</button>`;
+      $('breakBtn').addEventListener('click', () => {
+        undo.push(TP.clone(G));
+        if (TP.breakRock(G, sel.i)) { const i = sel.i; sel = null; buzz([10, 30, 10]); save(); render(); const el = $('reef').children[i]; pulse(el, 'placed'); }
+        else { undo.pop(); toast(`You need ${cost} pearls`); }
+      });
+      return;
+    }
+    if (sel && sel.type === 'charm') {
+      const c = CHARMS[sel.id];
+      el.innerHTML = `<div class="txt"><span class="name">${c.emoji} ${c.name}</span> ${c.text}</div>`;
+      return;
+    }
     if (G.over) {
       el.innerHTML = `<div class="txt">The run is over.</div><button class="chip" id="overNew">New reef</button>`;
       $('overNew').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
       return;
     }
-    el.innerHTML = `<div class="txt">Tiles fire in reading order, 1 to 16. Drop a tile on its twin to level it up.</div>`;
+    el.innerHTML = `<div class="txt">Tap a tile to see what feeds it and what it feeds. Tiles fire in order, 1 to 16.</div>`;
   }
 
   function renderActions() {
     const y = yieldOf(G);
     $('forecast').textContent = G.over ? '' : `Reef makes ${y.p} pearls, ${y.s} shells`;
     const rc = TP.rerollCost(G);
-    $('rerollCost').textContent = rc;
+    $('rerollCost').textContent = rc || 'free';
     $('rerollBtn').disabled = busy || G.over || G.shells < rc;
     $('tideBtn').disabled = busy || G.over;
     $('undoBtn').disabled = busy || !undo.length;
@@ -508,7 +593,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     if (G.over) return;
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i];
-      if (TILES[k].cost > G.shells) { toast(`You need ${TILES[k].cost} shells`); return; }
+      if (TP.tileCost(G, k) > G.shells) { toast(`You need ${TP.tileCost(G, k)} shells`); return; }
       if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
       undo.push(TP.clone(G));
       const lvlUp = !!G.grid[i];
@@ -519,7 +604,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       if (lvlUp) floatAt(i, `★${G.grid[i].lvl}`, 'm');
       return;
     }
-    sel = G.grid[i] && !(sel && sel.type === 'cell' && sel.i === i) ? { type: 'cell', i } : null;
+    const again = sel && sel.i === i;
+    sel = again ? null : G.rock[i] ? { type: 'rock', i } : G.grid[i] ? { type: 'cell', i } : null;
     render();
   }
 
@@ -592,7 +678,8 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     const earned = G.lastTide.earned;
     if (G.over) { endRun(before); return; }
     const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
-    toast(passed ? `Goal reached! +${earned} pearls this tide` : `+${earned} pearls · the tide brings ${CONFIG.tideIncome} shells`);
+    toast(passed ? `Goal reached! +${earned} pearls this tide` : `+${earned} pearls · the tide brings ${G.lastTide.income} shells`);
+    if (G.charmOffers.length) setTimeout(showCharms, 700);
   }
 
   // ---------- Overlays ----------
@@ -615,12 +702,35 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     $('overlay').innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Run summary">
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
-      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed ${need} pearls by tide ${G.failedAt}. Pearl makers like Oysters and Shrimp beside Kelp help early.</p>`}
+      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Shrimp beside Kelp make pearls early.</p>`}
       <p>${isBest ? 'New best reef!' : `Best reef: ${Math.max(best, 0)} pearls.`} ${G.daily ? 'Daily reef for today.' : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily reef</button><button class="btn go" id="againBtn">New reef</button></div>
     </div></div>`;
     $('againBtn').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
     $('dailyBtn').addEventListener('click', () => newRun(todaySeed(), true));
+  }
+
+  function showCharms() {
+    if (!G.charmOffers.length || G.over) return;
+    G.charmSeen = G.tide; save();
+    const rows = G.charmOffers.map(id => {
+      const c = CHARMS[id], price = TP.charmPrice(G, id);
+      return `<button class="charm" data-id="${id}" ${G.pearls < price ? 'disabled' : ''}><span class="e">${c.emoji}</span><span><b>${c.name}</b>${c.text}</span><span class="pr">${price}${icon('pearl')}</span></button>`;
+    }).join('');
+    const cp = TP.nextCheckpoint(G);
+    $('overlay').innerHTML = `<div class="sheet-bg" id="charmBg"><div class="sheet" role="dialog" aria-label="Tide Charms">
+      <h2>Tide Charms</h2>
+      <p>Spend pearls on one permanent charm. You have ${G.pearls} pearls${cp ? `, and need to hold ${cp.need} at the end of tide ${cp.tide}` : ''}.</p>
+      <div class="charm-list">${rows}</div>
+      <div class="row"><button class="btn" id="charmSkip">Not now</button></div>
+    </div></div>`;
+    $('overlay').querySelectorAll('.charm').forEach(b => b.addEventListener('click', () => {
+      undo.push(TP.clone(G));
+      if (TP.buyCharm(G, b.dataset.id)) { closeOverlay(); buzz([10, 40, 10, 40, 20]); save(); dealt = true; render(); toast(`${CHARMS[b.dataset.id].name} is yours`); }
+      else undo.pop();
+    }));
+    $('charmSkip').addEventListener('click', closeOverlay);
+    $('charmBg').addEventListener('click', (e) => { if (e.target.id === 'charmBg') closeOverlay(); });
   }
 
   function showHelp() {
@@ -629,11 +739,12 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       <h2>Grow a reef that pays you back</h2>
       <ol>
-        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up. Each level adds the base numbers again: ★2 makes double, ★3 triple.</li>
+        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Kelp counts as two Kelp for its neighbors.</li>
         <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
-        <li>Hit the pearl goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}, then score as many pearls as you can by tide ${CONFIG.tides}.</li>
+        <li>Pearls are your score and your money. Spend them to break rocks for more space and on Tide Charms (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
+        <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
       </ol>
-      <p>When you pick a tile, each spot shows what it would add to your next tide. Daily reef and New reef start over from here.</p>
+      <p>When you pick a shop tile, each spot shows what it would add to your next tide. Tap a placed tile to see what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
       <div class="dex">${dex}</div>
       <div class="row"><button class="btn" id="helpDaily">Daily reef</button><button class="btn" id="helpNew">New reef</button></div>
       <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > CONFIG.startTiles.length) ? 'Keep playing' : 'Play'}</button></div>
