@@ -11,7 +11,7 @@
     shopSize: 3,
     rerollBase: 2,          // first reroll cost in a tide
     rerollStep: 2,          // each further reroll in the same tide costs this much more
-    disabled: [],                 // tile kinds kept out of the shop (used by tuning experiments)
+    disabled: ['clown'],          // tile kinds kept out of the shop. Clownfish is parked: it overlapped Anemone.
     rocks: [12, 13, 14, 15],      // cells that start as rock
     rockCosts: [5, 10, 16, 24],   // pearls to break the 1st, 2nd, ... rock
     charmTides: [3, 6, 9],        // a Tide Charm market opens at the start of these tides
@@ -46,9 +46,9 @@
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => n.kind === 'kelp')(c.grid[j])),
       fire: (c, L) => ({ s: L, p: L * count(c, n => n.kind === 'kelp') }) },
     crab: { name: 'Hermit Crab', emoji: '🦀', cost: 3, rarity: 'common', tag: 'critter',
-      text: (L) => `+${L} shell for each touching tile.`,
-      reads: (c) => c.nb.filter(j => c.grid[j] && (() => true)(c.grid[j])),
-      fire: (c, L) => ({ s: L * count(c, () => true), p: 0 }) },
+      text: (L) => `+${L} shell for each touching tile (levels don't add).`,
+      reads: (c) => c.nb.filter(j => c.grid[j]),
+      fire: (c, L) => ({ s: L * c.nb.filter(j => c.grid[j]).length, p: 0 }) },
     shrimp: { name: 'Shrimp', emoji: '🦐', cost: 3, rarity: 'common', tag: 'critter',
       text: (L) => `+${L} pearl for each touching plant.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => TILES[n.kind].tag === 'plant')(c.grid[j])),
@@ -79,9 +79,9 @@
       text: (L) => `Echo: fires the tile above it again${L > 1 ? `, ${L} times` : ''}.`,
       targets: (i) => [i - CONFIG.cols].filter(j => j >= 0) },
     otter: { name: 'Sea Otter', emoji: '🦦', cost: 6, rarity: 'rare', tag: 'critter',
-      text: (L) => `Trades up to ${5 * L} shells for pearls, one for one.`,
-      fire: (c, L) => { const n = Math.min(c.state.shells, 5 * L); return { s: -n, p: n, conv: true }; } },
-    octo: { name: 'Octopus', emoji: '🐙', cost: 7, rarity: 'rare', tag: 'critter',
+      text: (L) => `Trades up to ${6 * L} shells for pearls: 3 pearls for every 2 shells.`,
+      fire: (c, L) => { const n = Math.min(c.state.shells, 6 * L) & ~1; return { s: -n, p: n / 2 * 3, conv: true }; } },
+    octo: { name: 'Octopus', emoji: '🐙', cost: 5, rarity: 'rare', tag: 'critter',
       text: (L) => `+${L} pearl for each different kind of tile touching it.`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (() => true)(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * new Set(c.nb.map(j => c.grid[j]).filter(Boolean).map(t => t.kind)).size }) },

@@ -48,10 +48,12 @@ for (const bot of which === 'all' ? ['greedy', 'random'] : [which]) {
   console.log(`total tiles bought: ${totalBought} (${(totalBought / tallyGames).toFixed(1)} per game)`);
   console.log('tile           cost  bought  per game  on final board  avg w/o tile  change  finish w/o');
   const rows = [];
+  const parked = CONFIG.disabled.slice();
   for (const k of Object.keys(TILES)) {
-    CONFIG.disabled = [k];
+    if (parked.includes(k)) continue;
+    CONFIG.disabled = parked.concat(k);
     const d = batch(bot, dropGames, 9000);
-    CONFIG.disabled = [];
+    CONFIG.disabled = parked;
     rows.push({ k, n: tally[k] || 0, fin: finals[k] || 0, d });
   }
   rows.sort((a, b) => a.d.avg - b.d.avg); // biggest drop first = strongest tile
