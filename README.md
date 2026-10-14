@@ -30,6 +30,8 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Greedy bot: 85% finish, median 973, p90 3048 (more snowball). Highest level on board p50 5, p90 9, max 15 (Conch). Bot still levels crowded Crabs because neighbors count them by level.
 - v7 (2026-10-14, Rob: only a few cheap tiles should stack without limit; most stop at ★3): growth curves removed. All tiles cap at ★3 except Kelp and Conch (stack: true), which level forever at a steady rate.
   Greedy bot: 85% finish, median 883, p90 2259, stars 0/1/2/3 = 69/163/134/58. Highest Conch p50 ★3, p90 ★8, max ★15; highest Kelp p50 ★1, p90 ★4, max ★12. Kelp and Conch make about 5% of final-tide pearls directly (most Conch value shows up in Oysters).
+- v8 (2026-10-14, Rob: some early games are unwinnable without pearl tiles): through tide 4 every shop includes an affordable Oyster, Shrimp, Jellyfish or Coral (0 of 2,000 tide-1 shops lack one). Tide 4 goal 15 → 12.
+  Greedy bot: 90% finish (was 85%), tide-4 failures 40 → 11 of 500, median 835, stars 0/1/2/3 = 82/194/123/49. With the guarantee alone (goal 15) tide-4 failures were 34, mostly near misses at 11 to 14 pearls.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

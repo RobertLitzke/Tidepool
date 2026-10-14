@@ -20,7 +20,7 @@
     maxLevel: 3,            // level cap for most tiles; tiles marked stack: true have no cap
     sellRate: 0.5,          // refund = floor(cost * level * sellRate)
     // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
-    checkpoints: { 4: 15, 8: 120 },
+    checkpoints: { 4: 12, 8: 120 },
     stars: [500, 1000, 2000],  // pearls held at the end for 1, 2, 3 stars
     // Shop weights by rarity; rare weight ramps up as tides pass.
     rarityWeight: (rarity, tide) => rarity === 'common' ? 10
@@ -28,6 +28,8 @@
       : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
     rareFromTide: 3,        // no rares in the shop before this tide
     affordableOffers: 2,    // at least this many offers cost no more than your shells
+    earlyPearlTiles: ['oyster', 'shrimp', 'jelly', 'coral'], // tiles that make pearls on their own early on
+    pearlOfferUntil: 4,     // through this tide, every shop has at least one affordable early pearl tile
   };
 
   // Effects return {s, p} (shells, pearls) for one activation at level 1..3.
@@ -212,6 +214,14 @@
     for (let n = 0; n < state.offers.length && have < CONFIG.affordableOffers; n++) {
       if (affordable(state.offers[n])) continue;
       state.offers[n] = pick(affordable); have++;
+    }
+    // Early on, make sure a pearl maker is always on offer so the tide 4 goal is reachable.
+    const pearly = (k) => affordable(k) && CONFIG.earlyPearlTiles.includes(k);
+    if (state.tide <= CONFIG.pearlOfferUntil && !state.offers.some(pearly) && kinds.some(pearly)) {
+      // Replace the last offer that isn't the only affordable one.
+      let n = state.offers.length - 1;
+      while (n > 0 && affordable(state.offers[n]) && state.offers.filter(affordable).length <= CONFIG.affordableOffers) n--;
+      state.offers[n] = pick(pearly);
     }
   }
 
