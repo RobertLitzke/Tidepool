@@ -11,7 +11,7 @@
     spring: { name: 'Spring', emoji: '🌸' }, summer: { name: 'Summer', emoji: '☀️' },
   };
   const LEAF_FALL = [8, 9, 10];   // September to November
-  const BEECH_DROP = 3;           // April: the Beech lets go of last year's leaves
+  const BEECH_DROP = [2, 3];      // March and April: the Beech lets go of last year's leaves
   const DRY = [8, 9];             // Drought months: September and October
 
   function def(E) {
@@ -95,7 +95,7 @@
         text: (L) => `+${K.maple * L} amber.`,
         fire: (c, L) => ({ s: 0, p: K.maple * L }) },
       beech: { name: 'Beech', emoji: '🍃', cost: 4, rarity: 'uncommon', tag: 'tree', peak: 'fall', lateLeaves: true,
-        text: (L) => `+${K.beech * L} amber, +${L} more for each touching critter. Holds its leaves all winter and drops them in April instead of fall.`,
+        text: (L) => `+${K.beech * L} amber, +${L} more for each touching critter. Holds its leaves all winter and drops them in March and April instead of fall.`,
         reads: (c) => c.nb.filter(j => c.grid[j] && tagOf(c.grid[j]) === 'critter'),
         fire: (c, L) => ({ s: 0, p: K.beech * L + L * count(c, n => tagOf(n) === 'critter') }) },
       birch: { name: 'Birch', emoji: '🪵', cost: 3, rarity: 'common', tag: 'tree', peak: 'summer',
@@ -190,7 +190,7 @@
       const m = monthOf(state), g = state.grid, per = has(state, 'deeplitter') ? 2 : 1, got = {};
       g.forEach((t, i) => {
         if (!isTree(t)) return;
-        const drops = TILES[t.kind].lateLeaves ? m === BEECH_DROP : LEAF_FALL.includes(m);
+        const drops = TILES[t.kind].lateLeaves ? BEECH_DROP.includes(m) : LEAF_FALL.includes(m);
         if (drops) for (const j of neighbors(i)) if (isPlant(g[j]) || emptyAt(state, j)) got[j] = (got[j] || 0) + per;
       });
       return got;

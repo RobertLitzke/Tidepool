@@ -24,7 +24,7 @@ The other two options, and why I'd pass on them:
 - **Felling** (cut a tree for its value): it rewards tearing your board down, which pulls against building an engine.
 - **Stashing** (tiles plant new tiles nearby): it fills spots without asking you, and that's the kind of surprise we're trying to remove.
 
-Tiles that touch the mechanic: **Beech** (keeps its leaves and drops them in April instead, the one mid-year source), **Wild Ginger** (grows from 1 leaf, not 2), and the **Deep Litter** Heirloom (trees drop 2 leaves).
+Tiles that touch the mechanic: **Beech** (keeps its leaves and drops them in March and April instead, the one mid-year source), **Wild Ginger** (grows from 1 leaf, not 2), and the **Deep Litter** Heirloom (trees drop 2 leaves).
 
 One wrinkle: the run goes November to October, so leaves fall in month 1 and months 11 to 12. The early drop is a good teaching moment, since the starters touch. Mid-year growth comes only from the Beech. If that feels thin, start the year in October so fall covers months 1 and 2.
 
@@ -38,7 +38,7 @@ Numbers are starting points for the bots to tune.
 |---|---|---|---|
 | White Oak | Tree | Fall | +2 seeds, +1 per touching White Oak |
 | Sugar Maple | Tree | Winter | +3 amber |
-| Beech | Tree | Fall | +1 amber per touching critter. Drops its leaves in April, not fall |
+| Beech | Tree | Fall | +1 amber per touching critter. Drops its leaves in March and April, not fall |
 | Birch | Tree | Summer | +1 amber, +1 per touching empty spot |
 | Trillium | Understory | Spring | +3 amber |
 | Mountain Laurel | Understory | Summer | +1 amber per touching tree |
