@@ -28,11 +28,12 @@
     charmPriceStep: 6,            // charm price = base + step * (market number - 1)
     maxLevel: 3,            // level cap for most tiles; tiles marked stack: true have no cap
     levelUpStep: 2,         // capped tiles: each level-up costs this much more than the last (Starfish 5, then 7, then 9)
-    stackPriceEvery: 2,     // stacking tiles (Conch, Kelp) cost 1 more for every this many of that kind you have placed
+    stackPriceEvery: 2,     // stacking tiles (Conch) cost 1 more for every this many of that kind you have placed; flat ones (Kelp) don't
     sellRate: 0.5,          // refund = floor(cost * level * sellRate)
     // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
     checkpoints: { 4: 12, 8: 110 },
-    stars: [350, 650, 1300],  // pearls held at the end for 1, 2, 3 stars
+    // Pearls held at the end for 1, 2, 3 stars. Set so the planner bot gets 0/1/2/3 stars about 30/35/25/10% of runs (fails count as 0).
+    stars: [550, 1000, 1550],
     // Shop weights by rarity; rare weight ramps up as tides pass.
     rarityWeight: (rarity, tide) => rarity === 'common' ? 10
       : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
@@ -74,10 +75,10 @@
       text: (L) => `+${L} pearl, +${L} more for each touching shellfish (${kindNames('shellfish')}).`,
       reads: (c) => c.nb.filter(j => c.grid[j] && TILES[c.grid[j].kind].tag === 'shellfish'),
       fire: (c, L) => ({ s: 0, p: L * (1 + count(c, n => TILES[n.kind].tag === 'shellfish')) }) },
-    kelp: { name: 'Kelp', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', stack: true,
-      text: (L) => `+${L} shell. +${L} pearl for each touching Kelp.`,
-      reads: (c) => c.nb.filter(j => c.grid[j] && (n => n.kind === 'kelp')(c.grid[j])),
-      fire: (c, L) => ({ s: L, p: L * count(c, n => n.kind === 'kelp') }) },
+    // Kelp is the plain stacker: always 2 shells (flat), and each level adds exactly +1 shell and +1 pearl.
+    kelp: { name: 'Kelp', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', stack: true, flat: true,
+      text: (L) => `+${L} shell and +${L} pearl.`,
+      fire: (c, L) => ({ s: L, p: L }) },
     crab: { name: 'Hermit Crab', emoji: '🦀', cost: 3, rarity: 'common', tag: 'critter',
       text: (L) => `+${L} shell for each touching tile (levels don't add).`,
       reads: (c) => c.nb.filter(j => c.grid[j]),
@@ -294,8 +295,10 @@
     const up = t && t.kind === kind && !TILES[kind].stack ? CONFIG.levelUpStep * t.lvl : 0;
     return tileCost(state, kind) + up;
   };
+  // Stacking tiles marked flat (Kelp) keep their list price however many you place.
+  const stackPriced = (kind) => TILES[kind].stack && !TILES[kind].flat;
   const tileCost = (state, kind) => Math.max(1, TILES[kind].cost - (has(state, 'map') ? 1 : 0)
-    + (TILES[kind].stack ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
+    + (stackPriced(kind) ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
 
   function rollOffers(state) {
     const kinds = Object.keys(TILES);
@@ -309,7 +312,7 @@
     state.offers = [];
     for (let n = 0; n < shopSize(state); n++) state.offers.push(pick(() => true));
     // Guarantee some buys: swap unaffordable offers for affordable ones until enough are affordable.
-    const budget = Math.max(state.shells, Math.min(...kinds.map(k => tileCost(state, k))));
+    const budget = Math.max(state.shells, Math.min(...kinds.filter(k => inShop(state, k)).map(k => tileCost(state, k))));
     const affordable = (k) => tileCost(state, k) <= budget && CONFIG.rarityWeight(TILES[k].rarity, state.tide) > 0 && inShop(state, k);
     let have = state.offers.filter(affordable).length;
     for (let n = 0; n < state.offers.length && have < CONFIG.affordableOffers; n++) {
@@ -488,7 +491,7 @@
   const clone = (s) => JSON.parse(JSON.stringify(s));
 
   const api = { CONFIG, TILES, CHARMS, EVENTS, eventOf, eventKnown, eventThreat, invested, KINDS, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
-    maxLevel, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
+    maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
     inShop, moverSpots, moverTargets, moverDests, useMover };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tidepool = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,4 +1,5 @@
-// Bot simulator for balance tuning. Usage: node sim.js [runs=500] [bot=greedy|random|all]
+// Bot simulator for balance tuning. Usage: node sim.js [runs=500] [bot=random|greedy|planner|all]
+// Skill ladder: random (no plan) < greedy (one-tide lookahead, rerolls, charms) < planner (plays each buy out to the end).
 const TP = require('./engine.js');
 const { CONFIG, TILES } = TP;
 
@@ -31,6 +32,70 @@ function spendPearls(state, left, shellW) {
   const empties = state.grid.filter((t, i) => !t && !state.rock[i]).length;
   const rock = state.rock.indexOf(true);
   if (rock >= 0 && empties <= 1 && left >= 4 && TP.rockCost(state) <= spare(state)) TP.breakRock(state, rock);
+}
+
+// Pearls plus weighted shells the frozen board makes over every tide that is left, played out tide by tide
+// on a clone. Unlike tideYield × tides left, this sees Coral growing, Otter trades draining shells, and,
+// once it is announced, the forecast event (before that the bot plays as if no event is coming).
+// Later tides are discounted, since the reef will change before then; shells count for less as the run ends.
+const PLAN = Object.assign({ shellW: 2.5, discount: 0.6, paceWindow: 3, paceMargin: 1.0, behindShellW: 0.5 }, JSON.parse(process.env.PLAN || '{}'));
+function runout(state, opt = PLAN) {
+  const c = TP.clone(state); c.over = false;
+  c.pearls += 1e6; // never fail a checkpoint inside the playout; pearls held don't change any tile's yield
+  if (!TP.eventKnown(c)) c.event = 'calm';
+  let v = 0, d = 1;
+  while (!c.over) {
+    const t = c.tide, s0 = c.shells, p0 = c.pearls;
+    TP.runTide(c);
+    const shellW = opt.shellW * (CONFIG.tides - t) / CONFIG.tides;
+    v += d * ((c.pearls - p0) + shellW * (c.shells - s0 - c.lastTide.income));
+    d *= opt.discount;
+  }
+  return v;
+}
+
+// Shared one-tile-at-a-time search: try every offer on every cell (and selling a tile to make room),
+// keep the best gain under `value`, buy it, repeat. `shellW` prices the shells a buy costs.
+function buyLoop(state, value, shellW, opts = {}) {
+  const left = CONFIG.tides - state.tide + 1;
+  const maxRerolls = opts.rerolls != null ? opts.rerolls : 2;
+  let rerolled = 0;
+  for (let guard = 0; guard < 16; guard++) {
+    const base = value(state);
+    let best = null;
+    state.offers.forEach((k, oi) => {
+      if (!k || TP.tileCost(state, k) > state.shells) return;
+      if (TILES[k].mover) {
+        for (const cell of TP.moverSpots(state)) for (const from of TP.moverTargets(state, cell)) for (const to of TP.moverDests(state, from)) {
+          const c = TP.clone(state);
+          if (!TP.useMover(c, oi, cell, from, to)) continue;
+          const gain = value(c) - base - shellW * TP.tileCost(state, k);
+          if (!best || gain > best.gain) best = { gain, oi, cell, v: 'move', from, to };
+        }
+        return;
+      }
+      for (let cell = 0; cell < state.grid.length; cell++) {
+        const variants = [];
+        if (TP.canPlace(state, k, cell)) variants.push(null);
+        else if (state.grid[cell] && left > 2) variants.push('replace');
+        for (const v of variants) {
+          const c = TP.clone(state);
+          if (v === 'replace') TP.sell(c, cell);
+          if (!TP.buy(c, oi, cell)) continue;
+          const gain = value(c) - base - shellW * (state.shells - c.shells);
+          if (!best || gain > best.gain) best = { gain, oi, cell, v };
+        }
+      }
+    });
+    if (best && best.gain > 0) {
+      if (best.v === 'move') { TP.useMover(state, best.oi, best.cell, best.from, best.to); continue; }
+      if (best.v === 'replace') TP.sell(state, best.cell);
+      TP.buy(state, best.oi, best.cell);
+      continue;
+    }
+    if (rerolled < maxRerolls && state.shells >= TP.rerollCost(state) + (opts.rerollKeep != null ? opts.rerollKeep : 4)) { TP.reroll(state); rerolled++; continue; }
+    return;
+  }
 }
 
 const bots = {
@@ -96,6 +161,23 @@ const bots = {
       return;
     }
   },
+};
+
+// Planner: the greedy search, but each buy is judged by playing the frozen reef out to the last tide
+// (runout), so it builds Coral early, sees the forecast event coming and stops feeding Otters it can't fill.
+bots.planner = function (state) {
+  const left = CONFIG.tides - state.tide + 1;
+  let shellW = Math.max(0.15, 0.7 * (left - 1) / CONFIG.tides);
+  const cp = TP.nextCheckpoint(state);
+  if (cp && cp.tide - state.tide <= 1 && state.pearls < cp.need) shellW = 0.05;
+  spendPearls(state, left, shellW);
+  // Build the economy hard unless the frozen reef is off pace for the next goal; then chase pearls.
+  let opt = PLAN;
+  if (cp && cp.tide - state.tide < PLAN.paceWindow) {
+    const pace = state.pearls + tideYield(state).p * (cp.tide - state.tide + 1);
+    if (pace < cp.need * PLAN.paceMargin) opt = { ...PLAN, shellW: PLAN.behindShellW };
+  }
+  buyLoop(state, (s) => runout(s, opt), shellW);
 };
 
 function play(botName, seed) {

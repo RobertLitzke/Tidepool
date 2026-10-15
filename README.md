@@ -8,7 +8,9 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - `engine.js`: all rules. Tunables are in `CONFIG` and `TILES` (cost, rarity, effect).
 - `ui.html`: touch UI; `/*ENGINE*/` gets replaced by engine.js.
 - `build.sh`: `sh build.sh` writes `tidepool.html` (the published single file).
-- `sim.js`: `node sim.js 500 [greedy|random|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates.
+- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates.
+- `tune.js`: `node tune.js planner 2000 [variant.js] [seed0]` runs bots in parallel for big batches and variant tests (drop-one, cost tweaks); `DUMP=out.json` saves per-run rows.
+- `notes/tile-report.md`: per-tile effectiveness, drop-one tests and proposed changes (latest round).
 
 ## Balance log
 - v1 (2026-10-14): Pufferfish multipliers stacked exponentially, so now max(). Octopus 2→1 per kind. Checkpoints 8 by tide 4, 80 by tide 8; stars 300/600/1000.
@@ -46,6 +48,10 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - v12 (2026-10-15, Rob: the Conch always started in the same place; rocks always flat): each new reef starts with one random tile (Conch, Kelp, Oyster or Hermit Crab) on a random open spot, and the 4 rocks sit flat across the bottom half the time or as a shelf piled on the left or right (`CONFIG.startKinds`, `CONFIG.rockLayouts`; the start is saved in `state.start`).
   Starter test (1500 runs, greedy bot): Conch 92% finish, Crab 88%, Oyster 88%, Kelp 83%. With Shrimp, Jellyfish or Urn in the pool they finished 68%, 70% and 51% (an Urn alone makes about 1 shell), so those are left out. Rock layout made no difference (77-78% each).
   Greedy bot, 1000 runs: 88% finish (v11 91%, the fixed center Conch was a strong start), median 475, p90 1009, stars 0/1/2/3 = 185/443/211/39.
+- v13 (2026-10-15, Rob: one stacker with a flat price and a modest linear effect; add a stronger bot; best bot should get 0/1/2/3 stars about 30/35/25/10%): Kelp always costs 2 (`flat: true`) and each level makes +1 shell and +1 pearl (no more touching-Kelp pearls). New planner bot: greedy's buy search, but it judges each buy by playing the frozen reef out to tide 12 (discount 0.6 per tide, shells weighted up, pearl chasing when off pace for a goal within 3 tides). Stars 350/650/1300 → 550/1000/1550.
+  Kelp variants (1000 runs, planner/greedy avg): old 825/524, +1 shell +1 pearl flat 881/543 (chosen), +1 pearl only 666/384.
+  Fresh seeds, failures count as 0 stars: planner (5000 runs) 92.5% finish, avg 865, stars 0/1/2/3 = 31.3/33.9/24.1/10.7%. Greedy (3000) 89.4%, avg 537, 63.6/26.5/7.9/2.0%. Random (3000) 10.3%, avg 69, all 0 stars.
+  Drop-one (1000 runs, planner): Conch −29%, Crab −16%, Kelp −6%, Turtle −6%; Shrimp +23%, Otter +13%, Jelly +11%, Octopus +9%, Coral +9% (weaker than the shop slot they use). Proposals in notes/tile-report.md (not applied): Otter keeps your shells (+1 pearl per 3 held), Shrimp base pearl, Coral 3 shells.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.
