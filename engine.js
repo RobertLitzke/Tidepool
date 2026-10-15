@@ -92,7 +92,7 @@
       return state.struck;
     }
 
-    const maxLevel = (kind) => TILES[kind].stack ? Infinity : CONFIG.maxLevel;
+    const maxLevel = (kind) => TILES[kind].stack ? Infinity : TILES[kind].maxLevel || CONFIG.maxLevel;
 
     // mulberry32
     function rand(state) {
@@ -127,7 +127,9 @@
       // One starter from each list, each on a random open spot.
       const kinds = [], cells = [];
       for (const list of CONFIG.starters || [CONFIG.startKinds]) {
-        const open = state.grid.map((_, i) => i).filter(i => !state.rock[i] && !state.grid[i]);
+        let open = state.grid.map((_, i) => i).filter(i => !state.rock[i] && !state.grid[i]);
+        // startersTouch: later starters go next to the first one when there's room (the forest's oak drops leaves on its plant).
+        if (CONFIG.startersTouch && cells.length) { const nb = open.filter(i => neighbors(cells[0]).includes(i)); if (nb.length) open = nb; }
         const kind = list[Math.floor(rand(state) * list.length)], cell = open[Math.floor(rand(state) * open.length)];
         state.grid[cell] = { kind, lvl: 1, age: 1, paid: 0 };
         kinds.push(kind); cells.push(cell);
@@ -162,11 +164,16 @@
       return true;
     }
 
-    const rockCost = (state) => CONFIG.rockCosts[Math.min(state.rocksBroken, CONFIG.rockCosts.length - 1)];
+    // A rock costs pearls; an ecosystem with rockSeedCosts also lets you pay shells instead (pay = 'shell').
+    const rockCost = (state, pay = 'pearl') => {
+      const list = pay === 'shell' ? CONFIG.rockSeedCosts : CONFIG.rockCosts;
+      return list ? list[Math.min(state.rocksBroken, list.length - 1)] : Infinity;
+    };
 
-    function breakRock(state, cell) {
-      if (state.over || !state.rock[cell] || state.pearls < rockCost(state)) return false;
-      state.pearls -= rockCost(state);
+    function breakRock(state, cell, pay = 'pearl') {
+      const cost = rockCost(state, pay), have = pay === 'shell' ? 'shells' : 'pearls';
+      if (state.over || !state.rock[cell] || state[have] < cost) return false;
+      state[have] -= cost;
       state.rocksBroken++;
       state.rock[cell] = false;
       if (HOOKS.onClear) HOOKS.onClear(state, cell);

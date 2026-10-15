@@ -217,11 +217,10 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .tile-head .big.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--sand)); }
 .kind.tree { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
 .kind.understory { color: var(--flower, var(--coral)); background: color-mix(in srgb, var(--flower, var(--coral)) 14%, transparent); }
-/* Forest board states: resting tiles, leaf litter, buried caches, pollinated flowers, tiles at their peak. */
+/* Forest board states: resting tiles, leaves on tiles and empty spots, tiles in season. */
 .cell.dormant .emo { opacity: .5; filter: grayscale(.6); }
-.cell .litter { position: absolute; top: 2px; right: 4px; font-size: 9px; letter-spacing: -3px; }
-.cell .cachemark { font-size: clamp(16px, 6vw, 26px); }
-.cell .poll { position: absolute; top: 14px; left: 6px; font-size: 10px; color: var(--flower, var(--coral)); }
+.cell .litter { position: absolute; bottom: 3px; right: 4px; font-size: 9px; letter-spacing: -3px; }
+.cell .leafpile { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 14px; letter-spacing: -4px; }
 .cell.peak .emo { filter: drop-shadow(0 0 6px var(--glow)); }
 .card .peak { font-size: 11px; }
 .card.inpeak { box-shadow: 0 0 0 2px var(--glow), var(--shadow); }
@@ -498,6 +497,10 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
   const icon = (n) => `<svg><use href="#i-${(ICON && ICON[n]) || n}"/></svg>`;
   const art = (k) => `<svg class="art" aria-hidden="true"><use href="#t-${k}"/></svg>`;
+  // A tile's season(s), and whether this month is one of them.
+  const peaksOf = (d) => [].concat((CONFIG.calendar && d.peak) || []);
+  const inPeak = (d) => peaksOf(d).includes(TP.season(G));
+  const peakName = (d) => peaksOf(d).map(p => ECO.seasons[p].emoji + ' ' + ECO.seasons[p].name).join(' and ');
   // An amount with its icon ("3" + shell), and rules text with "+2 pearls" style amounts turned into icons.
   const amt = (n, r) => `<span class="amt ${r[0]}">${n}${icon(r)}</span>`;
   const ROLE = { shell: 'shell', pearl: 'pearl', seed: 'shell', amber: 'pearl' };
@@ -510,7 +513,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   function start(data, quiet) {
     G = (data && data.G) || store.get('run');
-    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows || (G.eco || 'reef') !== ECO.id) G = TP.newGame(Math.floor(Math.random() * 1e9));
+    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows || (G.eco || 'reef') !== ECO.id || G.grid.some(t => t && !TILES[t.kind]) || G.offers.some(k => k && !TILES[k])) G = TP.newGame(Math.floor(Math.random() * 1e9));
     sel = null; undo = []; busy = false;
     buildReef();
     render();
@@ -688,23 +691,20 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       const def = t && TILES[t.kind];
       let html = '';
       if (G.rock[i]) {
-        html += `<span class="open">New spot</span><span class="emo">${art(ECO.realm === 'land' ? 'log' : 'rock')}</span><span class="price${G.pearls < TP.rockCost(G) ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}</span>`;
+        html += `<span class="open">New spot</span><span class="emo">${art(ECO.realm === 'land' ? 'log' : 'rock')}</span><span class="price${G.pearls < TP.rockCost(G) && G.shells < TP.rockCost(G, 'shell') ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}${CONFIG.rockSeedCosts ? ` ${TP.rockCost(G, 'shell')}${icon('shell')}` : ''}</span>`;
       } else if (t) {
         html += `<span class="emo">${art(t.kind)}</span>`;
         const y = fc && fc.per[i];
         if (!deltas && y && (y.p || y.s)) html += `<span class="yield">${mini(y.p, 'pearl')}${mini(y.s, 'shell')}</span>`;
         if (t.lvl > 1 && !(costs && i in costs)) html += `<span class="lvl">${t.lvl <= 3 ? '★'.repeat(t.lvl) : '★' + t.lvl}</span>`;
         if (def.showAge) html += `<span class="age">${t.age}</span>`;
-        if (def.showGrown || t.kind === 'seedling') html += `<span class="age">${t.kind === 'seedling' ? '🌱' + (t.grown || 0) : t.grown || 0}</span>`;
-        if (t.poll) html += `<span class="poll">✿</span>`;
+        if (t.leaves) html += `<span class="litter" title="Leaves">${'🍂'.repeat(t.leaves)}</span>`;
       } else if (sel && sel.type === 'move' && sel.cell === i) {
         html += `<span class="emo ghost">${art(G.offers[sel.i])}</span>`;
-      } else if (G.cache && G.cache[i]) {
-        html += `<span class="emo cachemark">${art('cache')}</span>`;
       } else {
         html += `<span class="order">${i + 1}</span>`;
       }
-      if (G.litter && G.litter[i] && !G.rock[i] && !(hint || costs)) html += `<span class="litter" title="Leaf litter">${'🍂'.repeat(G.litter[i])}</span>`;
+      if (!t && G.leaves && G.leaves[i] && !G.rock[i] && !(hint || costs)) html += `<span class="leafpile" title="Leaves">${'🍂'.repeat(G.leaves[i])}</span>`;
       if (deltas && deltas[i]) {
         const d = deltas[i];
         const part = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}${icon(r)}</span>` : '';
@@ -725,7 +725,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       el.classList.toggle('threat', threat.has(i));
       el.classList.toggle('rock', !!G.rock[i]);
       el.classList.toggle('dormant', !!t && TP.dormant(G, i));
-      el.classList.toggle('peak', !!t && !!CONFIG.calendar && def.peak === TP.season(G) && !TP.dormant(G, i));
+      el.classList.toggle('peak', !!t && inPeak(def) && !TP.dormant(G, i));
       el.classList.toggle('reads', !!hint && hint.reads.has(i) && !hint.boosts.has(i));
       el.classList.toggle('boosts', !!hint && hint.boosts.has(i));
       el.classList.toggle('usedby', !!hint && hint.usedBy.has(i) && !hint.reads.has(i) && !hint.boosts.has(i));
@@ -754,8 +754,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       if (sel && (sel.type === 'offer' || sel.type === 'move') && sel.i === i) b.classList.add('sel');
       if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
       const twin = G.grid.find(t => t && t.kind === k && t.lvl < TP.maxLevel(k));
-      const peak = CONFIG.calendar && def.peak ? ECO.seasons[def.peak] : null;
-      if (peak && def.peak === TP.season(G)) b.classList.add('inpeak');
+      const peak = peaksOf(def).length ? ECO.seasons[peaksOf(def)[0]] : null;
+      if (peak && inPeak(def)) b.classList.add('inpeak');
       b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${art(k)}</span><span class="nm">${def.name}</span><span class="cost">${peak ? `<span class="peak" title="Peaks in ${peak.name.toLowerCase()}">${peak.emoji}</span>` : ''}${icon('shell')}${cost}</span>`;
       b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${w(cost, 'shell')}. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
       b.addEventListener('click', () => onOffer(i));
@@ -858,17 +858,19 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
       if (TP.placeCost(G, k, i) > G.shells) { toast(`Leveling up costs ${w(TP.placeCost(G, k, i), 'shell')}`); return; }
       undo.push(TP.clone(G));
-      const lvlUp = !!G.grid[i];
+      const lvlUp = !!G.grid[i], leafy = !lvlUp && G.leaves && G.leaves[i];
       TP.buy(G, sel.i, i);
       sel = null; buzz(lvlUp ? [10, 40, 18] : 12); save(); render();
       const el = $('reef').children[i];
       el.classList.remove('placed'); void el.offsetWidth; el.classList.add('placed');
       if (lvlUp) floatAt(i, `★${G.grid[i].lvl}`, 'm');
+      else if (leafy && G.grid[i].lvl > 1) floatAt(i, `🍂 ★${G.grid[i].lvl}`, 'm');
+      else if (leafy && TILES[G.grid[i].kind].tag === 'critter') floatAt(i, `+${CONFIG.leafSeeds * leafy}`, 's');
       return;
     }
     if (G.rock[i]) showRock(i);
     else if (G.grid[i]) showTile(i);
-    else if (G.cache && G.cache[i]) showCache(i);
+    else if (G.leaves && G.leaves[i]) toast(leafNote(i));
     else if (sel) { sel = null; render(); }
   }
 
@@ -898,29 +900,18 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const legend = [l.reads.length ? '<span><i style="background:var(--ok)"></i>feeds it</span>' : '',
       l.boosts.length ? '<span><i style="background:var(--coral)"></i>powered by it</span>' : '',
       usedBy ? '<span><i style="background:var(--pearl)"></i>fed by it</span>' : ''].join('');
-    const peak = CONFIG.calendar && def.peak ? ECO.seasons[def.peak] : null;
-    const trades = t.kind === 'stash' ? TP.actions(G).filter(a => a.type === 'trade' && a.cell === i) : [];
-    const [give, get] = CONFIG.stashTrade || [];
-    lowSheet(def.name, head(art(t.kind), def.name + stars + (t.poll ? ' <span style="color:var(--flower)">✿</span>' : ''), `${kindChip(def.tag)} <span>fires ${ordinal(i + 1)}</span>`, 'k-' + def.tag) +
+    const plant = ECO.id === 'forest' && def.tag !== 'critter', needL = t.kind === 'ginger' ? 1 : CONFIG.leavesToGrow;
+    lowSheet(def.name, head(art(t.kind), def.name + stars, `${kindChip(def.tag)} <span>fires ${ordinal(i + 1)}</span>`, 'k-' + def.tag) +
       `<div class="effect">${fx(def.text(t.lvl))}</div>
       <div class="facts">
         <div><span class="k">Next ${T.round}</span><span class="v">${yieldTxt(y) || (TP.dormant(G, i) ? 'Resting this ' + T.round : 'Nothing yet')}</span></div>
-        ${peak ? `<div><span class="k">Peak</span><span class="v">${peak.emoji} ${peak.name}${def.peak === TP.season(G) ? ' (now)' : ''}</span></div>` : ''}
+        ${peaksOf(def).length ? `<div><span class="k">${def.helper ? 'On in' : '×2 in'}</span><span class="v">${peakName(def)}${inPeak(def) ? ' (now)' : ''}</span></div>` : ''}
+        ${plant && def.tag === 'understory' && canUp ? `<div><span class="k">Leaves</span><span class="v">${t.leaves || 0} of ${needL} to grow to ★${t.lvl + 1}</span></div>` : ''}
         ${def.showAge ? `<div><span class="k">Grown</span><span class="v">${rounds(t.age)}</span></div>` : ''}
-        ${def.showGrown ? `<div><span class="k">Grown</span><span class="v">${t.grown || 0}</span></div>` : ''}
-        ${t.kind === 'seedling' ? `<div><span class="k">Becomes</span><span class="v">${TILES[t.into].name} (grown ${t.grown || 0} so far)</span></div>` : ''}
-        ${trades.length || t.kind === 'stash' ? `<div><span class="k">Trade</span><span class="v">${t.traded === G.tide ? 'Used this month.' : 'Once a month.'}</span></div>` : ''}
         <div><span class="k">Level up</span><span class="v">${canUp ? `<span class="star-chip">★${t.lvl + 1}</span>for ${amt(TP.placeCost(G, t.kind, i), 'shell')}: ${fx(def.text(t.lvl + 1))}` : `Max level (★${t.lvl}).`}</span></div>
       </div>
       ${legend ? `<div class="legend">${legend}</div>` : ''}
-      ${t.kind === 'stash' ? `<div class="row"><button class="btn" id="tradeUp" ${trades.some(a => a.dir === 'up') ? '' : 'disabled'}>${amt(give, 'shell')} → ${amt(get, 'pearl')}</button><button class="btn" id="tradeDown" ${trades.some(a => a.dir === 'down') ? '' : 'disabled'}>${amt(give, 'pearl')} → ${amt(get, 'shell')}</button></div>` : ''}
       <div class="row"><button class="btn" id="sellBtn">Sell for ${amt(TP.sellValue(t), 'shell')}</button><button class="btn go" data-close>OK</button></div>`);
-    const doTrade = (dir) => {
-      undo.push(TP.clone(G));
-      if (TP.act(G, { type: 'trade', cell: i, dir })) { buzz([10, 30, 10]); closeOverlay(); sel = null; save(); render(); toast('Traded'); } else undo.pop();
-    };
-    if ($('tradeUp')) $('tradeUp').addEventListener('click', () => doTrade('up'));
-    if ($('tradeDown')) $('tradeDown').addEventListener('click', () => doTrade('down'));
     $('sellBtn').addEventListener('click', () => {
       undo.push(TP.clone(G));
       TP.sell(G, i); sel = null; buzz(8); closeOverlay(); save(); render();
@@ -929,37 +920,28 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   function showRock(i) {
     sel = { type: 'rock', i }; render();
-    const cost = TP.rockCost(G), poor = G.pearls < cost, cp = TP.nextCheckpoint(G);
-    const stash = ECO.realm === 'land' && !G.stashFound ? ` The first ${T.rock} you clear has a Forager's Stash under it: once a month it trades ${w(10, 'shell')} for ${w(5, 'pearl')}, or the other way. Sell it if you'd rather have the spot.` : '';
+    const cost = TP.rockCost(G), seedCost = CONFIG.rockSeedCosts ? TP.rockCost(G, 'shell') : null, cp = TP.nextCheckpoint(G);
     lowSheet(T.Rock, head(art(ECO.realm === 'land' ? 'log' : 'rock'), T.Rock, 'A locked spot') +
-      `<div class="effect">${T.clear} it with ${unit('pearl')} to open a new spot for tiles. Each one costs more than the last.${stash}</div>
-      <p>You have ${amt(G.pearls, 'pearl')}.${cp ? ` Keep ${amt(cp.need, 'pearl')} for the goal at the end of ${roundName(cp.tide)}.` : ''}</p>
-      <div class="row"><button class="btn" data-close>Not now</button><button class="btn go" id="breakBtn" ${poor ? 'disabled' : ''}>${T.clear} for ${amt(cost, 'pearl')}</button></div>`);
-    $('breakBtn').addEventListener('click', () => {
+      `<div class="effect">${T.clear} it to open a new spot for tiles${seedCost ? `, paying ${w(cost, 'pearl')} or ${w(seedCost, 'shell')}` : ` with ${unit('pearl')}`}. Each one costs more than the last.</div>
+      <p>You have ${amt(G.pearls, 'pearl')}${seedCost ? ` and ${amt(G.shells, 'shell')}` : ''}.${cp ? ` Keep ${amt(cp.need, 'pearl')} for the goal at the end of ${roundName(cp.tide)}.` : ''}</p>
+      <div class="row">${seedCost ? `<button class="btn" id="breakSeeds" ${G.shells < seedCost ? 'disabled' : ''}>${T.clear} for ${amt(seedCost, 'shell')}</button>` : '<button class="btn" data-close>Not now</button>'}<button class="btn go" id="breakBtn" ${G.pearls < cost ? 'disabled' : ''}>${T.clear} for ${amt(cost, 'pearl')}</button></div>`);
+    const clear = (pay) => {
       undo.push(TP.clone(G));
-      if (TP.breakRock(G, i)) { sel = null; buzz([10, 30, 10]); closeOverlay(); save(); render(); pulse($('reef').children[i], 'placed'); }
-      else { undo.pop(); toast(`You need ${w(cost, 'pearl')}`); }
-    });
+      if (TP.breakRock(G, i, pay)) { sel = null; buzz([10, 30, 10]); closeOverlay(); save(); render(); pulse($('reef').children[i], 'placed'); }
+      else undo.pop();
+    };
+    $('breakBtn').addEventListener('click', () => clear('pearl'));
+    if ($('breakSeeds')) $('breakSeeds').addEventListener('click', () => clear('shell'));
   }
+
+  // Leaves on an empty forest spot: what placing a tile there does.
+  const leafNote = (i) => `${G.leaves[i]} ${G.leaves[i] === 1 ? 'leaf' : 'leaves'} here. A critter placed here gets ${w(CONFIG.leafSeeds * G.leaves[i], 'shell')}; a plant grows from them.`;
 
   function showCharmInfo(id) {
     const c = CHARMS[id];
     lowSheet(c.name, head(c.emoji, c.name, `${T.bonusOne}, yours for the run`) + `<div class="effect">${fx(c.text)}</div><div class="row"><button class="btn go" data-close>OK</button></div>`);
   }
 
-  // A squirrel's cache: dig it up for amber now, or leave it to sprout into a White Oak Seedling in April.
-  function showCache(i) {
-    sel = { type: 'cell', i }; render();
-    const n = G.cache[i], amber = CONFIG.digAmber * n;
-    lowSheet('Cache', head(art('cache'), 'Buried cache', 'Acorns a squirrel hid') +
-      `<div class="effect">Dig it up now for ${amt(amber, 'pearl')}, or leave it: caches still buried at the start of April sprout into White Oak Seedlings. Placing a tile here gives you its ${w(CONFIG.cacheSeeds * n, 'shell')} back.</div>
-      <div class="row"><button class="btn" data-close>Leave it</button><button class="btn go" id="digBtn">Dig up for ${amt(amber, 'pearl')}</button></div>`);
-    $('digBtn').addEventListener('click', () => {
-      undo.push(TP.clone(G));
-      if (TP.act(G, { type: 'dig', cell: i })) { sel = null; buzz([10, 30, 10]); closeOverlay(); save(); render(); floatAt(i, `+${amber}`, 'p'); }
-      else undo.pop();
-    });
-  }
 
   const ordinal = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 
@@ -1060,6 +1042,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     save();
     render();
     const earned = G.lastTide.earned;
+    if (G.grew && G.grew.tide === before.tide) G.grew.cells.forEach(j => G.grid[j] && floatAt(j, `🍂 ★${G.grid[j].lvl}`, 'm'));
     if (G.over) { endRun(before); return; }
     const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
     toast(passed ? `Goal reached! +${w(earned, 'pearl')} this ${T.round}` : `+${w(earned, 'pearl')} · ${T.incomeWord} ${w(G.lastTide.income, 'shell')}`);
@@ -1163,14 +1146,15 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     if (ECO.id === 'forest') return `
       <h2>Grow a forest through the year</h2>
       <ol>
-        <li>The year runs from ${M(1)} to ${M(CONFIG.tides)}, one month a turn. Buy tiles with seeds and place them in the forest. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple. Each level-up costs ${CONFIG.levelUpStep} more than the last.</li>
-        <li>Every tile has a season. A tile shows ✦ in its best months, when it pays the most, and some sleep through the rest (shown faded). Trees are bare in winter, wildflowers bloom in spring, critters fatten up in fall.</li>
-        <li>Next month: every tile fires in order, 1 to 16, making seeds and amber. Leaves fall from September to November and pile up as litter, which feeds the understory. Squirrels bury caches in fall: dig one up for ${w(CONFIG.digAmber, 'pearl')}, or leave it and it sprouts into an oak Seedling in spring.</li>
-        <li>Amber is your score and your money. Spend it to clear fallen logs for more space and on Heirlooms (offered in ${CONFIG.charmTides.map(M).join(', ')}), but hold enough to meet the goals in ${Object.keys(CONFIG.checkpoints).map(Number).map(M).join(' and ')}.</li>
-        <li>In ${M(CONFIG.eventRevealTide)} you learn the forecast: a Derecho, Drought or Mast Year that comes after ${M(CONFIG.eventTide)}. Build so your forest makes the most of it.</li>
+        <li>The year runs from ${M(1)} to ${M(CONFIG.tides)}, one month a turn. Buy tiles with seeds and place them in the forest. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple.</li>
+        <li><b>Seasons.</b> Every tile makes ×2 in its season (its shop card shows the season emoji, and it glows on the board while in season). The Bumblebee is the exception: it's on in spring and summer, when touching understory plants make ×2, and off the rest of the year.</li>
+        <li><b>Leaves.</b> In fall (September to November) each tree drops a leaf on every touching understory plant and empty spot. Every 2 leaves grow a plant a level for free, up to ★3. On an empty spot they wait: place a critter there for ${w(CONFIG.leafSeeds, 'shell')} a leaf, or a plant to grow it.</li>
+        <li>Next month: every tile fires in order, 1 to 16, making seeds and amber.</li>
+        <li>Amber is your score and your money. Spend it on Heirlooms (offered in ${CONFIG.charmTides.map(M).join(', ')}) and to clear fallen logs (or pay seeds instead), but hold enough to meet the goals in ${Object.keys(CONFIG.checkpoints).map(Number).map(M).join(' and ')}.</li>
+        <li>In ${M(CONFIG.eventRevealTide)} you learn the forecast: a Derecho, Drought or Mast Year that comes after ${M(CONFIG.eventTide)}.</li>
         <li>Your score is the amber you hold after ${M(CONFIG.tides)}.</li>
       </ol>
-      <p>When you pick a shop tile, each spot shows its price and what it would add next month. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily forest and New forest start over from here.</p>
+      <p>When you pick a shop tile, each spot shows its price and what it would add next month. Tap a placed tile to see what it does and how close it is to growing. Daily forest and New forest start over from here.</p>
       <p>Every tile has a kind. When a rule says tree, understory or critter, it means these tiles:</p>`;
     return `
       <h2>Grow a reef that pays you back</h2>

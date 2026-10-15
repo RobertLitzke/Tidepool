@@ -1,5 +1,7 @@
 # Deciduous Forest, and ecosystems as data
 
+> Superseded for the forest's rules by `notes/forest-simple.md` (v18): seasons plus leaves only. This file keeps the original, bigger design and the ecosystem-as-data parts.
+
 The forest design, rev 3 (forest tiles and invasives built on their own seasonal dynamics; Beech, Birch and new understory plants; bonuses are Treasures at sea and Heirlooms on land). Built in v17 except the invasives; **As built** below lists where the code differs. It covers three things: turning the game's names, look and rules into a per-ecosystem preset, an ecosystem picker, and the second ecosystem, an Eastern US hardwood forest played over one year, from November to harvest.
 
 Built on main at 5867991 (v16 reef, sticker art, stars 500/1000/1500), the "Mechanics & Ecosystems" doc, and `notes/predator.md`.

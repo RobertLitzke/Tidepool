@@ -36,6 +36,7 @@ const PAL = {
   hazel: { twig: '#7A5636', petal: '#F7CF35', center: '#C9762E' },
   ginger: { leaf: '#58A84E', dark: '#3A7C38', flower: '#8B3A3A' },
   squirrel: { body: '#9CA3AB', light: '#DADFE3', dark: '#6B737B', nut: '#C8893E', cap: '#7A4E2A' },
+  chipmunk: { body: '#C98A4E', light: '#F3DCC0', stripe: '#4A3020', nut: '#C8893E', cap: '#7A4E2A' },
   bear: { body: '#34302F', light: '#4A4442', muzzle: '#C9A27C', nose: '#1E1A19' },
   deer: { body: '#B9814A', light: '#F3E6D2', dark: '#7F5530', antler: '#E8D9BC' },
   frog: { body: '#C79A5E', light: '#E8C88E', mask: '#5A3A22' },
@@ -338,6 +339,20 @@ const DRAW = {
     p.shape(ell(19.5, 30.5, 3, 3.6), 'nut'); p.shape('M16.2 29 C16.2 25.6 22.8 25.6 22.8 29Z', 'cap');
     p.dots([[9, 21.6, 1]], 'dark');
   },
+  chipmunk(p) { // Chipmunk: striped back, cheeks full of seeds
+    p.shape('M33 40 C42 38 45 30 42 22 C40 17 36 16 35 19 C38 23 38 29 33 33Z', 'body');
+    p.shape('M10 42 C7 33 10 22 20 19 C30 17 37 25 36 34 C35 40 30 43 24 43Z', 'body');
+    p.limbs(['M22 21 C28 22 33 27 34 34', 'M17 23 C22 25 26 30 27 38'], 'stripe', 1.6);
+    p.shape('M14 42 C12 36 14 30 19 29 C24 30 25 36 23 42Z', 'light', { flat: true });
+    p.shape('M8.5 12 L9.5 6 L13.5 10Z', 'body'); p.shape('M20 10 L22.5 5 L24 11Z', 'body');
+    p.shape(ell(15.5, 17, 8.5, 7.5), 'body');
+    p.limbs(['M15.5 10 L15.5 14'], 'stripe', 1.4);
+    p.shape(ell(10.5, 21, 4, 3.4), 'light');
+    p.shape(ell(20.5, 21, 4, 3.4), 'light');
+    p.eye(12, 15.5, 2.1); p.eye(19.5, 15.5, 2.1);
+    p.dots([[15.5, 19.5, 1.1]], 'stripe');
+    p.shape(ell(16, 30.5, 2.8, 3.3), 'nut'); p.shape('M13 29 C13 26 19 26 19 29Z', 'cap');
+  },
   bear(p) { // Black Bear: round head, tan muzzle
     p.shape(ell(12, 11.5, 6, 6), 'body'); p.shape(ell(36, 11.5, 6, 6), 'body');
     p.dots([[12, 11.5, 2.8], [36, 11.5, 2.8]], 'light');
@@ -497,7 +512,7 @@ if (require.main === module) {
   if (i < 0) { process.stdout.write(symbols()); }
   else {
     const fs = require('fs');
-    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache' };
+    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', chipmunk: 'Chipmunk', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache' };
     const cells = Object.keys(DRAW).map(id => `<figure><div class="c"><svg viewBox="0 0 48 48">${art(id)}</svg></div><figcaption>${names[id]}</figcaption></figure>`).join('');
     fs.writeFileSync(process.argv[i + 1], `<style>:root{--shell:#F2B85C;--pearl:#B7AAF5}body{background:#0F2C38;color:#9DBEC6;font:13px system-ui;margin:0;padding:16px}.g{display:grid;grid-template-columns:repeat(6,80px);gap:10px}.c{width:80px;height:80px;border-radius:14px;background:#2a4757;display:grid;place-items:center}.c svg{width:58px;height:58px}figure{margin:0;text-align:center}.cur svg{width:40px;height:40px}.sm svg{width:11px;height:11px}</style><svg width="0" height="0" style="position:absolute"><defs>${CURRENCY}</defs></svg><div class="g">${cells}</div><p class="cur"><svg><use href="#i-shell"/></svg><svg><use href="#i-pearl"/></svg><svg style="--shell:#A86B2D"><use href="#i-seed"/></svg><svg style="--pearl:#D98C10"><use href="#i-amber"/></svg> <span class="sm"><svg><use href="#i-shell"/></svg>3 <svg><use href="#i-pearl"/></svg>2</span></p>`);
   }

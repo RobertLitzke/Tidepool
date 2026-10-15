@@ -7,7 +7,7 @@ Cozy single-player engine builder PWA for Rob's Pixel phone, 10-15 minute runs. 
 
 Kinds: Flora (plant), Shellfish, Critter, plus Object and Mover (Dolphin). Tiles cap at ★3 except stackers (`stack: true`: Conch, Sargassum).
 
-Ecosystems (v17): the app opens on a picker. `reef` is the game above. `forest` (Eastern US deciduous forest, design in `notes/forest.md`) runs November to October, one month a round, with seasonal tiles, leaf litter, squirrel caches, Seedlings, a Beaver feller and a Forager's Stash; its bonuses are Heirlooms. Sea ecosystems pay shells and pearls, land ones seeds and amber; code always says `shells`/`pearls`, and ui.html swaps the words and icons (`REALM`). Every player-facing word comes from the ecosystem's `terms` (board, round, rock, clear, go, bonus...).
+Ecosystems (v17): the app opens on a picker. `reef` is the game above. `forest` (Eastern US deciduous forest) runs November to October, one month a round, on two rules only (v18, Rob asked for simple interactions): every tile makes ×2 in its season, and fall leaves from trees grow touching understory plants (or wait on empty spots). Logs clear for amber or seeds. Its bonuses are Heirlooms. Current design: `notes/forest-simple.md`; `notes/forest.md` is the older, bigger design. Keep new forest ideas to seasons plus the leaves mechanic. Sea ecosystems pay shells and pearls, land ones seeds and amber; code always says `shells`/`pearls`, and ui.html swaps the words and icons (`REALM`). Every player-facing word comes from the ecosystem's `terms` (board, round, rock, clear, go, bonus...).
 
 Play: https://robertlitzke.github.io/Tidepool/ . Repo: github.com/RobertLitzke/Tidepool.
 
