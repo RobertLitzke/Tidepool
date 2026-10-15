@@ -930,7 +930,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     $('overlay').innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Run summary">
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
-      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Shrimp beside Kelp make pearls early.</p>`}
+      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Giant Clams beside Kelp make pearls early.</p>`}
       ${G.moves && G.moves.length ? `<p>Moves made with a Dolphin this run: ${G.moves.length}.</p>` : ''}
       <p>${isBest ? 'New best reef!' : `Best reef: ${Math.max(best, 0)} pearls.`} ${G.daily ? 'Daily reef for today.' : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily reef</button><button class="btn go" id="againBtn">New reef</button></div>
