@@ -24,7 +24,7 @@ const PAL = {
   whale: { body: '#5585BC', light: '#E6EEF5' },
   dolphin: { body: '#6FA3CF', belly: '#E3F0FA' },
   turtle: { shell: '#4FA06A', scute: '#7CC48A', skin: '#A9D89A', dark: '#2F7048' },
-  rock: { body: '#97A3AB', light: '#C5CED3', dark: '#6C7980' },
+  rock: { body: '#97A3AB', light: '#C3CDD3', dark: '#76838B' },
 };
 
 const f = n => +n.toFixed(2);
@@ -57,21 +57,26 @@ function scallops(cx, cy, rx, ry, a0, a1, n, bulge, start) {
 }
 
 const DRAW = {
-  scallop(p) { // Conch
-    p.shape('M8 37 C6 29 10 21 18 18 C22 13 28 8.5 36 6 C40.5 5 42.5 7.5 41.5 11.5 C40 17 36.5 21 32.5 24 C32.5 32 26.5 40 18.5 41.5 C13.5 42.5 9 40.5 8 37Z', 'body');
-    p.detail('M18 18 C24 18.5 29.5 20.5 32.5 24 M24 12.5 C29 13 33.5 15 36 18.5 M30 8.5 C33.5 9 37 10.5 39.5 13', 'dark');
-    p.shape('M10 36 C9 30 13 25 19 24 C23 27 24 32.5 21 37.5 C17 40 12 39.5 10 36Z', 'lip');
-    p.dots([[22, 16, 1.4], [28.5, 11.5, 1.3], [34.5, 8.2, 1.1]], 'knob');
-    p.shine('M14 23 C16 20.5 19 19.5 21 19.5 C18.5 21 16.5 22.5 15.2 24.5Z');
+  scallop(p) { // Conch: a leaning spindle shell with a knobbed spire and pink opening
+    p.raw('<g transform="rotate(38 24 24)">');
+    p.shape('M24 1.5 L26.8 7.5 L29.8 8.6 L31.3 14 L35.2 15.8 C38.6 21.5 38 30 33.2 36.5 L26 45.5 L22 45.5 L14.8 36.5 C10 30 9.4 21.5 12.8 15.8 L16.7 14 L18.2 8.6 L21.2 7.5 Z', 'body');
+    p.detail('M18.2 8.6 C21 10 27 10 29.8 8.6 M16.7 14 C21 16 27 16 31.3 14', 'dark');
+    p.shape('M26 18.5 C33 21 33.5 30.5 28.5 38 C26.8 40.5 24.8 41.5 24.6 39.8 C25.6 33 25.6 25 26 18.5Z', 'lip');
+    p.shine('M14.5 30 C13.2 25.5 14 21 16.5 18 C16 22 16.2 26 17 30Z');
+    p.raw('</g>');
   },
-  oyster(p) {
-    p.shape('M9 23 C9.5 13 17 6.5 25.5 6.5 C34.5 6.5 40.5 13 40 23Z', 'lid');
-    p.detail('M15 20 C15.5 15 19 11 23 10 M23 20 C23.5 15 26 11.5 29.5 10.5 M31 21 C31.5 17 33.5 14 36 13', 'dark');
-    p.shape('M5 25.5 C5 22 43 20 43 24.5 C43 35 34.5 42 24 42 C13.5 42 5 36 5 25.5Z', 'body');
-    p.shape('M9.5 26 C12.5 24 36.5 23 38.5 25.5 C37.5 32.5 31.5 37.5 24 37.5 C16.5 37.5 10.5 32.5 9.5 26Z', 'nacre');
-    p.shape(ell(24, 29.5, 5.2, 5.2), 'pearl');
-    p.shine('M20.8 28 C21 26 22.5 25 24 25 C23 26 22.3 27 22.2 28.8Z', 1);
+
+
+  oyster(p) { // Oyster: lid hinged open on the left, pearl in the bowl
+    p.shape('M6 26 C3.5 17 9.5 8 19.5 5.5 C30 3 40 7.5 42.5 13.5 C34 17 21 21.5 9.5 27Z', 'lid');
+    p.detail('M12 21 C13 15 17 11 22 9.5 M17.5 19 C19.5 14 24 10.5 29 9 M24 16.5 C27 13 31 11 35.5 10.5', 'dark');
+    p.shape('M4.5 30 C4.5 25 9 23 14 24.5 L43 26.5 C43 35.5 34 42.5 23 42.5 C12.5 42.5 4.5 37.5 4.5 30Z', 'body');
+    p.shape('M12 27.5 L39.5 28.5 C38 34 32 38.5 24.5 38.5 C17.5 38.5 13 34 12 27.5Z', 'nacre', { flat: true });
+    p.detail('M9 35.5 C13 39 18 40.5 23 40.5', 'dark');
+    p.shape(ell(27.5, 31, 5.6, 5.6), 'pearl');
+    p.shine('M24.4 30 C24.6 27.8 26 26.8 27.6 26.7 C26.5 27.8 25.9 28.9 25.9 30.6Z', 1);
   },
+
   kelp(p) { // Sargassum
     p.limbs(['M24 44 C24 34 22 26 24 16 C25 11 23 7.5 21 4.5', 'M24 31 C28 27 33 25 36 18', 'M23.5 24 C19 21 14 20 12 14'], 'stem', 2.2);
     for (const [cx, cy, rot] of [[32.5, 26.5, -32], [15, 25, 32], [28.5, 13, -58], [16.5, 34, 22], [31, 35, -22], [18, 13.5, 48]])
@@ -221,11 +226,15 @@ const DRAW = {
     p.eye(21.8, 8.5, 1.5); p.eye(26.2, 8.5, 1.5);
     p.mouth('M23 11.5 q1 .8 2 0');
   },
-  rock(p) {
-    p.shape('M5 39 C4 31 9 23.5 17 21.5 C21 15 31 14.5 35.5 20.5 C41.5 22.5 44.5 30 43 39 Z', 'body');
-    p.shape('M12 25 C15 22.5 19 21.5 21 22 C24 17.5 31 17 34 21.5 C29 20 25 21.5 22.5 25.5 C19 24.5 15 25 12 25Z', 'light', { flat: true });
-    p.detail('M26 30 L29 34 L27.5 38.5 M15 32 L18 34.5', 'dark');
+  rock(p) { // Rock: a chunky faceted boulder
+    p.shape('M5 38 L8.5 24.5 L18 14.5 L31 12.5 L40.5 20.5 L43.5 35 L36.5 40.5 L11.5 41.5Z', 'body');
+    p.shape('M9.5 24.5 L18.5 15.5 L30.5 13.7 L27 23 L14.5 26.5Z', 'light', { flat: true });
+    p.shape('M31.5 14 L39.6 21 L42.4 34.6 L36.2 39.4 L33 27.5 L27.5 23.5Z', 'dark', { flat: true });
+    p.detail('M9 24.5 L14.5 26.5 L27 23 L31 13 M27 23 L33 27.5 L36.5 40.5 M14.5 26.5 L11.5 41.5', 'dark');
+    p.shape('M5 38 L8.5 24.5 L18 14.5 L31 12.5 L40.5 20.5 L43.5 35 L36.5 40.5 L11.5 41.5Z', 'none', { outline: true });
   },
+
+
 };
 
 function painter(pal) {
@@ -235,7 +244,8 @@ function painter(pal) {
   return {
     out,
     shape(d, k, o = {}) {
-      if (o.flat) add(`<path d="${d}" fill="${col(k)}"/>`);
+      if (o.outline) add(`<path d="${d}" fill="none" stroke="${INK}" stroke-width="${SW}" stroke-linejoin="round"/>`);
+      else if (o.flat) add(`<path d="${d}" fill="${col(k)}"/>`);
       else add(`<path d="${d}" fill="${col(k)}" stroke="${INK}" stroke-width="${SW}" stroke-linejoin="round"/>`);
     },
     limbs(ds, k, w) {
@@ -247,6 +257,7 @@ function painter(pal) {
     dots(list, k, o = {}) {
       list.forEach(([x, y, r]) => add(`<circle cx="${x}" cy="${y}" r="${r}" fill="${col(k)}"${o.outline ? ` stroke="${INK}" stroke-width="${SW}"` : ''}/>`));
     },
+    raw(x) { add(x); },
     shine(d, op = .55) { add(`<path d="${d}" fill="#fff" opacity="${op}"/>`); },
     eye(x, y, r) { add(`<circle cx="${x}" cy="${y}" r="${r}" fill="${INK}"/><circle cx="${f(x - r * .35)}" cy="${f(y - r * .4)}" r="${f(r * .38)}" fill="#fff"/>`); },
     cheek(x, y) { add(`<ellipse cx="${x}" cy="${y}" rx="2.2" ry="1.4" fill="#FF8FA3" opacity=".85"/>`); },
