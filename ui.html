@@ -638,18 +638,17 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
           (need || (spots ? '' : `<span class="chip">No empty spot beside a tile</span>`));
         return;
       }
-      const twin = G.grid.filter(t => t && t.kind === k && t.lvl < TP.maxLevel(k)).sort((a, b) => b.lvl - a.lvl)[0];
-      let note = '';
-      if (def.stack) {
-        // Stacking tiles get pricier as you place them: list the next few prices.
-        const c = TP.clone(G); c.placed = { ...(c.placed || {}) };
-        const prices = [];
-        for (let n = 0; n < 5; n++) { prices.push(TP.tileCost(c, k)); c.placed[k] = (c.placed[k] || 0) + 1; }
-        note = `Prices: ${prices.map(n => amt(n, 'shell')).join(' ')} …`;
+      // Only prices of placements that are legal on the board right now: a new spot, and each level-up available.
+      const legal = G.grid.map((t, i) => TP.canPlace(G, k, i) ? i : -1).filter(i => i >= 0);
+      const lines = [];
+      if (legal.some(i => !G.grid[i])) lines.push(`<span class="next">New spot for ${amt(cost, 'shell')}</span>`);
+      const seen = new Set();
+      for (const i of legal.filter(i => G.grid[i]).sort((x, y) => G.grid[x].lvl - G.grid[y].lvl)) {
+        const L = G.grid[i].lvl + 1, c = TP.placeCost(G, k, i), key = L + ':' + c;
+        if (seen.has(key)) continue; seen.add(key);
+        lines.push(`<span class="next"><span class="star-chip">★${L}</span>for ${amt(c, 'shell')}: ${fx(def.text(L))}</span>`);
       }
-      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}` +
-        (twin ? `<span class="next"><span class="star-chip">★${twin.lvl + 1}</span>for ${amt(TP.placeCost(G, k, G.grid.indexOf(twin)), 'shell')}: ${fx(def.text(twin.lvl + 1))}</span>` : '') +
-        (note ? `<span class="price-note">${note}</span>` : '') + `</div>` + need;
+      el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}${lines.join('')}</div>` + need;
       return;
     }
     if (G.over) {
