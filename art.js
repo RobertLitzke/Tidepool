@@ -25,6 +25,26 @@ const PAL = {
   dolphin: { body: '#6FA3CF', belly: '#E3F0FA' },
   turtle: { shell: '#4FA06A', scute: '#7CC48A', skin: '#A9D89A', dark: '#2F7048' },
   rock: { body: '#97A3AB', light: '#C3CDD3', dark: '#76838B' },
+  // forest
+  oak: { trunk: '#8A5A34', leaf: '#5DA548', light: '#8CCB62', cap: '#7A4E2A', nut: '#C8893E' },
+  maple: { leaf: '#E8662E', light: '#F59A4A', stem: '#8A5A34', sap: '#F2B640' },
+  beech: { trunk: '#9AA4AA', bark: '#7B858B', leaf: '#D9B23C', light: '#F0D068' },
+  birch: { trunk: '#F4F1EA', mark: '#2C2C2C', leaf: '#9BD06A', light: '#C3E699' },
+  seedling: { soil: '#8A6440', leaf: '#7CC45A', stem: '#5C9A3E', shell: '#C8893E' },
+  trillium: { petal: '#FFFFFF', leaf: '#5DA548', dark: '#3E7A32', center: '#F2D55C' },
+  laurel: { leaf: '#3F8A4A', dark: '#2A6434', flower: '#F7C3D8', pink: '#E06A9A' },
+  hazel: { twig: '#7A5636', petal: '#F7CF35', center: '#C9762E' },
+  ginger: { leaf: '#58A84E', dark: '#3A7C38', flower: '#8B3A3A' },
+  squirrel: { body: '#9CA3AB', light: '#DADFE3', dark: '#6B737B', nut: '#C8893E', cap: '#7A4E2A' },
+  bear: { body: '#34302F', light: '#4A4442', muzzle: '#C9A27C', nose: '#1E1A19' },
+  deer: { body: '#B9814A', light: '#F3E6D2', dark: '#7F5530', antler: '#E8D9BC' },
+  frog: { body: '#C79A5E', light: '#E8C88E', mask: '#5A3A22' },
+  bee: { body: '#F5C52E', stripe: '#2C2622', wing: '#E8F4FF' },
+  thrush: { body: '#A86A3A', belly: '#FBF3E4', spot: '#5A3A22', beak: '#E3A35A' },
+  beaver: { body: '#8A5A34', light: '#B98458', tail: '#5B4636', tooth: '#FFF6E0' },
+  stash: { basket: '#C8964E', dark: '#946634', nut: '#B9773A', cap: '#7A4E2A', berry: '#C2384E' },
+  log: { bark: '#8A5A34', dark: '#5E3C22', end: '#E3C08A', ring: '#B48A55', moss: '#7CB654' },
+  cache: { soil: '#9A7148', dark: '#6E4E30', nut: '#C8893E', cap: '#7A4E2A' },
 };
 
 const f = n => +n.toFixed(2);
@@ -234,7 +254,178 @@ const DRAW = {
     p.shape('M5 38 L8.5 24.5 L18 14.5 L31 12.5 L40.5 20.5 L43.5 35 L36.5 40.5 L11.5 41.5Z', 'none', { outline: true });
   },
 
-
+  // ---- forest ----
+  oak(p) { // White Oak: broad lobed crown, acorns
+    p.shape('M20 46 L21.5 30 L18 25 L21 25 L23 28 L25 23 L27 23 L26.5 30 L28 46Z', 'trunk');
+    p.shape('M24 3.5 C30 3.5 33 7 33.5 9.5 C39 9.5 43.5 14 42.5 19.5 C45 23 43 29.5 37.5 30.5 C35.5 34 30 35 27 32.5 C24 35 18.5 34.5 16.5 31.5 C11 33 5.5 29.5 6 24 C2.5 20.5 4.5 13.5 10 12.5 C11 7.5 15.5 4.5 19.5 5.5 C21 4 22.5 3.5 24 3.5Z', 'leaf');
+    p.shine('M12 15 C13 11.5 16 9 19.5 8.6 C16.5 10.5 14.6 12.6 13.8 16Z');
+    p.dots([[30, 13, 1.6], [16, 22, 1.4], [35, 23, 1.4]], 'light');
+    for (const [x, y] of [[13.5, 31.5], [33.5, 30.5]]) {
+      p.shape(ell(x, y + 2.8, 2.6, 3.2), 'nut'); p.shape(`M${x - 3.2} ${y + 1.4} C${x - 3.2} ${y - 2} ${x + 3.2} ${y - 2} ${x + 3.2} ${y + 1.4}Z`, 'cap');
+    }
+  },
+  maple(p) { // Sugar Maple: a big leaf with a drop of sap
+    p.limbs(['M24 30 L24 46'], 'stem', 2.4);
+    p.shape('M24 3 L27.5 11 L32 8.5 L31 17.5 L37.5 13 L39 16.5 L45 15.5 L42 22.5 L45 24.5 L36 30.5 L37.5 34.5 L27.5 32.5 L24 35.5 L20.5 32.5 L10.5 34.5 L12 30.5 L3 24.5 L6 22.5 L3 15.5 L9 16.5 L10.5 13 L17 17.5 L16 8.5 L20.5 11Z', 'leaf', { round: 1 });
+    p.detail('M24 33 V9 M24 26 L38 17 M24 26 L10 17 M24 30 L36 28 M24 30 L12 28', 'stem');
+    p.shine('M17 12 L19.5 13.5 L19 20 L15 18Z', .35);
+    p.shape('M38 35 C38 35 34 40.5 34 42.5 C34 44.8 35.8 46 38 46 C40.2 46 42 44.8 42 42.5 C42 40.5 38 35 38 35Z', 'sap');
+    p.shine('M36 42 C36 40.8 36.6 40 37.2 39.4 C37 40.6 37 41.4 37.2 42.6Z', .8);
+  },
+  beech(p) { // American Beech: smooth grey trunk, golden crown that keeps its leaves
+    p.shape('M19.5 46 C20.5 38 20.5 32 19 27 L29 27 C27.5 32 27.5 38 28.5 46Z', 'trunk');
+    p.detail('M22 31 C22.5 35 22.5 39 22 43 M26 36 L26.3 40', 'bark');
+    p.shape('M24 3 C35 3 42 10.5 42 18.5 C42 26.5 34.5 31 24 31 C13.5 31 6 26.5 6 18.5 C6 10.5 13 3 24 3Z', 'leaf');
+    p.detail('M14 13 C15 11 16.5 10 18 9.5 M30 10 L33 12 M12 22 L15 23.5 M32 23 L35 21.5 M23 18 L26 16.5', 'bark');
+    p.dots([[20, 14, 1.6], [29, 18, 1.6], [17, 24, 1.4], [33, 26, 1.2]], 'light');
+    p.shine('M11 15 C12 10.5 16 7 20.5 6.2 C17 8.5 14.5 11 13.4 16Z');
+  },
+  birch(p) { // Birch: white trunks with dark marks, light leaves
+    p.shape('M14 46 L15.5 20 L19.5 20 L19.5 46Z', 'trunk');
+    p.shape('M27 46 L28 14 L32 14 L32.5 46Z', 'trunk');
+    p.detail('M15.6 27 L18.5 27.5 M16 35 L19 34.5 M15 41 L17.5 41.5 M28.3 21 L31.5 21.5 M28.3 29 L30.5 28.6 M29 37 L32 37.5', 'mark');
+    p.shape(ell(14.5, 15, 9.5, 8.5), 'leaf');
+    p.shape(ell(32, 10.5, 10.5, 8), 'leaf');
+    p.dots([[11, 13, 1.4], [17, 18, 1.3], [29, 8, 1.4], [36, 13, 1.3]], 'light');
+    p.shine('M7 13 C8 9.5 11 7.5 14 7.2 C11.5 9 9.8 11 9 14Z');
+  },
+  seedling(p) { // Seedling: an oak sprout from a split acorn
+    p.shape('M6 44 C8 36 40 36 42 44 L42 46 L6 46Z', 'soil');
+    p.limbs(['M24 39 C24 31 23 25 24 18'], 'stem', 2.4);
+    p.shape('M24 20 C18 21 11 18 9.5 10 C17 9 22.5 12.5 24 20Z', 'leaf');
+    p.shape('M24 18 C28 13.5 35 10.5 40 13 C37.5 20 30 21.5 24 18Z', 'leaf');
+    p.detail('M23 19.5 C19 17.5 15 15 12 12 M25 17.5 C29 15.5 33 14 37.5 13.5', 'stem');
+    p.shape('M28 40 C28 36.5 33 35.5 34.5 39Z', 'shell');
+  },
+  trillium(p) { // Trillium: three white petals over three leaves
+    for (const r of [90, 210, 330]) p.raw(`<g transform="rotate(${r} 24 27)">`) , p.shape(ell(24, 15, 7.2, 12.5), 'leaf'), p.detail('M24 26 V7', 'dark'), p.raw('</g>');
+    for (const r of [30, 150, 270]) p.raw(`<g transform="rotate(${r} 24 25)">`) , p.shape('M24 25 C18.5 20 18.5 10 24 4.5 C29.5 10 29.5 20 24 25Z', 'petal'), p.raw('</g>');
+    p.dots([[24, 25, 3.2]], 'center', { outline: true });
+  },
+  laurel(p) { // Mountain Laurel: clusters of pink cup flowers in glossy leaves
+    for (const [cx, cy, rot] of [[11, 33, -30], [37, 33, 30], [15, 41, -10], [33, 41, 10], [24, 40, 0]])
+      p.shape(ell(cx, cy, 8, 3.4, rot), 'leaf');
+    p.detail('M5 35 L17 31 M43 35 L31 31', 'dark');
+    for (const [x, y, r] of [[24, 16, 7.2], [14, 23, 6.4], [34, 23, 6.4], [19, 8.5, 5], [30, 8.5, 5], [24, 29, 6]]) {
+      p.shape(starPath(x, y, r, r * .78, 5), 'flower', { round: 2 });
+      p.dots([[x, y, r * .32]], 'pink');
+    }
+  },
+  hazel(p) { // Witch Hazel: spidery yellow ribbons on a bare twig
+    p.limbs(['M6 44 C14 36 20 32 26 24 C31 17 36 12 42 6', 'M20 32 C16 26 14 20 15 13', 'M31 18 C36 20 40 23 44 23'], 'twig', 2.4);
+    for (const [x, y] of [[25, 24], [15, 14], [38, 11], [40, 22.5], [13, 37]]) {
+      p.limbs([0, 72, 144, 216, 288].map(a => { const r = a * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r);
+        return `M${x} ${y} Q${f(x + 6 * c - 2 * sn)} ${f(y + 6 * sn + 2 * c)} ${f(x + 8 * c)} ${f(y + 8 * sn)}`; }), 'petal', 2);
+      p.dots([[x, y, 1.8]], 'center', { outline: true });
+    }
+  },
+  ginger(p) { // Wild Ginger: two heart leaves and a small maroon jug flower
+    p.shape('M22 42 C14 40 3 33 4 22 C5 15 12 13 16 18 C18 13 26 14 25.5 22 C25 30 23 37 22 42Z', 'leaf');
+    p.shape('M26 42 C34 40 45 33 44 22 C43 15 36 13 32 18 C30 13 22 14 22.5 22 C23 30 25 37 26 42Z', 'leaf');
+    p.detail('M22 41 C17 33 13 27 10 21 M26 41 C31 33 35 27 38 21 M16 32 L11 31 M32 32 L37 31', 'dark');
+    p.shape('M24 45.5 C19.5 45.5 18.5 40 21 37.5 L27 37.5 C29.5 40 28.5 45.5 24 45.5Z', 'flower');
+    p.shine('M15 21 C15.5 18.6 17 18 18 18.4 C17 19.4 16.6 20.4 16.6 22Z', .4);
+  },
+  squirrel(p) { // Gray Squirrel holding an acorn
+    p.shape('M30 42 C40 42 46 34 44 22 C42.5 13 35 7.5 30 10 C35 13 36 20 34 26 C32 32 28 35 30 42Z', 'body');
+    p.detail('M37 14 C40 18 41 24 39.5 30', 'dark');
+    p.shape('M14 44 C11 36 13 26 20 24 C27 22 31 30 30 37 C29.5 41 27 44 24 44Z', 'body');
+    p.shape('M18 43 C16 37 17 31 21 30 C25 31 26 37 24.5 43Z', 'light', { flat: true });
+    p.shape('M10.5 13.5 L12 7 L16 11.5Z', 'body');
+    p.shape(ell(15.5, 19, 7.5, 6.5), 'body');
+    p.shape(ell(12, 22, 3, 2.3), 'light', { flat: true });
+    p.eye(16.5, 17.5, 2.2);
+    p.shape(ell(19.5, 30.5, 3, 3.6), 'nut'); p.shape('M16.2 29 C16.2 25.6 22.8 25.6 22.8 29Z', 'cap');
+    p.dots([[9, 21.6, 1]], 'dark');
+  },
+  bear(p) { // Black Bear: round head, tan muzzle
+    p.shape(ell(12, 11.5, 6, 6), 'body'); p.shape(ell(36, 11.5, 6, 6), 'body');
+    p.dots([[12, 11.5, 2.8], [36, 11.5, 2.8]], 'light');
+    p.shape('M24 8 C35.5 8 42 15.5 42 25 C42 35.5 34 42 24 42 C14 42 6 35.5 6 25 C6 15.5 12.5 8 24 8Z', 'body');
+    p.shape('M24 25 C30.5 25 33.5 29 33.5 32.5 C33.5 37 29 39.5 24 39.5 C19 39.5 14.5 37 14.5 32.5 C14.5 29 17.5 25 24 25Z', 'muzzle');
+    p.shape('M20.5 28.5 C20.5 26.6 27.5 26.6 27.5 28.5 C27.5 30.5 25.5 31.8 24 31.8 C22.5 31.8 20.5 30.5 20.5 28.5Z', 'nose');
+    p.mouth('M21 35 q3 2.2 6 0');
+    p.eye(17, 21, 2.4); p.eye(31, 21, 2.4);
+    p.shine('M12 17 C13.5 13.5 17 11 20.5 10.6 C17.5 12.6 15.5 14.6 14.2 18Z', .25);
+  },
+  deer(p) { // White-tailed Deer: head with antlers
+    p.limbs(['M17 13 C14 8 12 4 13 1.5 M15 8.5 L10 6 M16.5 11 L11 11.5', 'M31 13 C34 8 36 4 35 1.5 M33 8.5 L38 6 M31.5 11 L37 11.5'], 'antler', 2.4);
+    p.shape('M14 17 C8 13 3 14 2 17 C5 21 10 22 15 21Z', 'body');
+    p.shape('M34 17 C40 13 45 14 46 17 C43 21 38 22 33 21Z', 'body');
+    p.shape('M24 11 C31 11 35 15.5 35 21 C35 28 30 33 28 40 C27 43.5 21 43.5 20 40 C18 33 13 28 13 21 C13 15.5 17 11 24 11Z', 'body');
+    p.shape('M20 38 C21 35 27 35 28 38 C27.5 42.5 20.5 42.5 20 38Z', 'light');
+    p.shape(ell(24, 37.5, 2.8, 1.8), 'dark');
+    p.shape('M14.5 17.5 C12 17 8 17 6 17.5 C8 19 11 19.5 14.5 19.5Z', 'light', { flat: true });
+    p.shape('M33.5 17.5 C36 17 40 17 42 17.5 C40 19 37 19.5 33.5 19.5Z', 'light', { flat: true });
+    p.eye(19, 23, 2.3); p.eye(29, 23, 2.3);
+  },
+  frog(p) { // Wood Frog: tan frog with a dark robber's mask
+    p.shape('M8 42 C3 41 3 36 8 35 L14 36Z', 'body'); p.shape('M40 42 C45 41 45 36 40 35 L34 36Z', 'body');
+    p.shape('M24 14 C36 14 42 22 42 30 C42 38 34 42 24 42 C14 42 6 38 6 30 C6 22 12 14 24 14Z', 'body');
+    p.shape('M14 37 C18 40 30 40 34 37 C31 35 17 35 14 37Z', 'light', { flat: true });
+    p.shape(ell(15, 15, 6, 5.6), 'body'); p.shape(ell(33, 15, 6, 5.6), 'body');
+    p.shape('M7 24 C10 22 14 20.5 17 21 C17 24 14 26.5 9 27.5Z', 'mask', { flat: true });
+    p.shape('M41 24 C38 22 34 20.5 31 21 C31 24 34 26.5 39 27.5Z', 'mask', { flat: true });
+    p.eye(15, 14.5, 3); p.eye(33, 14.5, 3);
+    p.mouth('M17 29.5 q7 4 14 0');
+    p.cheek(13, 31); p.cheek(35, 31);
+  },
+  bee(p) { // Bumblebee
+    p.shape(ell(16, 13, 7.5, 5.5, -30), 'wing'); p.shape(ell(32, 13, 7.5, 5.5, 30), 'wing');
+    p.detail('M13 13 L19 15 M35 13 L29 15', 'stripe');
+    p.shape(ell(24, 28, 15, 13), 'body');
+    p.raw('<clipPath id="beeClip"><path d="' + ell(24, 28, 15, 13) + '"/></clipPath><g clip-path="url(#beeClip)">');
+    p.shape('M26 14 h7 v30 h-7Z M37 14 h7 v30 h-7Z', 'stripe', { flat: true });
+    p.raw('</g>');
+    p.shape(ell(24, 28, 15, 13), 'none', { outline: true });
+    p.limbs(['M14 17 C12 12 10 10 8 9', 'M18 16 C17 11 16 8 14.5 6.5'], 'stripe', 1.2);
+    p.eye(14, 26, 2.4); p.eye(21, 25.5, 2.4);
+    p.cheek(11.5, 31); p.cheek(22.5, 31);
+    p.mouth('M15 32 q2 1.6 4 0');
+  },
+  thrush(p) { // Wood Thrush: rusty back, spotted white breast
+    p.shape('M30 30 L45 34 L43 40 L28 36Z', 'body');
+    p.limbs(['M20 40 L19 46 M26 40 L27 46'], 'beak', 1.6);
+    p.shape('M8 22 C8 14 13 8 20 8 C27 8 31 13 31 19 C36 22 38 30 34 36 C30 41 22 42 16 40 C10 38 8 31 8 22Z', 'body');
+    p.shape('M11 22 C16 22 25 24 30 28 C30 34 27 38 21 39 C14 39.5 10.5 33 11 22Z', 'belly', { flat: true });
+    p.dots([[15, 26, 1.2], [19, 28, 1.3], [23, 30, 1.3], [16, 31, 1.3], [21, 34, 1.3], [26, 33, 1.2], [18, 36, 1.1]], 'spot');
+    p.detail('M24 15 C28 17 32 21 34 26', 'spot');
+    p.shape('M8.5 15.5 L2 17.5 L8.5 19.5Z', 'beak');
+    p.eye(14.5, 14.5, 2.3);
+  },
+  beaver(p) { // Beaver: round brown body, flat paddle tail, buck teeth
+    p.shape(ell(38, 38, 7.5, 5, -25), 'tail');
+    p.detail('M34 36 L41 33 M35 40 L43 37 M37 43 L43 40', 'light');
+    p.shape('M22 12 C33 12 38 20 38 29 C38 38 32 43 22 43 C12 43 7 38 7 29 C7 20 11 12 22 12Z', 'body');
+    p.shape('M13 22 C17 20 24 20 28 22 C30 28 27 35 20.5 35 C14 35 11 28 13 22Z', 'light', { flat: true });
+    p.shape(ell(12.5, 12.5, 3, 3), 'body'); p.shape(ell(31.5, 12.5, 3, 3), 'body');
+    p.shape('M18.5 28 h6.5 v5 a1 1 0 0 1 -1 1 h-4.5 a1 1 0 0 1 -1 -1Z', 'tooth');
+    p.detail('M21.75 28 v6', 'body');
+    p.shape(ell(21.75, 25, 3, 2), 'tail');
+    p.eye(16, 20, 2.3); p.eye(27.5, 20, 2.3);
+  },
+  stash(p) { // Forager's Stash: a basket of nuts and berries
+    for (const [x, y] of [[16, 19], [28, 18]]) { p.shape(ell(x, y + 3, 4, 4.6), 'nut'); p.shape(`M${x - 4.6} ${y + 1} C${x - 4.6} ${y - 4} ${x + 4.6} ${y - 4} ${x + 4.6} ${y + 1}Z`, 'cap'); }
+    p.dots([[22.5, 20.5, 3.2], [34, 21.5, 3], [11.5, 22.5, 2.8]], 'berry', { outline: true });
+    p.limbs(['M8 25 C8 8 40 8 40 25'], 'dark', 2.4);
+    p.shape('M5 24 L43 24 L39 42 C38.5 44 37 45 35 45 L13 45 C11 45 9.5 44 9 42Z', 'basket');
+    p.detail('M7 30 L41 30 M8.4 36 L39.6 36 M15 24 L16 45 M24 24 V45 M33 24 L32 45', 'dark');
+  },
+  log(p) { // Fallen log: mossy bark, cut end with rings
+    p.shape('M8 18 L36 14 C42 14 45 21 45 27 C45 33 42 38 36 38 L8 42 C4 42 2 36 2 30 C2 24 4 18 8 18Z', 'bark');
+    p.detail('M12 22 L32 19 M14 34 L33 31.5 M20 27 L30 25.5', 'dark');
+    p.shape('M8 18 C13 18 15 24 15 30 C15 36 13 42 8 42 C4 42 2 36 2 30 C2 24 4 18 8 18Z', 'end');
+    p.detail('M8 23 C11 23 12 27 12 30 C12 33 11 37 8 37 C5.5 37 5 33 5 30 C5 27 5.5 23 8 23Z M8 27 C9.5 27 9.5 33 8 33 C6.8 33 6.8 27 8 27Z', 'ring');
+    p.shape('M18 18.5 C21 14 27 12.5 31 15 C34 13 38 13.5 40 16 L36 17 C32 15.8 26 17 18 18.5Z', 'moss');
+    p.shape('M38 37 C38 41 33 43 29 41.5 C33 40 35.5 39 38 37Z', 'moss');
+  },
+  cache(p) { // Buried cache: a little mound with an acorn peeking out
+    p.shape('M3 44 C7 30 41 30 45 44Z', 'soil');
+    p.detail('M12 39 L15 38 M33 40 L36 39 M22 41 L25 40.5', 'dark');
+    p.shape(ell(24, 30, 5.5, 6.5), 'nut'); p.shape('M17.8 27.5 C17.8 20.5 30.2 20.5 30.2 27.5Z', 'cap');
+    p.limbs(['M24 21.6 L24.6 18.5'], 'cap', 1.6);
+    p.shine('M20.5 31 C20.5 28.5 21.5 27 22.8 26.5 C22.3 28 22.2 29.6 22.4 31.5Z', .5);
+  },
 };
 
 function painter(pal) {
@@ -281,6 +472,17 @@ const CURRENCY = `<symbol id="i-shell" viewBox="0 0 24 24">
       <circle cx="12" cy="12.4" r="8.6" fill="color-mix(in srgb, var(--pearl) 75%, #fff)" stroke="${INK}" stroke-width="1.5"/>
       <ellipse cx="9.2" cy="9.2" rx="2.9" ry="2.3" transform="rotate(-35 9.2 9.2)" fill="#fff" opacity=".8"/>
       <circle cx="15.6" cy="16.4" r="1.3" fill="#fff" opacity=".45"/>
+    </symbol>
+    <symbol id="i-seed" viewBox="0 0 24 24">
+      <path d="M5.4 10.6C5.4 16.2 8.4 21.4 12 21.4s6.6-5.2 6.6-10.8z" fill="var(--shell)" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M3.6 11.2C3.4 6.6 7.2 4.4 12 4.4s8.6 2.2 8.4 6.8z" fill="color-mix(in srgb, var(--shell) 55%, ${INK})" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M12 4.4V1.8" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M8.2 13.5C8.4 15.8 9.2 17.6 10.4 18.8" stroke="#fff" stroke-opacity=".6" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+    </symbol>
+    <symbol id="i-amber" viewBox="0 0 24 24">
+      <path d="M12 2.4C12 2.4 4.4 11 4.4 15.2c0 4 3.4 6.6 7.6 6.6s7.6-2.6 7.6-6.6C19.6 11 12 2.4 12 2.4z" fill="var(--pearl)" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M10 18.5c.8-2.8 2.6-4.6 5-5.4-.6 2.6-2.4 4.6-5 5.4z" fill="${INK}" fill-opacity=".35"/>
+      <path d="M8.2 14.4C8.4 12.2 9.6 10.2 11 8.6" stroke="#fff" stroke-opacity=".75" stroke-width="1.4" stroke-linecap="round" fill="none"/>
     </symbol>`;
 
 function symbols() {
@@ -295,8 +497,8 @@ if (require.main === module) {
   if (i < 0) { process.stdout.write(symbols()); }
   else {
     const fs = require('fs');
-    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock' };
+    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache' };
     const cells = Object.keys(DRAW).map(id => `<figure><div class="c"><svg viewBox="0 0 48 48">${art(id)}</svg></div><figcaption>${names[id]}</figcaption></figure>`).join('');
-    fs.writeFileSync(process.argv[i + 1], `<style>:root{--shell:#F2B85C;--pearl:#B7AAF5}body{background:#0F2C38;color:#9DBEC6;font:13px system-ui;margin:0;padding:16px}.g{display:grid;grid-template-columns:repeat(6,80px);gap:10px}.c{width:80px;height:80px;border-radius:14px;background:#2a4757;display:grid;place-items:center}.c svg{width:58px;height:58px}figure{margin:0;text-align:center}.cur svg{width:40px;height:40px}.sm svg{width:11px;height:11px}</style><svg width="0" height="0" style="position:absolute"><defs>${CURRENCY}</defs></svg><div class="g">${cells}</div><p class="cur"><svg><use href="#i-shell"/></svg><svg><use href="#i-pearl"/></svg> <span class="sm"><svg><use href="#i-shell"/></svg>3 <svg><use href="#i-pearl"/></svg>2</span></p>`);
+    fs.writeFileSync(process.argv[i + 1], `<style>:root{--shell:#F2B85C;--pearl:#B7AAF5}body{background:#0F2C38;color:#9DBEC6;font:13px system-ui;margin:0;padding:16px}.g{display:grid;grid-template-columns:repeat(6,80px);gap:10px}.c{width:80px;height:80px;border-radius:14px;background:#2a4757;display:grid;place-items:center}.c svg{width:58px;height:58px}figure{margin:0;text-align:center}.cur svg{width:40px;height:40px}.sm svg{width:11px;height:11px}</style><svg width="0" height="0" style="position:absolute"><defs>${CURRENCY}</defs></svg><div class="g">${cells}</div><p class="cur"><svg><use href="#i-shell"/></svg><svg><use href="#i-pearl"/></svg><svg style="--shell:#A86B2D"><use href="#i-seed"/></svg><svg style="--pearl:#D98C10"><use href="#i-amber"/></svg> <span class="sm"><svg><use href="#i-shell"/></svg>3 <svg><use href="#i-pearl"/></svg>2</span></p>`);
   }
 }

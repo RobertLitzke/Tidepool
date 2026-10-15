@@ -1,6 +1,6 @@
 // Bot simulator for balance tuning. Usage: node sim.js [runs=500] [bot=random|greedy|planner|all]
 // Skill ladder: random (no plan) < greedy (one-tide lookahead, rerolls, charms) < planner (plays each buy out to the end).
-const TP = require('./engine.js');
+const TP = require('./engine.js').forEco(process.env.ECO || 'reef');
 const { CONFIG, TILES } = TP;
 
 // Value of one tide's output if this board were frozen, measured on a clone.
@@ -34,6 +34,25 @@ function spendPearls(state, left, shellW) {
   if (rock >= 0 && empties <= 1 && left >= 4 && TP.rockCost(state) <= spare(state)) TP.breakRock(state, rock);
 }
 
+// Board actions an ecosystem offers (the forest: dig up a cache, trade at the Forager's Stash).
+// Take each one whose value now plus the board's future value beats doing nothing.
+function ecoActions(state, value, shellW) {
+  for (let guard = 0; guard < 8; guard++) {
+    const acts = TP.actions(state);
+    if (!acts.length) return;
+    const base = value(state);
+    let best = null;
+    for (const a of acts) {
+      const c = TP.clone(state);
+      if (!TP.act(c, a)) continue;
+      const gain = value(c) - base + (c.pearls - state.pearls) + shellW * (c.shells - state.shells);
+      if (!best || gain > best.gain) best = { gain, a };
+    }
+    if (!best || best.gain <= 0) return;
+    TP.act(state, best.a);
+  }
+}
+
 // Pearls plus weighted shells the frozen board makes over every tide that is left, played out tide by tide
 // on a clone. Unlike tideYield × tides left, this sees Staghorn growing, Mantis Shrimp trades draining shells, and,
 // once it is announced, the forecast event (before that the bot plays as if no event is coming).
@@ -65,6 +84,15 @@ function buyLoop(state, value, shellW, opts = {}) {
     let best = null;
     state.offers.forEach((k, oi) => {
       if (!k || TP.tileCost(state, k) > state.shells) return;
+      if (TILES[k].feller) {
+        for (const cell of TP.fellTargets(state, k)) {
+          const c = TP.clone(state);
+          if (!TP.useFeller(c, oi, cell)) continue;
+          const gain = value(c) - base - shellW * (state.shells - c.shells);
+          if (!best || gain > best.gain) best = { gain, oi, cell, v: 'fell' };
+        }
+        return;
+      }
       if (TILES[k].mover) {
         for (const cell of TP.moverSpots(state)) for (const from of TP.moverTargets(state, cell)) for (const to of TP.moverDests(state, from)) {
           const c = TP.clone(state);
@@ -89,6 +117,7 @@ function buyLoop(state, value, shellW, opts = {}) {
     });
     if (best && best.gain > 0) {
       if (best.v === 'move') { TP.useMover(state, best.oi, best.cell, best.from, best.to); continue; }
+      if (best.v === 'fell') { TP.useFeller(state, best.oi, best.cell); continue; }
       if (best.v === 'replace') TP.sell(state, best.cell);
       TP.buy(state, best.oi, best.cell);
       continue;
@@ -120,12 +149,22 @@ const bots = {
     if (cp && cp.tide - state.tide <= 1 && state.pearls < cp.need) shellW = 0.05; // behind pace: chase pearls
     const score = (y) => (y.p + shellW * y.s) * left;
     spendPearls(state, left, shellW);
+    ecoActions(state, (st) => score(tideYield(st)), shellW);
     let rerolled = 0;
     for (let guard = 0; guard < 12; guard++) {
       const base = score(tideYield(state));
       let best = null;
       state.offers.forEach((k, oi) => {
         if (!k || TP.tileCost(state, k) > state.shells) return;
+        if (TILES[k].feller) {
+          for (const cell of TP.fellTargets(state, k)) {
+            const c = TP.clone(state);
+            if (!TP.useFeller(c, oi, cell)) continue;
+            const gain = score(tideYield(c)) - base - shellW * (state.shells - c.shells);
+            if (!best || gain > best.gain) best = { gain, oi, cell, v: 'fell' };
+          }
+          return;
+        }
         if (TILES[k].mover) {
           // Try every spot, touching tile and direction; the mover leaves, so only the move matters.
           for (const cell of TP.moverSpots(state)) for (const from of TP.moverTargets(state, cell)) for (const to of TP.moverDests(state, from)) {
@@ -153,6 +192,7 @@ const bots = {
       });
       if (best && best.gain > 0) {
         if (best.v === 'move') { TP.useMover(state, best.oi, best.cell, best.from, best.to); continue; }
+        if (best.v === 'fell') { TP.useFeller(state, best.oi, best.cell); continue; }
         if (best.v === 'replace') TP.sell(state, best.cell);
         TP.buy(state, best.oi, best.cell);
         continue;
@@ -178,6 +218,7 @@ bots.planner = function (state) {
     if (pace < cp.need * PLAN.paceMargin) opt = { ...PLAN, shellW: PLAN.behindShellW };
   }
   buyLoop(state, (s) => runout(s, opt), shellW);
+  ecoActions(state, (s) => runout(s, opt), shellW);
 };
 
 function play(botName, seed) {

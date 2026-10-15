@@ -45,6 +45,21 @@
   color-scheme: dark;
 }
 
+/* Forest theme: leaf-litter browns; the background follows the season. Seeds and amber take the shell and pearl colors. */
+:root[data-eco="forest"] { --water: #E9EBD6; --water-2: #D9E0C2; --sand: #FBF7EC; --sand-edge: #DCCDAA; --shell: #A86B2D; --pearl: #D98C10; --coral: #D9603B; --rock: #B9A27C; --flower: #C2569B; }
+:root[data-eco="forest"][data-season="fall"] { --water: #F2E4C7; --water-2: #E9CF9F; }
+:root[data-eco="forest"][data-season="winter"] { --water: #E7EEF1; --water-2: #D2DFE5; }
+:root[data-eco="forest"][data-season="spring"] { --water: #E4F0D8; --water-2: #CDE4B9; }
+:root[data-eco="forest"][data-season="summer"] { --water: #D7E8C6; --water-2: #BCD8A4; }
+@media (prefers-color-scheme: dark) {
+  :root[data-eco="forest"]:not([data-theme="light"]) { --water: #1D2A1E; --water-2: #172319; --sand: #2C3A2B; --sand-edge: #172318; --shell: #DDA663; --pearl: #F2B640; --panel: #253427; --rock: #4B4434; --flower: #E58BC6; }
+  :root[data-eco="forest"][data-season="fall"]:not([data-theme="light"]) { --water: #2B2518; --water-2: #231E12; }
+  :root[data-eco="forest"][data-season="winter"]:not([data-theme="light"]) { --water: #1B2830; --water-2: #152027; }
+  :root[data-eco="forest"][data-season="spring"]:not([data-theme="light"]) { --water: #1E2D20; --water-2: #172419; }
+  :root[data-eco="forest"][data-season="summer"]:not([data-theme="light"]) { --water: #1A2D1B; --water-2: #132314; }
+}
+:root[data-eco="forest"][data-theme="dark"] { --water: #1D2A1E; --water-2: #172319; --sand: #2C3A2B; --sand-edge: #172318; --shell: #DDA663; --pearl: #F2B640; --panel: #253427; --rock: #4B4434; --flower: #E58BC6; }
+
 html, body { height: 100%; }
 body {
   background:
@@ -76,7 +91,21 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
 /* Top status */
 .top { display: flex; align-items: center; gap: 10px; }
-.brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .2px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .2px; white-space: nowrap; }
+.brand small { font-size: 13px; color: var(--ink-soft); margin-left: 2px; }
+/* The year strip (ecosystems with a calendar): one segment per month, colored by season. */
+.year { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+.year:empty { display: none; }
+.year span { position: relative; height: 16px; border-radius: 5px; font-size: 9px; font-weight: 700; line-height: 16px; text-align: center; color: var(--ink-soft); background: var(--panel); opacity: .75; }
+.year .fall { background: color-mix(in srgb, #E08A2E 30%, var(--panel)); }
+.year .winter { background: color-mix(in srgb, #7FA7C9 30%, var(--panel)); }
+.year .spring { background: color-mix(in srgb, #E58BC6 28%, var(--panel)); }
+.year .summer { background: color-mix(in srgb, #5FAE5A 30%, var(--panel)); }
+.year .now { opacity: 1; color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+.year .past { opacity: .4; }
+.year .goal::after, .year .storm::after { position: absolute; top: -7px; right: -2px; font-size: 9px; }
+.year .goal::after { content: '★'; color: var(--coral); }
+.year .storm::after { content: '!'; color: var(--bad); }
 .tide-pill { font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--panel); color: var(--ink-soft); box-shadow: var(--shadow); white-space: nowrap; }
 .spacer { flex: 1; }
 .counter { display: flex; align-items: center; gap: 4px; font-family: var(--font-display); font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; min-width: 52px; justify-content: flex-end; }
@@ -180,7 +209,32 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .cell .threat-mark { position: absolute; top: 2px; left: 4px; font-size: 12px; }
 .charms .forecast { font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
 .forecast-big { font-size: 48px; text-align: center; }
-.cell.k-plant { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
+.cell.k-plant, .cell.k-tree { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
+.cell.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--sand)); }
+.card.k-tree { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); }
+.card.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--panel)); }
+.tile-head .big.k-tree { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
+.tile-head .big.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--sand)); }
+.kind.tree { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.kind.understory { color: var(--flower, var(--coral)); background: color-mix(in srgb, var(--flower, var(--coral)) 14%, transparent); }
+/* Forest board states: resting tiles, leaf litter, buried caches, pollinated flowers, tiles at their peak. */
+.cell.dormant .emo { opacity: .5; filter: grayscale(.6); }
+.cell .litter { position: absolute; top: 2px; right: 4px; font-size: 9px; letter-spacing: -3px; }
+.cell .cachemark { font-size: clamp(16px, 6vw, 26px); }
+.cell .poll { position: absolute; top: 14px; left: 6px; font-size: 10px; color: var(--flower, var(--coral)); }
+.cell.peak .emo { filter: drop-shadow(0 0 6px var(--glow)); }
+.card .peak { font-size: 11px; }
+.card.inpeak { box-shadow: 0 0 0 2px var(--glow), var(--shadow); }
+/* Ecosystem picker */
+.eco-list { display: grid; gap: 10px; }
+.eco-card { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; padding: 12px; border-radius: 18px; background: var(--sand); text-align: left; }
+.eco-card .big { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 34px; background: var(--panel); }
+.eco-card b { font-family: var(--font-display); font-weight: 700; font-size: 19px; }
+.eco-card .meta { display: block; font-size: 12px; color: var(--ink-soft); }
+.eco-card .blurb { display: block; font-size: 13px; color: var(--ink); line-height: 1.35; margin-top: 3px; }
+.eco-card .best { display: flex; gap: 8px; align-items: center; margin-top: 6px; font-size: 12px; color: var(--ink-soft); }
+.eco-card .best .go { margin-left: auto; font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--coral); color: var(--coral-ink); }
+.eco-card.cur { box-shadow: inset 0 0 0 2px var(--coral); }
 .cell.k-shellfish { background: color-mix(in srgb, var(--shell) 22%, var(--sand)); }
 .cell.k-critter { background: color-mix(in srgb, var(--pearl) 20%, var(--sand)); }
 .card.k-plant { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); }
@@ -366,11 +420,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
 <div class="app" id="app">
   <div class="top">
-    <div class="brand">Tidepool</div>
+    <button class="brand" id="brandBtn" aria-label="Choose an ecosystem">Reef<small>▾</small></button>
     <div class="tide-pill" id="tidePill">Tide 1 of 12</div>
     <div class="spacer"></div>
-    <div class="counter" id="shells" aria-label="Shells"><svg><use href="#i-shell"/></svg><span>0</span></div>
-    <div class="counter" id="pearls" aria-label="Pearls"><svg><use href="#i-pearl"/></svg><span>0</span></div>
+    <div class="counter" id="shells" aria-label="Shells"><svg><use class="ic-shell" href="#i-shell"/></svg><span>0</span></div>
+    <div class="counter" id="pearls" aria-label="Pearls"><svg><use class="ic-pearl" href="#i-pearl"/></svg><span>0</span></div>
     <button class="icon-btn" id="helpBtn" aria-label="How to play">?</button>
   </div>
 
@@ -378,6 +432,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     <div class="goal-text"><span id="goalText"></span><span id="goalNum"></span></div>
     <div class="bar" id="goalBar"><i></i></div>
   </div>
+
+  <div class="year" id="year"></div>
 
   <div class="charms" id="charms"></div>
 
@@ -389,8 +445,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   <div class="actions">
     <button class="btn" id="undoBtn" aria-label="Undo">↶</button>
-    <button class="btn" id="rerollBtn">New tiles <svg><use href="#i-shell"/></svg><span id="rerollCost">1</span></button>
-    <button class="btn go" id="tideBtn">Let the tide in<small id="forecast"></small></button>
+    <button class="btn" id="rerollBtn">New tiles <svg><use class="ic-shell" href="#i-shell"/></svg><span id="rerollCost">1</span></button>
+    <button class="btn go" id="tideBtn"><span id="goWord">Let the tide in</span><small id="forecast"></small></button>
   </div>
 </div>
 
@@ -401,36 +457,98 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 </script>
 <script>
 (() => {
-  const TP = window.Tidepool;
-  const { CONFIG, TILES, CHARMS, KINDS, EVENTS } = TP;
+  // Every ecosystem runs on its own engine (window.Tidepool.forEco). useEco swaps the rules, words, icons and theme.
+  const TPX = window.Tidepool;
+  let TP, CONFIG, TILES, CHARMS, KINDS, EVENTS, ECO, T, WORDS, ICON;
   const kindChip = (tag) => `<span class="kind ${tag}">${KINDS[tag].name}</span>`;
   const $ = (id) => document.getElementById(id);
-  const store = {
-    get(k) { try { return JSON.parse(localStorage.getItem('tidepool.' + k)); } catch { return null; } },
-    set(k, v) { try { localStorage.setItem('tidepool.' + k, JSON.stringify(v)); } catch {} },
+  // Saves are kept per ecosystem. The reef keeps its original keys, so runs saved before ecosystems still load.
+  const keyFor = (eco, k) => 'tidepool.' + (eco === 'reef' ? '' : eco + '.') + k;
+  const raw = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   };
+  const store = { get: (k) => raw.get(keyFor(ECO.id, k)), set: (k, v) => raw.set(keyFor(ECO.id, k), v) };
+  // Sea ecosystems pay in shells and pearls, land ones in seeds and amber. Code keeps the roles 'shell' and 'pearl'.
+  const REALM = {
+    sea: { words: { shell: ['shell', 'shells'], pearl: ['pearl', 'pearls'] }, icon: { shell: 'shell', pearl: 'pearl' } },
+    land: { words: { shell: ['seed', 'seeds'], pearl: ['amber', 'amber'] }, icon: { shell: 'seed', pearl: 'amber' } },
+  };
+  const unit = (r, n = 2) => WORDS[r][n === 1 ? 0 : 1];
+  const w = (n, r) => `${n} ${unit(r, n)}`;
+  const Cap = (x) => x[0].toUpperCase() + x.slice(1);
+  // "tide 4" on the reef, "February" in the forest.
+  const roundName = (t) => CONFIG.calendar ? CONFIG.calendar.names[TP.month(G, t)] : `${T.round} ${t}`;
+  const rounds = (n) => `${n} ${T.round}${n === 1 ? '' : 's'}`;
+  function useEco(id) {
+    TP = TPX.forEco(id);
+    ({ CONFIG, TILES, CHARMS, KINDS, EVENTS } = TP);
+    ECO = TP.eco; T = ECO.terms;
+    ({ words: WORDS, icon: ICON } = REALM[ECO.realm]);
+    document.documentElement.dataset.eco = id;
+    if (!CONFIG.calendar) delete document.documentElement.dataset.season;
+    raw.set('tidepool.eco', id);
+    document.querySelectorAll('use.ic-shell').forEach(u => u.setAttribute('href', '#i-' + ICON.shell));
+    document.querySelectorAll('use.ic-pearl').forEach(u => u.setAttribute('href', '#i-' + ICON.pearl));
+    $('shells').setAttribute('aria-label', Cap(unit('shell'))); $('pearls').setAttribute('aria-label', Cap(unit('pearl')));
+    $('brandBtn').innerHTML = `${ECO.name}<small>▾</small>`;
+    $('goWord').textContent = T.go;
+    document.title = `Tidepool · ${ECO.name}`;
+  }
   const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
-  const icon = (n) => `<svg><use href="#i-${n}"/></svg>`;
+  const icon = (n) => `<svg><use href="#i-${(ICON && ICON[n]) || n}"/></svg>`;
   const art = (k) => `<svg class="art" aria-hidden="true"><use href="#t-${k}"/></svg>`;
   // An amount with its icon ("3" + shell), and rules text with "+2 pearls" style amounts turned into icons.
   const amt = (n, r) => `<span class="amt ${r[0]}">${n}${icon(r)}</span>`;
-  const fx = (txt) => txt.replace(/([+-]?\d+) (shell|pearl)s?\b/g, (_, n, r) => amt(n, r));
+  const ROLE = { shell: 'shell', pearl: 'pearl', seed: 'shell', amber: 'pearl' };
+  const fx = (txt) => txt.replace(/([+-]?\d+) (shell|pearl|seed|amber)s?\b/g, (_, n, r) => amt(n, ROLE[r]));
   const yieldTxt = (y) => (y.p || y.s) ? [y.p ? amt('+' + y.p, 'pearl') : '', y.s ? amt('+' + y.s, 'shell') : ''].filter(Boolean).join(' ') : '';
 
   let G, sel = null, undo = [], busy = false, skip = false, dealt = true;
 
   const todaySeed = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 
-  function start(data) {
+  function start(data, quiet) {
     G = (data && data.G) || store.get('run');
-    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows) G = TP.newGame(Math.floor(Math.random() * 1e9));
+    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows || (G.eco || 'reef') !== ECO.id) G = TP.newGame(Math.floor(Math.random() * 1e9));
     sel = null; undo = []; busy = false;
     buildReef();
     render();
+    if (!quiet) prompts();
+  }
+  // Whatever the run is waiting on when you come back to it.
+  function prompts() {
     if (G.over) endRun();
     else if (!store.get('seenHelp')) showHelp();
     else if (eventPending() && !G.forecastSeen) showForecast(true);
     else if (G.charmOffers.length && G.charmSeen !== G.tide) showCharms();
+  }
+
+  // ---------- Ecosystem picker: shown when the app opens, and from the name in the corner ----------
+  function showPicker() {
+    const cards = TPX.list().map(e => {
+      const run = raw.get(keyFor(e.id, 'run')), best = raw.get(keyFor(e.id, 'best')) || 0;
+      const live = run && !run.over && run.grid && (run.eco || 'reef') === e.id;
+      const eng = TPX.forEco(e.id), st = best ? eng.starsFor(best) : 0;
+      const rn = live ? (eng.CONFIG.calendar ? eng.CONFIG.calendar.names[eng.month(run)] : `${e.terms.Round} ${run.tide}`) : '';
+      const ic = REALM[e.realm].icon.pearl;
+      return `<button class="eco-card${e.id === ECO.id ? ' cur' : ''}" data-eco="${e.id}"><span class="big">${art(e.icon)}</span><span>
+        <b>${e.name}</b><span class="meta">${e.region} · ${e.kindness}</span><span class="blurb">${e.blurb}</span>
+        <span class="best">${best ? `<span>${'★'.repeat(st)}${'☆'.repeat(3 - st)} best ${best}<svg class="art"><use href="#i-${ic}"/></svg></span>` : '<span>Not played yet</span>'}<span class="go">${live ? 'Continue · ' + rn : 'Play'}</span></span>
+      </span></button>`;
+    }).join('');
+    $('overlay').innerHTML = `<div class="sheet-bg" id="ecoBg"><div class="sheet" role="dialog" aria-label="Choose an ecosystem">
+      <h2>Tidepool</h2>
+      <p>Pick a place to grow. Each one keeps its own run and best score.</p>
+      <div class="eco-list">${cards}</div>
+    </div></div>`;
+    $('overlay').querySelectorAll('.eco-card').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.eco;
+      closeOverlay();
+      if (id === ECO.id) { prompts(); return; }
+      useEco(id); dealt = true; start();
+    }));
+    $('ecoBg').addEventListener('click', (e) => { if (e.target.id === 'ecoBg') { closeOverlay(); prompts(); } });
   }
 
   // The run's forecast event is shown from CONFIG.eventRevealTide until it strikes.
@@ -446,9 +564,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   const save = () => store.set('run', G);
 
-  // ---------- Forecast: what the reef would make next tide if frozen ----------
+  // ---------- Forecast: what the board would make next round if frozen ----------
   const yieldOf = (state) => TP.forecast(state);
-  const mini = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
+  const mini = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}${icon(r)}</span>` : '';
 
   // ---------- Rendering ----------
   function buildReef() {
@@ -462,25 +580,42 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   }
 
   function render() {
-    $('tidePill').textContent = G.over ? 'Run over' : `Tide ${G.tide} of ${CONFIG.tides}`;
+    if (CONFIG.calendar) {
+      const sn = TP.season(G);
+      document.documentElement.dataset.season = sn;
+      $('tidePill').textContent = G.over ? 'Run over' : `${ECO.seasons[sn].emoji} ${roundName(G.tide)}`;
+    } else $('tidePill').textContent = G.over ? 'Run over' : `${T.Round} ${G.tide} of ${CONFIG.tides}`;
     setCounter('shells', G.shells); setCounter('pearls', G.pearls);
-    renderGoal(); renderCharms(); renderReef(); renderShop(); renderInfo(); renderActions();
+    renderGoal(); renderYear(); renderCharms(); renderReef(); renderShop(); renderInfo(); renderActions();
   }
 
   function setCounter(id, v) { $(id).querySelector('span').textContent = v; }
+
+  // The year strip: month initials colored by season, the goals starred and the event month marked.
+  function renderYear() {
+    const el = $('year');
+    if (!CONFIG.calendar) { el.innerHTML = ''; return; }
+    let html = '';
+    for (let t = 1; t <= CONFIG.tides; t++) {
+      const m = TP.month(G, t), cls = [TP.season(G, t), t === G.tide && !G.over ? 'now' : t < G.tide ? 'past' : '',
+        CONFIG.checkpoints[t] != null ? 'goal' : '', t === CONFIG.eventTide && TP.eventKnown(G) && !G.struck ? 'storm' : ''].join(' ');
+      html += `<span class="${cls}" title="${CONFIG.calendar.names[m]}">${CONFIG.calendar.names[m][0]}</span>`;
+    }
+    el.innerHTML = html;
+  }
 
   function renderGoal() {
     const cp = TP.nextCheckpoint(G);
     const bar = $('goalBar');
     if (cp) {
-      $('goalText').innerHTML = `Hold <b>${cp.need} pearls</b> at the end of tide ${cp.tide}`;
+      $('goalText').innerHTML = `Hold <b>${w(cp.need, 'pearl')}</b> at the end of ${roundName(cp.tide)}`;
       $('goalNum').textContent = `${Math.min(G.pearls, cp.need)} / ${cp.need}`;
       bar.querySelector('i').style.width = Math.min(100, 100 * G.pearls / cp.need) + '%';
       bar.classList.toggle('met', G.pearls >= cp.need);
     } else {
       const next = CONFIG.stars.find(x => G.pearls < x);
       const st = TP.starsFor(G.pearls);
-      $('goalText').innerHTML = next ? `Next star at <b>${next} pearls</b>` : '<b>Three stars.</b> Keep going.';
+      $('goalText').innerHTML = next ? `Next star at <b>${w(next, 'pearl')}</b>` : '<b>Three stars.</b> Keep going.';
       $('goalNum').textContent = '★'.repeat(st) + '☆'.repeat(3 - st);
       bar.querySelector('i').style.width = Math.min(100, 100 * G.pearls / (next || G.pearls || 1)) + '%';
       bar.classList.toggle('met', !next);
@@ -494,8 +629,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const market = G.charmOffers.length && !G.over;
     el.classList.toggle('empty', !owned && !ev && !market);
     el.innerHTML = `<div class="owned">${owned}</div><div class="spacer"></div>` +
-      (ev ? `<button class="forecast" id="forecastBtn">${ev.emoji} ${ev.name} after tide ${CONFIG.eventTide}</button>` : '') +
-      (market ? `<button class="market" id="marketBtn">Tide Charms</button>` : '');
+      (ev ? `<button class="forecast" id="forecastBtn">${ev.emoji} ${ev.name} after ${roundName(CONFIG.eventTide)}</button>` : '') +
+      (market ? `<button class="market" id="marketBtn">${T.bonus}</button>` : '');
     el.querySelectorAll('[data-charm]').forEach(b => b.addEventListener('click', () => showCharmInfo(b.dataset.charm)));
     if ($('marketBtn')) $('marketBtn').addEventListener('click', showCharms);
     if ($('forecastBtn')) $('forecastBtn').addEventListener('click', () => showForecast());
@@ -503,10 +638,12 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   function renderReef() {
     const offerKind = sel && sel.type === 'offer' ? G.offers[sel.i] : null;
-    const kind = offerKind && !TILES[offerKind].mover ? offerKind : null;
+    const kind = offerKind && !TILES[offerKind].mover && !TILES[offerKind].feller ? offerKind : null;
     // Mover steps: pick a spot for it, then the touching tile to move, then where that tile goes.
+    // A feller (the Beaver) just needs the tile it takes.
     let moveOk = null;
     if (offerKind && TILES[offerKind].mover) moveOk = new Set(TP.moverSpots(G));
+    else if (offerKind && TILES[offerKind].feller) moveOk = new Set(TP.fellTargets(G, offerKind));
     else if (sel && sel.type === 'move' && sel.from == null) moveOk = new Set(TP.moverTargets(G, sel.cell));
     const fc = !busy ? yieldOf(G) : null;
     // Hint overlay for a selected tile: what it counts, what it powers, and who counts it.
@@ -551,21 +688,26 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       const def = t && TILES[t.kind];
       let html = '';
       if (G.rock[i]) {
-        html += `<span class="open">New spot</span><span class="emo">${art('rock')}</span><span class="price${G.pearls < TP.rockCost(G) ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}</span>`;
+        html += `<span class="open">New spot</span><span class="emo">${art(ECO.realm === 'land' ? 'log' : 'rock')}</span><span class="price${G.pearls < TP.rockCost(G) ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}</span>`;
       } else if (t) {
         html += `<span class="emo">${art(t.kind)}</span>`;
         const y = fc && fc.per[i];
         if (!deltas && y && (y.p || y.s)) html += `<span class="yield">${mini(y.p, 'pearl')}${mini(y.s, 'shell')}</span>`;
         if (t.lvl > 1 && !(costs && i in costs)) html += `<span class="lvl">${t.lvl <= 3 ? '★'.repeat(t.lvl) : '★' + t.lvl}</span>`;
-        if (t.kind === 'coral') html += `<span class="age">${t.age}</span>`;
+        if (def.showAge) html += `<span class="age">${t.age}</span>`;
+        if (def.showGrown || t.kind === 'seedling') html += `<span class="age">${t.kind === 'seedling' ? '🌱' + (t.grown || 0) : t.grown || 0}</span>`;
+        if (t.poll) html += `<span class="poll">✿</span>`;
       } else if (sel && sel.type === 'move' && sel.cell === i) {
         html += `<span class="emo ghost">${art(G.offers[sel.i])}</span>`;
+      } else if (G.cache && G.cache[i]) {
+        html += `<span class="emo cachemark">${art('cache')}</span>`;
       } else {
         html += `<span class="order">${i + 1}</span>`;
       }
+      if (G.litter && G.litter[i] && !G.rock[i] && !(hint || costs)) html += `<span class="litter" title="Leaf litter">${'🍂'.repeat(G.litter[i])}</span>`;
       if (deltas && deltas[i]) {
         const d = deltas[i];
-        const part = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
+        const part = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}${icon(r)}</span>` : '';
         const txt = part(d.p, 'pearl') + part(d.s, 'shell') || '<span class="z">+0</span>';
         html += `<span class="delta">${txt}</span>`;
       }
@@ -582,6 +724,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       el.innerHTML = html;
       el.classList.toggle('threat', threat.has(i));
       el.classList.toggle('rock', !!G.rock[i]);
+      el.classList.toggle('dormant', !!t && TP.dormant(G, i));
+      el.classList.toggle('peak', !!t && !!CONFIG.calendar && def.peak === TP.season(G) && !TP.dormant(G, i));
       el.classList.toggle('reads', !!hint && hint.reads.has(i) && !hint.boosts.has(i));
       el.classList.toggle('boosts', !!hint && hint.boosts.has(i));
       el.classList.toggle('usedby', !!hint && hint.usedBy.has(i) && !hint.reads.has(i) && !hint.boosts.has(i));
@@ -592,7 +736,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       el.classList.toggle('best', !!deltas && i === bestCell);
       el.classList.toggle('invalid', (!!deltas && !(i in deltas) && !moving) || (!!moveOk && !moveOk.has(i) && !moving));
       el.classList.toggle('picked', (!!sel && (sel.type === 'cell' || sel.type === 'rock') && sel.i === i) || !!moving);
-      el.setAttribute('aria-label', (G.rock[i] ? `Rock, break for ${TP.rockCost(G)} pearls` : t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}, ${KINDS[def.tag].name.toLowerCase()}` : `Empty spot ${i + 1}`) + (costs && i in costs ? `, costs ${costs[i]} shells` : ''));
+      el.setAttribute('aria-label', (G.rock[i] ? `${T.Rock}, ${T.clear.toLowerCase()} for ${w(TP.rockCost(G), 'pearl')}` : t ? `${def.name}${t.lvl > 1 ? ' level ' + t.lvl : ''}, ${KINDS[def.tag].name.toLowerCase()}` : `Empty spot ${i + 1}`) + (costs && i in costs ? `, costs ${w(costs[i], 'shell')}` : ''));
     });
   }
 
@@ -610,8 +754,10 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       if (sel && (sel.type === 'offer' || sel.type === 'move') && sel.i === i) b.classList.add('sel');
       if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
       const twin = G.grid.find(t => t && t.kind === k && t.lvl < TP.maxLevel(k));
-      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${art(k)}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${cost}</span>`;
-      b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
+      const peak = CONFIG.calendar && def.peak ? ECO.seasons[def.peak] : null;
+      if (peak && def.peak === TP.season(G)) b.classList.add('inpeak');
+      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${art(k)}</span><span class="nm">${def.name}</span><span class="cost">${peak ? `<span class="peak" title="Peaks in ${peak.name.toLowerCase()}">${peak.emoji}</span>` : ''}${icon('shell')}${cost}</span>`;
+      b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${w(cost, 'shell')}. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
       b.addEventListener('click', () => onOffer(i));
       shop.appendChild(b);
     });
@@ -631,6 +777,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       const k = G.offers[sel.i], def = TILES[k];
       const cost = TP.tileCost(G, k), poor = cost > G.shells;
       const need = poor ? `<span class="chip">Need ${amt(cost - G.shells, 'shell')} more</span>` : '';
+      if (def.feller) {
+        const n = TP.fellTargets(G, k).length;
+        el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}</div>` + (need || (n ? '' : `<span class="chip">No tree to fell</span>`));
+        return;
+      }
       if (def.mover) {
         const spots = TP.moverSpots(G).length;
         el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}</div>` +
@@ -651,21 +802,22 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       return;
     }
     if (G.over) {
-      el.innerHTML = `<div class="txt">The run is over.</div><button class="chip" id="overNew">New reef</button>`;
+      el.innerHTML = `<div class="txt">The run is over.</div><button class="chip" id="overNew">New ${T.board}</button>`;
       $('overNew').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
       return;
     }
     const open = G.grid.filter((t, i) => !t && !G.rock[i]).length;
     const rocks = G.rock.filter(Boolean).length;
-    const tip = rocks && open <= 1 ? 'Your reef is nearly full. Tap a rock to break it with pearls and open a new spot.'
-      : rocks && G.tide <= 2 ? 'The striped rocks are locked spots. Later you can break them with pearls to grow your reef.'
-      : 'Tap a tile on the reef to see what it does. Tiles fire in order, 1 to 16.';
+    const tip = rocks && open <= 1 ? `Your ${T.board} is nearly full. Tap a ${T.rock} to ${T.clear.toLowerCase()} it with ${unit('pearl')} and open a new spot.`
+      : rocks && G.tide <= 2 ? `The striped ${T.rock}s are locked spots. Later you can ${T.clear.toLowerCase()} them with ${unit('pearl')} to grow your ${T.board}.`
+      : CONFIG.calendar && G.tide <= 2 ? 'Every tile keeps its own calendar. Tap one to see what it does in each season, and watch the year strip above.'
+      : `Tap a tile to see what it does. Tiles fire in order, 1 to 16.`;
     el.innerHTML = `<div class="txt">${tip}</div>`;
   }
 
   function renderActions() {
     const y = yieldOf(G);
-    $('forecast').innerHTML = G.over ? '' : `Reef makes ${amt(y.p, 'pearl')} ${amt(y.s, 'shell')}`;
+    $('forecast').innerHTML = G.over ? '' : `${T.boardMakes} ${amt(y.p, 'pearl')} ${amt(y.s, 'shell')}`;
     const rc = TP.rerollCost(G);
     $('rerollCost').textContent = rc || 'free';
     $('rerollBtn').disabled = busy || G.over || G.shells < rc;
@@ -686,14 +838,25 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     if (sel && sel.type === 'move') { onMoveCell(i); return; }
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i];
-      if (TP.tileCost(G, k) > G.shells) { toast(`You need ${TP.tileCost(G, k)} shells`); return; }
+      if (TP.tileCost(G, k) > G.shells) { toast(`You need ${w(TP.tileCost(G, k), 'shell')}`); return; }
+      if (TILES[k].feller) {
+        if (!TP.fellTargets(G, k).includes(i)) { toast(`Tap a tree for the ${TILES[k].name}`); return; }
+        undo.push(TP.clone(G));
+        const name = TILES[G.grid[i].kind].name;
+        if (!TP.useFeller(G, sel.i, i)) { undo.pop(); return; }
+        sel = null; buzz([10, 30, 10]); save(); render();
+        pulse($('reef').children[i], 'placed');
+        floatAt(i, `${art(k)} timber!`, 'm');
+        toast(`${name} felled into a ${T.rock}`);
+        return;
+      }
       if (TILES[k].mover) {
         if (!TP.moverSpots(G).includes(i)) { toast(`Put the ${TILES[k].name} on an empty spot beside a tile`); return; }
         sel = { type: 'move', i: sel.i, cell: i, from: null }; buzz(5); render();
         return;
       }
       if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
-      if (TP.placeCost(G, k, i) > G.shells) { toast(`Leveling up costs ${TP.placeCost(G, k, i)} shells`); return; }
+      if (TP.placeCost(G, k, i) > G.shells) { toast(`Leveling up costs ${w(TP.placeCost(G, k, i), 'shell')}`); return; }
       undo.push(TP.clone(G));
       const lvlUp = !!G.grid[i];
       TP.buy(G, sel.i, i);
@@ -705,6 +868,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     }
     if (G.rock[i]) showRock(i);
     else if (G.grid[i]) showTile(i);
+    else if (G.cache && G.cache[i]) showCache(i);
     else if (sel) { sel = null; render(); }
   }
 
@@ -734,15 +898,29 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const legend = [l.reads.length ? '<span><i style="background:var(--ok)"></i>feeds it</span>' : '',
       l.boosts.length ? '<span><i style="background:var(--coral)"></i>powered by it</span>' : '',
       usedBy ? '<span><i style="background:var(--pearl)"></i>fed by it</span>' : ''].join('');
-    lowSheet(def.name, head(art(t.kind), def.name + stars, `${kindChip(def.tag)} <span>fires ${ordinal(i + 1)}</span>`, 'k-' + def.tag) +
+    const peak = CONFIG.calendar && def.peak ? ECO.seasons[def.peak] : null;
+    const trades = t.kind === 'stash' ? TP.actions(G).filter(a => a.type === 'trade' && a.cell === i) : [];
+    const [give, get] = CONFIG.stashTrade || [];
+    lowSheet(def.name, head(art(t.kind), def.name + stars + (t.poll ? ' <span style="color:var(--flower)">✿</span>' : ''), `${kindChip(def.tag)} <span>fires ${ordinal(i + 1)}</span>`, 'k-' + def.tag) +
       `<div class="effect">${fx(def.text(t.lvl))}</div>
       <div class="facts">
-        <div><span class="k">Next tide</span><span class="v">${yieldTxt(y) || 'Nothing yet'}</span></div>
-        ${t.kind === 'coral' ? `<div><span class="k">Grown</span><span class="v">${t.age} tide${t.age === 1 ? '' : 's'}</span></div>` : ''}
+        <div><span class="k">Next ${T.round}</span><span class="v">${yieldTxt(y) || (TP.dormant(G, i) ? 'Resting this ' + T.round : 'Nothing yet')}</span></div>
+        ${peak ? `<div><span class="k">Peak</span><span class="v">${peak.emoji} ${peak.name}${def.peak === TP.season(G) ? ' (now)' : ''}</span></div>` : ''}
+        ${def.showAge ? `<div><span class="k">Grown</span><span class="v">${rounds(t.age)}</span></div>` : ''}
+        ${def.showGrown ? `<div><span class="k">Grown</span><span class="v">${t.grown || 0}</span></div>` : ''}
+        ${t.kind === 'seedling' ? `<div><span class="k">Becomes</span><span class="v">${TILES[t.into].name} (grown ${t.grown || 0} so far)</span></div>` : ''}
+        ${trades.length || t.kind === 'stash' ? `<div><span class="k">Trade</span><span class="v">${t.traded === G.tide ? 'Used this month.' : 'Once a month.'}</span></div>` : ''}
         <div><span class="k">Level up</span><span class="v">${canUp ? `<span class="star-chip">★${t.lvl + 1}</span>for ${amt(TP.placeCost(G, t.kind, i), 'shell')}: ${fx(def.text(t.lvl + 1))}` : `Max level (★${t.lvl}).`}</span></div>
       </div>
       ${legend ? `<div class="legend">${legend}</div>` : ''}
+      ${t.kind === 'stash' ? `<div class="row"><button class="btn" id="tradeUp" ${trades.some(a => a.dir === 'up') ? '' : 'disabled'}>${amt(give, 'shell')} → ${amt(get, 'pearl')}</button><button class="btn" id="tradeDown" ${trades.some(a => a.dir === 'down') ? '' : 'disabled'}>${amt(give, 'pearl')} → ${amt(get, 'shell')}</button></div>` : ''}
       <div class="row"><button class="btn" id="sellBtn">Sell for ${amt(TP.sellValue(t), 'shell')}</button><button class="btn go" data-close>OK</button></div>`);
+    const doTrade = (dir) => {
+      undo.push(TP.clone(G));
+      if (TP.act(G, { type: 'trade', cell: i, dir })) { buzz([10, 30, 10]); closeOverlay(); sel = null; save(); render(); toast('Traded'); } else undo.pop();
+    };
+    if ($('tradeUp')) $('tradeUp').addEventListener('click', () => doTrade('up'));
+    if ($('tradeDown')) $('tradeDown').addEventListener('click', () => doTrade('down'));
     $('sellBtn').addEventListener('click', () => {
       undo.push(TP.clone(G));
       TP.sell(G, i); sel = null; buzz(8); closeOverlay(); save(); render();
@@ -752,20 +930,35 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   function showRock(i) {
     sel = { type: 'rock', i }; render();
     const cost = TP.rockCost(G), poor = G.pearls < cost, cp = TP.nextCheckpoint(G);
-    lowSheet('Rock', head('🪨', 'Rock', 'A locked spot') +
-      `<div class="effect">Break it with pearls to open a new spot for tiles. Each rock costs more than the last.</div>
-      <p>You have ${amt(G.pearls, 'pearl')}.${cp ? ` Keep ${amt(cp.need, 'pearl')} for the goal at the end of tide ${cp.tide}.` : ''}</p>
-      <div class="row"><button class="btn" data-close>Not now</button><button class="btn go" id="breakBtn" ${poor ? 'disabled' : ''}>Break for ${amt(cost, 'pearl')}</button></div>`);
+    const stash = ECO.realm === 'land' && !G.stashFound ? ` The first ${T.rock} you clear has a Forager's Stash under it: once a month it trades ${w(10, 'shell')} for ${w(5, 'pearl')}, or the other way. Sell it if you'd rather have the spot.` : '';
+    lowSheet(T.Rock, head(art(ECO.realm === 'land' ? 'log' : 'rock'), T.Rock, 'A locked spot') +
+      `<div class="effect">${T.clear} it with ${unit('pearl')} to open a new spot for tiles. Each one costs more than the last.${stash}</div>
+      <p>You have ${amt(G.pearls, 'pearl')}.${cp ? ` Keep ${amt(cp.need, 'pearl')} for the goal at the end of ${roundName(cp.tide)}.` : ''}</p>
+      <div class="row"><button class="btn" data-close>Not now</button><button class="btn go" id="breakBtn" ${poor ? 'disabled' : ''}>${T.clear} for ${amt(cost, 'pearl')}</button></div>`);
     $('breakBtn').addEventListener('click', () => {
       undo.push(TP.clone(G));
       if (TP.breakRock(G, i)) { sel = null; buzz([10, 30, 10]); closeOverlay(); save(); render(); pulse($('reef').children[i], 'placed'); }
-      else { undo.pop(); toast(`You need ${cost} pearls`); }
+      else { undo.pop(); toast(`You need ${w(cost, 'pearl')}`); }
     });
   }
 
   function showCharmInfo(id) {
     const c = CHARMS[id];
-    lowSheet(c.name, head(c.emoji, c.name, 'Tide Charm, yours for the run') + `<div class="effect">${fx(c.text)}</div><div class="row"><button class="btn go" data-close>OK</button></div>`);
+    lowSheet(c.name, head(c.emoji, c.name, `${T.bonusOne}, yours for the run`) + `<div class="effect">${fx(c.text)}</div><div class="row"><button class="btn go" data-close>OK</button></div>`);
+  }
+
+  // A squirrel's cache: dig it up for amber now, or leave it to sprout into a White Oak Seedling in April.
+  function showCache(i) {
+    sel = { type: 'cell', i }; render();
+    const n = G.cache[i], amber = CONFIG.digAmber * n;
+    lowSheet('Cache', head(art('cache'), 'Buried cache', 'Acorns a squirrel hid') +
+      `<div class="effect">Dig it up now for ${amt(amber, 'pearl')}, or leave it: caches still buried at the start of April sprout into White Oak Seedlings. Placing a tile here gives you its ${w(CONFIG.cacheSeeds * n, 'shell')} back.</div>
+      <div class="row"><button class="btn" data-close>Leave it</button><button class="btn go" id="digBtn">Dig up for ${amt(amber, 'pearl')}</button></div>`);
+    $('digBtn').addEventListener('click', () => {
+      undo.push(TP.clone(G));
+      if (TP.act(G, { type: 'dig', cell: i })) { sel = null; buzz([10, 30, 10]); closeOverlay(); save(); render(); floatAt(i, `+${amber}`, 'p'); }
+      else undo.pop();
+    });
   }
 
   const ordinal = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
@@ -809,6 +1002,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   });
   $('tideBtn').addEventListener('click', runTide);
   $('helpBtn').addEventListener('click', showHelp);
+  $('brandBtn').addEventListener('click', () => { if (!busy) showPicker(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('lowBg')) dismiss(); });
   document.addEventListener('pointerdown', () => { if (busy) skip = true; });
 
@@ -853,7 +1047,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       if (e.mult > 1) floatAt(e.cell, `×${e.mult}`, 'm', -22);
       if (e.p) floatAt(e.cell, `${e.p > 0 ? '+' : ''}${e.p}`, 'p', e.s ? -8 : 0);
       if (e.s) floatAt(e.cell, `${e.s > 0 ? '+' : ''}${e.s}`, 's', e.p ? 14 : 0);
-      if (e.kind === 'puffer') floatAt(e.cell, 'puff!', 'm');
+      if (TILES[e.kind].cheer && !e.idle) floatAt(e.cell, TILES[e.kind].cheer, 'm');
       setCounter('shells', e.shells); setCounter('pearls', e.pearls);
       if (e.p) pulse($('pearls'), 'bump');
       if (e.s) pulse($('shells'), 'bump');
@@ -868,7 +1062,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const earned = G.lastTide.earned;
     if (G.over) { endRun(before); return; }
     const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
-    toast(passed ? `Goal reached! +${earned} pearls this tide` : `+${earned} pearls · the tide brings ${G.lastTide.income} shells`);
+    toast(passed ? `Goal reached! +${w(earned, 'pearl')} this ${T.round}` : `+${w(earned, 'pearl')} · ${T.incomeWord} ${w(G.lastTide.income, 'shell')}`);
     const struck = G.lastTide.struck;
     if (struck) setTimeout(() => showStrike(struck), 700);
     else if (eventPending() && !G.forecastSeen) setTimeout(() => showForecast(true), 700);
@@ -880,12 +1074,12 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const ev = EVENTS[TP.eventOf(G)];
     G.forecastSeen = true; save();
     const left = CONFIG.eventTide - G.tide + 1;
-    const extra = TP.eventOf(G) === 'undertow' ? 'Plan for the new neighbors.' : 'Tiles it would take right now have a dashed red outline.';
+    const extra = ev.moves ? 'Plan for the new neighbors.' : ev.threat ? `Tiles it would ${ev.spares ? 'hit' : 'take'} right now have a dashed red outline.` : '';
     $('overlay').innerHTML = `<div class="sheet-bg" id="fcBg"><div class="sheet" role="dialog" aria-label="Forecast">
       <h2>${first ? 'Forecast' : ev.name}</h2>
       <div class="forecast-big">${ev.emoji}</div>
       <p><b>${ev.name}.</b> ${ev.text()}</p>
-      <p>${left} tide${left === 1 ? '' : 's'} to get ready. ${extra}</p>
+      <p>${Cap(rounds(left))} to get ready. ${extra}</p>
       <div class="row"><button class="btn go" id="fcClose">Got it</button></div>
     </div></div>`;
     const done = () => { closeOverlay(); if (first && G.charmOffers.length && G.charmSeen !== G.tide) showCharms(); };
@@ -896,14 +1090,15 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   function showStrike(st) {
     const ev = EVENTS[st.event];
     const lost = st.lost.map(l => `${art(l.kind)} ${TILES[l.kind].name}${l.lvl > 1 ? ' ★' + l.lvl : ''}`).join(', ');
-    const what = st.event === 'undertow' ? 'Every tile shifted one space left and one row down.'
-      : lost ? `Lost: ${lost}.` : 'Your reef held. Nothing was lost.';
+    const what = ev.moves ? 'Every tile shifted one space left and one row down.'
+      : ev.spares ? ev.text()
+      : lost ? `Lost: ${lost}.` : `Your ${T.board} held. Nothing was lost.`;
     buzz([30, 60, 30]);
     $('overlay').innerHTML = `<div class="sheet-bg" id="stBg"><div class="sheet" role="dialog" aria-label="${ev.name}">
       <h2>${ev.name}!</h2>
       <div class="forecast-big">${ev.emoji}</div>
-      <p>${what} Two tides left to rebuild.</p>
-      <div class="row"><button class="btn go" id="stClose">Rebuild</button></div>
+      <p>${what} ${Cap(rounds(CONFIG.tides - CONFIG.eventTide))} left${ev.spares ? '' : ' to rebuild'}.</p>
+      <div class="row"><button class="btn go" id="stClose">${ev.spares ? 'OK' : 'Rebuild'}</button></div>
     </div></div>`;
     $('stClose').addEventListener('click', closeOverlay);
     $('stBg').addEventListener('click', (e) => { if (e.target.id === 'stBg') closeOverlay(); });
@@ -924,18 +1119,20 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     if (isBest) store.set('best', G.pearls);
     const st = G.won ? TP.starsFor(G.pearls) : 0;
     buzz(G.won ? [20, 60, 20, 60, 40] : [40]);
-    const title = G.won ? (st === 3 ? 'A legendary reef' : st === 2 ? 'A lively reef' : st === 1 ? 'A cozy reef' : 'The tide goes out') : `Missed the goal at tide ${G.failedAt}`;
+    const title = G.won ? (st === 3 ? `A legendary ${T.board}` : st === 2 ? `A lively ${T.board}` : st === 1 ? `A cozy ${T.board}` : T.zeroStar) : `Missed the goal at the end of ${roundName(G.failedAt)}`;
     const need = CONFIG.checkpoints[G.failedAt];
     $('overlay').innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Run summary">
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
-      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Giant Clams beside Sargassum make pearls early.</p>`}
+      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${w(need, 'pearl')} at the end of ${roundName(G.failedAt)}. ${T.failHint}</p>`}
       ${G.moves && G.moves.length ? `<p>Moves made with a Dolphin this run: ${G.moves.length}.</p>` : ''}
-      <p>${isBest ? 'New best reef!' : `Best reef: ${Math.max(best, 0)} pearls.`} ${G.daily ? 'Daily reef for today.' : ''}</p>
-      <div class="row"><button class="btn" id="dailyBtn">Daily reef</button><button class="btn go" id="againBtn">New reef</button></div>
+      <p>${isBest ? `New best ${T.board}!` : `Best ${T.board}: ${w(Math.max(best, 0), 'pearl')}.`} ${G.daily ? `Daily ${T.board} for today.` : ''}</p>
+      <div class="row"><button class="btn" id="dailyBtn">Daily ${T.board}</button><button class="btn go" id="againBtn">New ${T.board}</button></div>
+      <div class="row"><button class="btn" id="ecoBtn">Ecosystems</button></div>
     </div></div>`;
     $('againBtn').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
     $('dailyBtn').addEventListener('click', () => newRun(todaySeed(), true));
+    $('ecoBtn').addEventListener('click', showPicker);
   }
 
   function showCharms() {
@@ -946,9 +1143,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       return `<button class="charm" data-id="${id}" ${G.pearls < price ? 'disabled' : ''}><span class="e">${c.emoji}</span><span><b>${c.name}</b>${fx(c.text)}</span><span class="pr">${price}${icon('pearl')}</span></button>`;
     }).join('');
     const cp = TP.nextCheckpoint(G);
-    $('overlay').innerHTML = `<div class="sheet-bg" id="charmBg"><div class="sheet" role="dialog" aria-label="Tide Charms">
-      <h2>Tide Charms</h2>
-      <p>Spend pearls on one permanent charm. You have ${G.pearls} pearls${cp ? `, and need to hold ${cp.need} at the end of tide ${cp.tide}` : ''}.</p>
+    $('overlay').innerHTML = `<div class="sheet-bg" id="charmBg"><div class="sheet" role="dialog" aria-label="${T.bonus}">
+      <h2>${T.bonus}</h2>
+      <p>Spend ${unit('pearl')} on one, and it's yours for the rest of the run. You have ${w(G.pearls, 'pearl')}${cp ? `, and need to hold ${cp.need} at the end of ${roundName(cp.tide)}` : ''}.</p>
       <div class="charm-list">${rows}</div>
       <div class="row"><button class="btn" id="charmSkip">Not now</button></div>
     </div></div>`;
@@ -961,11 +1158,21 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     $('charmBg').addEventListener('click', (e) => { if (e.target.id === 'charmBg') closeOverlay(); });
   }
 
-  function showHelp() {
-    store.set('seenHelp', true);
-    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${art(k)}</span><span><b>${d.name}</b> ${kindChip(d.tag)} ${fx(d.text(1))} ${d.stack ? `<i>Stacks without limit${d.flat ? ' at the same price' : `. Costs 1 more for every ${CONFIG.stackPriceEvery} you place`}.</i>` : ''}${d.afterFirstGoal ? ' <i>In the shop after the first goal.</i>' : ''}</span><span class="c">${amt(d.cost, 'shell')}</span></div>`).join('');
-    const kinds = Object.keys(KINDS).map(tag => [tag, TP.kindNames(tag)]).filter(([, n]) => n).map(([tag, n]) => `<div>${kindChip(tag)}<span>${n}</span></div>`).join('');
-    $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
+  function helpText() {
+    const M = (t) => CONFIG.calendar.names[TP.month(G, t)];
+    if (ECO.id === 'forest') return `
+      <h2>Grow a forest through the year</h2>
+      <ol>
+        <li>The year runs from ${M(1)} to ${M(CONFIG.tides)}, one month a turn. Buy tiles with seeds and place them in the forest. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple. Each level-up costs ${CONFIG.levelUpStep} more than the last.</li>
+        <li>Every tile has a season. A tile shows ✦ in its best months, when it pays the most, and some sleep through the rest (shown faded). Trees are bare in winter, wildflowers bloom in spring, critters fatten up in fall.</li>
+        <li>Next month: every tile fires in order, 1 to 16, making seeds and amber. Leaves fall from September to November and pile up as litter, which feeds the understory. Squirrels bury caches in fall: dig one up for ${w(CONFIG.digAmber, 'pearl')}, or leave it and it sprouts into an oak Seedling in spring.</li>
+        <li>Amber is your score and your money. Spend it to clear fallen logs for more space and on Heirlooms (offered in ${CONFIG.charmTides.map(M).join(', ')}), but hold enough to meet the goals in ${Object.keys(CONFIG.checkpoints).map(Number).map(M).join(' and ')}.</li>
+        <li>In ${M(CONFIG.eventRevealTide)} you learn the forecast: a Derecho, Drought or Mast Year that comes after ${M(CONFIG.eventTide)}. Build so your forest makes the most of it.</li>
+        <li>Your score is the amber you hold after ${M(CONFIG.tides)}.</li>
+      </ol>
+      <p>When you pick a shop tile, each spot shows its price and what it would add next month. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily forest and New forest start over from here.</p>
+      <p>Every tile has a kind. When a rule says tree, understory or critter, it means these tiles:</p>`;
+    return `
       <h2>Grow a reef that pays you back</h2>
       <ol>
         <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Sargassum counts as two flora for its neighbors. Most tiles stop at ★3, and each level-up costs ${CONFIG.levelUpStep} more than the last. Sargassum and Conch stack without limit: Sargassum always costs the same, Conch costs 1 more for every ${CONFIG.stackPriceEvery} you place.</li>
@@ -976,10 +1183,19 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       </ol>
       <p>When you pick a shop tile, each spot shows its price and what it would add to your next tide. Spots you can't afford yet are dimmed. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
       <p>Every tile has a kind. When a rule says flora, shellfish or critter, it means these tiles:</p>
+`;
+  }
+
+  function showHelp() {
+    store.set('seenHelp', true);
+    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${art(k)}</span><span><b>${d.name}</b> ${kindChip(d.tag)} ${fx(d.text(1))} ${d.stack ? `<i>Stacks without limit${d.flat ? ' at the same price' : `. Costs 1 more for every ${CONFIG.stackPriceEvery} you place`}.</i>` : ''}${d.afterFirstGoal ? ' <i>In the shop after the first goal.</i>' : ''}</span><span class="c">${amt(d.cost, 'shell')}</span></div>`).join('');
+    const kinds = Object.keys(KINDS).map(tag => [tag, TP.kindNames(tag)]).filter(([, n]) => n).map(([tag, n]) => `<div>${kindChip(tag)}<span>${n}</span></div>`).join('');
+    $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
+      ${helpText()}
       <div class="kinds">${kinds}</div>
       <div class="dex">${dex}</div>
       <p class="build">Build __BUILD__</p>
-      <div class="row"><button class="btn" id="helpDaily">Daily reef</button><button class="btn" id="helpNew">New reef</button></div>
+      <div class="row"><button class="btn" id="helpDaily">Daily ${T.board}</button><button class="btn" id="helpNew">New ${T.board}</button></div>
       <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > 1) ? 'Keep playing' : 'Play'}</button></div>
     </div></div>`;
     $('helpClose').addEventListener('click', closeOverlay);
@@ -988,7 +1204,15 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     $('helpBg').addEventListener('click', (e) => { if (e.target.id === 'helpBg') closeOverlay(); });
   }
 
+  // Boot: open on the ecosystem you played last, behind the picker (a hot reload keeps the run instead).
+  function boot(data) {
+    const id = (data && data.G && data.G.eco) || raw.get('tidepool.eco') || 'reef';
+    useEco(TPX.forEco(id) ? id : 'reef');
+    if (data && data.G) { start(data); return; }
+    start(null, true);
+    showPicker();
+  }
   window.claude?.hot?.snapshot?.(() => ({ G }));
-  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
 })();
 </script>

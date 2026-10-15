@@ -7,7 +7,7 @@ python3 - <<'PY'
 import os, shutil, hashlib
 import datetime
 import subprocess
-ui = open('ui.html').read().replace('<!--ART-->', subprocess.check_output(['node', 'art.js']).decode()); eng = open('engine.js').read()
+ui = open('ui.html').read().replace('<!--ART-->', subprocess.check_output(['node', 'art.js']).decode()); eng = open('eco-reef.js').read() + '\n' + open('eco-forest.js').read() + '\n' + open('engine.js').read()
 src_hash = hashlib.sha1((ui + eng + open('pwa/sw.js').read() + open('pwa/tail.html').read()).encode()).hexdigest()[:7]
 build = datetime.datetime.now(datetime.timezone.utc).strftime('%b %d %H:%M UTC') + ' · ' + src_hash
 page = ui.replace('/*ENGINE*/', eng).replace('__BUILD__', build)

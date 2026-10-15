@@ -1,14 +1,15 @@
 # Tidepool
 
-A cozy reef engine builder for phones. Twelve tides, one tiny reef.
+A cozy engine builder for phones. Pick an ecosystem: a reef over twelve tides, or an Eastern US forest over one year.
 
 Play and install: https://robertlitzke.github.io/Tidepool/ (open in Chrome on Android, then Install app).
 Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 
-- `engine.js`: all rules. Tunables are in `CONFIG` and `TILES` (cost, rarity, effect).
-- `ui.html`: touch UI; `/*ENGINE*/` gets replaced by engine.js.
+- `engine.js`: the shared rules engine (`forEco(id)` builds one per ecosystem).
+- `eco-reef.js`, `eco-forest.js`: one module per ecosystem with its `CONFIG`, `TILES`, events, bonuses (Treasures, Heirlooms), terms and hooks.
+- `ui.html`: touch UI and the ecosystem picker; `/*ENGINE*/` gets replaced by the eco files plus engine.js.
 - `build.sh`: `sh build.sh` writes `tidepool.html` (the published single file).
-- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates.
+- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates. Set `ECO=forest` for the forest (sim.js and tune.js).
 - `tune.js`: `node tune.js planner 2000 [variant.js] [seed0]` runs bots in parallel for big batches and variant tests (drop-one, cost tweaks); `DUMP=out.json` saves per-run rows.
 - `notes/tile-report.md`: per-tile effectiveness, drop-one tests and proposed changes (latest round).
 
@@ -58,6 +59,9 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - v15 (2026-10-15, Rob: reef theme, evener kinds; notes/predator.md): Jellyfish → Seagrass 🌾 (now a plant), Shrimp → Giant Clam 🫧 (now a shellfish), Sunken Urn → Shipwreck ⚓, Whale → Manta Ray 🪁. Effects, costs and save keys unchanged. Kinds are now 7 critters / 3 plants / 3 shellfish, so the Clam feeds Oysters and Pearl Bed, Seagrass feeds the Clam and Warm Current.
 - v16 (2026-10-15, Rob: more reef names): Kelp → Sargassum, Coral → Staghorn, Starfish → Sea Star, Sea Otter → Mantis Shrimp 🦐, and the Plant kind → Flora (Sargassum, Seagrass, Staghorn). Names only: effects, costs, tile ids and save keys unchanged, so saved runs load as before. Earlier log entries keep the old names.
   Same seeds, 1000 runs: planner 96.6% → 98.2% finish, avg 1004 → 1018, stars 0/1/2/3 = 19.2/37.8/24.7/18.3 → 19.5/39.0/21.1/20.4%. Greedy 91.5% → 95.8% finish, avg 550 → 542. No star change needed.
+- v17 (2026-10-15, Rob: a second ecosystem, the Eastern US deciduous forest; design in notes/forest.md): engine split into `engine.js` plus `eco-reef.js` and `eco-forest.js`; an ecosystem picker opens the app and each ecosystem keeps its own save and best (the reef keeps its old keys). Tide Charms are now **Treasures**; the forest's bonuses are **Heirlooms**. Land ecosystems pay in seeds and amber.
+  Forest: November to October, one month a turn. Trees, Understory and Critters with seasonal peaks and dormancy, leaf litter (Sep to Nov, Beech in April), squirrel caches that sprout into oak Seedlings in April, Birch growth, Beaver fells a tree into a log and refunds it, Forager's Stash under the first cleared log (10 for 5 trade, once a month). Forecast events: Derecho, Drought, Mast Year. Goals 14 amber in February and 100 in June; stars 500/650/850. Invasives (Spongy Moth, Garlic Mustard, Jumping Worm) are designed but not built.
+  Reef: greedy and planner dumps are identical to v16 on the same seeds (no rule change). Forest, seeds 2000+: planner (300 runs) 100% finish, avg 619, p30/p50/p65/p90 511/588/650/859, stars 0/1/2/3 = 25/40/24.7/10.3%. Greedy (400) 91% finish, avg 361, 85.5/10.8/3.5/0.3%. Greedy doesn't plan for seasons, so the forest rewards a plan more than the reef does.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

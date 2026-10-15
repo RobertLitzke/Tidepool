@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check the rules engine
-        run: node sim.js 100 greedy
+        run: node sim.js 100 greedy && ECO=forest node sim.js 100 greedy
       - name: Build
         run: sh build.sh
       - uses: actions/configure-pages@v5

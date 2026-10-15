@@ -7,7 +7,7 @@ const { fork } = require('child_process');
 const REPO = __dirname;
 if (process.argv[2] === '__worker') {
   const [, , , bot, from, to, variant] = process.argv;
-  const TP = require(REPO + '/engine.js');
+  const TP = require(REPO + '/engine.js').forEco(process.env.ECO || 'reef');
   if (variant && variant !== '-') require(path.resolve(variant))(TP);
   const { play } = require(REPO + '/sim.js');
   const spent = {}; // shells spent per kind on the real state
