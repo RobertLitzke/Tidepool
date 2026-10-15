@@ -641,14 +641,14 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const twin = G.grid.filter(t => t && t.kind === k && t.lvl < TP.maxLevel(k)).sort((a, b) => b.lvl - a.lvl)[0];
       let note = '';
       if (def.stack) {
-        // Stacking tiles get 1 shell pricier for every few placed: say what this one and the next cost.
-        const c = TP.clone(G); c.placed = { ...(c.placed || {}) }; c.placed[k] = (c.placed[k] || 0) + 1;
-        const next = TP.tileCost(c, k);
-        note = next > cost ? `Each ${def.name} costs more: this one ${amt(cost, 'shell')}, the next ${amt(next, 'shell')}.`
-          : `Each ${def.name} costs more: ${amt(cost, 'shell')} for this one and the next, then ${amt(cost + 1, 'shell')}.`;
-      } else if (twin) note = 'Leveling up costs more each time. Prices are on the reef.';
+        // Stacking tiles get pricier as you place them: list the next few prices.
+        const c = TP.clone(G); c.placed = { ...(c.placed || {}) };
+        const prices = [];
+        for (let n = 0; n < 5; n++) { prices.push(TP.tileCost(c, k)); c.placed[k] = (c.placed[k] || 0) + 1; }
+        note = `Prices: ${prices.map(n => amt(n, 'shell')).join(' ')} …`;
+      }
       el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}` +
-        (twin ? `<span class="next"><span class="star-chip">★${twin.lvl + 1}</span>Drop on your ${def.name}: ${fx(def.text(twin.lvl + 1))}</span>` : '') +
+        (twin ? `<span class="next"><span class="star-chip">★${twin.lvl + 1}</span>for ${amt(TP.placeCost(G, k, G.grid.indexOf(twin)), 'shell')}: ${fx(def.text(twin.lvl + 1))}</span>` : '') +
         (note ? `<span class="price-note">${note}</span>` : '') + `</div>` + need;
       return;
     }
@@ -741,7 +741,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       <div class="facts">
         <div><span class="k">Next tide</span><span class="v">${yieldTxt(y) || 'Nothing yet'}</span></div>
         ${t.kind === 'coral' ? `<div><span class="k">Grown</span><span class="v">${t.age} tide${t.age === 1 ? '' : 's'}</span></div>` : ''}
-        <div><span class="k">Level up</span><span class="v">${canUp ? `<span class="star-chip">★${t.lvl + 1}</span>${fx(def.text(t.lvl + 1))} Drop another ${def.name} here for ${amt(TP.placeCost(G, t.kind, i), 'shell')}.` : `Max level (★${t.lvl}).`}</span></div>
+        <div><span class="k">Level up</span><span class="v">${canUp ? `<span class="star-chip">★${t.lvl + 1}</span>for ${amt(TP.placeCost(G, t.kind, i), 'shell')}: ${fx(def.text(t.lvl + 1))}` : `Max level (★${t.lvl}).`}</span></div>
       </div>
       ${legend ? `<div class="legend">${legend}</div>` : ''}
       <div class="row"><button class="btn" id="sellBtn">Sell for ${amt(TP.sellValue(t), 'shell')}</button><button class="btn go" data-close>OK</button></div>`);
