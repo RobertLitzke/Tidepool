@@ -1,5 +1,7 @@
 # Tidepool tile report (v13, 2026-10-15)
 
+Names here are from when the report was written. Since then: Kelp is Sargassum, Coral is Staghorn, Starfish is Sea Star, Sea Otter is Mantis Shrimp, Shrimp is Giant Clam, Jellyfish is Seagrass, Urn is Shipwreck, Whale is Manta Ray, and plants are Flora.
+
 Built on main after v12 (random starts, tide-10 events, level-up pricing), with this round's changes: flat-price Kelp, the new planner bot and new star cutoffs. Every number is a bot average over 1,000 to 5,000 runs. Runs are cheap, so the batches are big. Rerun with `node tune.js <bot> <runs> [variant.js] [seed0]`.
 
 ## What changed this round

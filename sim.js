@@ -35,7 +35,7 @@ function spendPearls(state, left, shellW) {
 }
 
 // Pearls plus weighted shells the frozen board makes over every tide that is left, played out tide by tide
-// on a clone. Unlike tideYield × tides left, this sees Coral growing, Otter trades draining shells, and,
+// on a clone. Unlike tideYield × tides left, this sees Staghorn growing, Mantis Shrimp trades draining shells, and,
 // once it is announced, the forecast event (before that the bot plays as if no event is coming).
 // Later tides are discounted, since the reef will change before then; shells count for less as the run ends.
 const PLAN = Object.assign({ shellW: 2.5, discount: 0.6, paceWindow: 3, paceMargin: 1.0, behindShellW: 0.5 }, JSON.parse(process.env.PLAN || '{}'));
@@ -164,7 +164,7 @@ const bots = {
 };
 
 // Planner: the greedy search, but each buy is judged by playing the frozen reef out to the last tide
-// (runout), so it builds Coral early, sees the forecast event coming and stops feeding Otters it can't fill.
+// (runout), so it builds Staghorn early, sees the forecast event coming and stops feeding Mantis Shrimp it can't fill.
 bots.planner = function (state) {
   const left = CONFIG.tides - state.tide + 1;
   let shellW = Math.max(0.15, 0.7 * (left - 1) / CONFIG.tides);

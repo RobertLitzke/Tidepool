@@ -14,7 +14,7 @@
     rerollBase: 2,          // first reroll cost in a tide
     rerollStep: 2,          // each further reroll in the same tide costs this much more
     // Tile kinds kept out of the shop. Clownfish is parked: it overlapped Anemone. Anemone made way for the Dolphin:
-    // it was one of four look-alike "count your neighbors" tiles, and as a "plant" that is really an animal it blurred the kinds.
+    // it was one of four look-alike "count your neighbors" tiles, and as a "flora" tile that is really an animal it blurred the kinds.
     disabled: ['clown', 'anemone'],
     // Rock layouts (cells that start as rock), always resting on the bottom: flat about half the time, else a shelf piled left or right.
     rockLayouts: [
@@ -27,8 +27,8 @@
     charmOffers: 3,
     charmPriceStep: 6,            // charm price = base + step * (market number - 1)
     maxLevel: 3,            // level cap for most tiles; tiles marked stack: true have no cap
-    levelUpStep: 2,         // capped tiles: each level-up costs this much more than the last (Starfish 5, then 7, then 9)
-    stackPriceEvery: 2,     // stacking tiles (Conch) cost 1 more for every this many of that kind you have placed; flat ones (Kelp) don't
+    levelUpStep: 2,         // capped tiles: each level-up costs this much more than the last (Sea Star 5, then 7, then 9)
+    stackPriceEvery: 2,     // stacking tiles (Conch) cost 1 more for every this many of that kind you have placed; flat ones (Sargassum) don't
     sellRate: 0.5,          // refund = floor(cost * level * sellRate)
     // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
     checkpoints: { 4: 12, 8: 110 },
@@ -47,25 +47,25 @@
     events: ['surge', 'shark', 'undertow'],
     eventRevealTide: 5,
     eventTide: 10,
-    surgeAnchorKelp: 2,     // a center tile touching this many Kelp tiles survives the Storm Surge
+    surgeAnchorKelp: 2,     // a center tile touching this many Sargassum tiles survives the Storm Surge
     sharkBites: 2,          // tiles the Hungry Shark eats
   };
 
-  // Tile kinds. Effects that count "plants", "shellfish" or "critters" mean exactly the tiles tagged with that kind.
+  // Tile kinds. Effects that count "flora", "shellfish" or "critters" mean exactly the tiles tagged with that kind.
   const KINDS = {
-    plant: { name: 'Plant', emoji: '🌱' },
+    plant: { name: 'Flora', emoji: '🌱' },
     shellfish: { name: 'Shellfish', emoji: '🐚' },
     critter: { name: 'Critter', emoji: '🐾' },
     object: { name: 'Object', emoji: '📦' },
     mover: { name: 'Mover', emoji: '↔️' },
   };
-  // Names of the shop tiles of one kind, for rules text: "Kelp, Coral".
+  // Names of the shop tiles of one kind, for rules text: "Sargassum, Staghorn".
   const kindNames = (tag) => Object.keys(TILES).filter(k => TILES[k].tag === tag && !CONFIG.disabled.includes(k)).map(k => TILES[k].name).join(', ');
 
   // Effects return {s, p} (shells, pearls) for one activation at level 1..3.
   // fire(c, L) and text(L) take the tile's level. Most tiles cap at ★3; a few cheap tiles
   // (stack: true) level up forever at a steady rate, so they stay useful and can snowball late.
-  // Neighbor counts weight by level: a ★2 Kelp counts as two Kelp.
+  // Neighbor counts weight by level: a ★2 Sargassum counts as two Sargassum.
   // ctx: { grid, i, t, state, nb (8-touching indices), filled }.
   const TILES = {
     scallop: { name: 'Conch', emoji: '🐚', cost: 2, rarity: 'common', tag: 'shellfish', stack: true,
@@ -75,8 +75,8 @@
       text: (L) => `+${L} pearl, +${L} more for each touching shellfish (${kindNames('shellfish')}).`,
       reads: (c) => c.nb.filter(j => c.grid[j] && TILES[c.grid[j].kind].tag === 'shellfish'),
       fire: (c, L) => ({ s: 0, p: L * (1 + count(c, n => TILES[n.kind].tag === 'shellfish')) }) },
-    // Kelp is the plain stacker: always 2 shells (flat), and each level adds exactly +1 shell and +1 pearl.
-    kelp: { name: 'Kelp', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', stack: true, flat: true,
+    // Sargassum is the plain stacker: always 2 shells (flat), and each level adds exactly +1 shell and +1 pearl.
+    kelp: { name: 'Sargassum', emoji: '🌿', cost: 2, rarity: 'common', tag: 'plant', stack: true, flat: true,
       text: (L) => `+${L} shell and +${L} pearl.`,
       fire: (c, L) => ({ s: L, p: L }) },
     crab: { name: 'Hermit Crab', emoji: '🦀', cost: 3, rarity: 'common', tag: 'critter',
@@ -84,7 +84,7 @@
       reads: (c) => c.nb.filter(j => c.grid[j]),
       fire: (c, L) => ({ s: L * c.nb.filter(j => c.grid[j]).length, p: 0 }) },
     shrimp: { name: 'Giant Clam', emoji: '🫧', cost: 3, rarity: 'common', tag: 'shellfish',
-      text: (L) => `+${L} pearl, +${L} more for each touching plant (${kindNames('plant')}).`,
+      text: (L) => `+${L} pearl, +${L} more for each touching flora (${kindNames('plant')}).`,
       reads: (c) => c.nb.filter(j => c.grid[j] && (n => TILES[n.kind].tag === 'plant')(c.grid[j])),
       fire: (c, L) => ({ s: 0, p: L * (1 + count(c, n => TILES[n.kind].tag === 'plant')) }) },
     anemone: { name: 'Anemone', emoji: '🪻', cost: 4, rarity: 'uncommon', tag: 'plant',
@@ -99,7 +99,7 @@
       text: (L) => `+${L} pearl for each Seagrass level on the reef.`,
       reads: (c) => c.grid.map((t, j) => t && t.kind === 'jelly' && j !== c.i ? j : -1).filter(j => j >= 0),
       fire: (c, L) => ({ s: 0, p: L * c.grid.reduce((n, t) => n + (t && t.kind === 'jelly' ? t.lvl : 0), 0) }) },
-    coral: { name: 'Coral', emoji: '🪸', cost: 3, rarity: 'uncommon', tag: 'plant',
+    coral: { name: 'Staghorn', emoji: '🪸', cost: 3, rarity: 'uncommon', tag: 'plant',
       text: (L) => `Grows each tide. +${L} pearl for each tide it has grown.`,
       fire: (c, L) => ({ s: 0, p: L * c.t.age }) },
     urn: { name: 'Shipwreck', emoji: '⚓', cost: 3, rarity: 'uncommon', tag: 'object',
@@ -109,10 +109,10 @@
       text: (L) => `The next tile to fire makes ×${1 + L}.`,
       boosts: (c) => { for (let j = c.i + 1; j < c.grid.length; j++) if (c.grid[j]) return [j]; return []; },
       fire: (c, L) => { c.state._mult = Math.max(c.state._mult, 1 + L); return { s: 0, p: 0 }; } },
-    star: { name: 'Starfish', emoji: '⭐', cost: 5, rarity: 'uncommon', tag: 'critter', echo: true,
+    star: { name: 'Sea Star', emoji: '⭐', cost: 5, rarity: 'uncommon', tag: 'critter', echo: true,
       text: (L) => `Echo: fires the tile above it again${L > 1 ? `, ${L} times` : ''}.`,
       targets: (i) => [i - CONFIG.cols].filter(j => j >= 0) },
-    otter: { name: 'Sea Otter', emoji: '🦦', cost: 4, rarity: 'rare', tag: 'critter',
+    otter: { name: 'Mantis Shrimp', emoji: '🦐', cost: 4, rarity: 'rare', tag: 'critter',
       text: (L) => `Trades up to ${6 * L} shells for pearls: 2 pearls for every shell.`,
       fire: (c, L) => { const n = Math.min(c.state.shells, 6 * L); return { s: -n, p: 2 * n, conv: true }; } },
     octo: { name: 'Octopus', emoji: '🐙', cost: 4, rarity: 'rare', tag: 'critter',
@@ -140,7 +140,7 @@
   // Forecast events. Each strikes once, at the end of CONFIG.eventTide.
   const EVENTS = {
     surge: { name: 'Storm Surge', emoji: '🌊',
-      text: () => `After tide ${CONFIG.eventTide}, a storm washes away every tile in the four center spots. A center tile touching ${CONFIG.surgeAnchorKelp} or more Kelp tiles is anchored and stays (a stacked Kelp counts once).` },
+      text: () => `After tide ${CONFIG.eventTide}, a storm washes away every tile in the four center spots. A center tile touching ${CONFIG.surgeAnchorKelp} or more Sargassum tiles is anchored and stays (a stacked Sargassum counts once).` },
     shark: { name: 'Hungry Shark', emoji: '🦈',
       text: () => `After tide ${CONFIG.eventTide}, a shark eats the ${CONFIG.sharkBites} tiles you spent the most shells on, counting level-ups.` },
     undertow: { name: 'Undertow', emoji: '🌀',
@@ -149,12 +149,12 @@
 
   // Tide Charms: permanent rule changes bought with pearls at charm markets.
   const CHARMS = {
-    current: { name: 'Warm Current', emoji: '🌊', base: 6, text: 'Plants make +1 pearl each time they fire.' },
+    current: { name: 'Warm Current', emoji: '🌊', base: 6, text: 'Flora make +1 pearl each time they fire.' },
     pearlbed: { name: 'Pearl Bed', emoji: '🫧', base: 6, text: 'Shellfish make +1 pearl each time they fire.' },
     school: { name: 'Big School', emoji: '🐟', base: 7, text: 'Critters touching 2 or more critters make +1 pearl when they fire.' },
     moon: { name: 'Moon Tide', emoji: '🌙', base: 8, text: 'The first tile on the reef fires twice.' },
     deep: { name: 'Deep Echo', emoji: '🔔', base: 7, text: 'Echo tiles echo one extra time.' },
-    heart: { name: 'Coral Heart', emoji: '💗', base: 5, text: 'Coral grows twice as fast.' },
+    heart: { name: 'Coral Heart', emoji: '💗', base: 5, text: 'Staghorn grows twice as fast.' },
     bloom: { name: 'Plankton Bloom', emoji: '✨', base: 5, text: 'The tide brings 3 more shells.' },
     map: { name: 'Treasure Map', emoji: '🗺️', base: 6, text: 'Tiles cost 1 shell less (minimum 1).' },
     sandbar: { name: 'Sandbar', emoji: '🏝️', base: 4, text: 'The shop shows 4 tiles.' },
@@ -205,7 +205,7 @@
 
   const maxLevel = (kind) => TILES[kind].stack ? Infinity : CONFIG.maxLevel;
 
-  // Counts touching tiles that match, weighted by level: a ★2 Kelp counts as two Kelp.
+  // Counts touching tiles that match, weighted by level: a ★2 Sargassum counts as two Sargassum.
   function count(c, pred) {
     let n = 0;
     for (const j of c.nb) { const t = c.grid[j]; if (t && pred(t)) n += t.lvl; }
@@ -295,7 +295,7 @@
     const up = t && t.kind === kind && !TILES[kind].stack ? CONFIG.levelUpStep * t.lvl : 0;
     return tileCost(state, kind) + up;
   };
-  // Stacking tiles marked flat (Kelp) keep their list price however many you place.
+  // Stacking tiles marked flat (Sargassum) keep their list price however many you place.
   const stackPriced = (kind) => TILES[kind].stack && !TILES[kind].flat;
   const tileCost = (state, kind) => Math.max(1, TILES[kind].cost - (has(state, 'map') ? 1 : 0)
     + (stackPriced(kind) ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));

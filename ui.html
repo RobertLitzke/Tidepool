@@ -523,7 +523,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     }
     let deltas = null, bestCell = -1, costs = null;
     // Previews show what the tile itself adds each tide: both sides are forecast with the price
-    // already paid, so shells an Otter would have traded don't show up as lost pearls and phantom shells.
+    // already paid, so shells a Mantis Shrimp would have traded don't show up as lost pearls and phantom shells.
     const paid = (cost) => { const c = TP.clone(G); c.shells -= cost; return yieldOf(c); };
     if (kind && !busy) {
       deltas = {}; costs = {};
@@ -934,7 +934,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     $('overlay').innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Run summary">
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
-      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Giant Clams beside Kelp make pearls early.</p>`}
+      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${need} pearls at the end of tide ${G.failedAt}. Oysters beside Conches and Giant Clams beside Sargassum make pearls early.</p>`}
       ${G.moves && G.moves.length ? `<p>Moves made with a Dolphin this run: ${G.moves.length}.</p>` : ''}
       <p>${isBest ? 'New best reef!' : `Best reef: ${Math.max(best, 0)} pearls.`} ${G.daily ? 'Daily reef for today.' : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily reef</button><button class="btn go" id="againBtn">New reef</button></div>
@@ -973,14 +973,14 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       <h2>Grow a reef that pays you back</h2>
       <ol>
-        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Kelp counts as two plants for its neighbors. Most tiles stop at ★3, and each level-up costs ${CONFIG.levelUpStep} more than the last. Kelp and Conch stack without limit: Kelp always costs the same, Conch costs 1 more for every ${CONFIG.stackPriceEvery} you place.</li>
+        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Sargassum counts as two flora for its neighbors. Most tiles stop at ★3, and each level-up costs ${CONFIG.levelUpStep} more than the last. Sargassum and Conch stack without limit: Sargassum always costs the same, Conch costs 1 more for every ${CONFIG.stackPriceEvery} you place.</li>
         <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
         <li>Pearls are your score and your money. Spend them to break rocks for more space and on Tide Charms (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
         <li>At tide ${CONFIG.eventRevealTide} you learn the forecast: a Storm Surge, Hungry Shark or Undertow that hits after tide ${CONFIG.eventTide}. Build so your reef survives it.</li>
         <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
       </ol>
       <p>When you pick a shop tile, each spot shows its price and what it would add to your next tide. Spots you can't afford yet are dimmed. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
-      <p>Every tile has a kind. When a rule says plant, shellfish or critter, it means these tiles:</p>
+      <p>Every tile has a kind. When a rule says flora, shellfish or critter, it means these tiles:</p>
       <div class="kinds">${kinds}</div>
       <div class="dex">${dex}</div>
       <p class="build">Build __BUILD__</p>

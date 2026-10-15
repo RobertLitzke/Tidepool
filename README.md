@@ -56,6 +56,7 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Fresh seeds (failures count as 0 stars): planner (5000 runs) 97.2% finish (v13 92.5%), avg 971 (865), stars 0/1/2/3 = 19.8/39.3/24.7/16.2%. Greedy (3000) 93.7%, avg 547, 56.7/33.8/7.0/2.5%. Random (3000) 22.4% finish, avg 116, 99.5% 0 stars.
   Planner p30/p65/p90 = 605/1105/1714, so cutoffs near 600/1100/1700 would bring it back to 30/35/25/10. Otter is now bought in 81% of planner runs (was 71%) and makes 22 pearls per shell spent, the best rate of any tile.
 - v15 (2026-10-15, Rob: reef theme, evener kinds; notes/predator.md): Jellyfish → Seagrass 🌾 (now a plant), Shrimp → Giant Clam 🫧 (now a shellfish), Sunken Urn → Shipwreck ⚓, Whale → Manta Ray 🪁. Effects, costs and save keys unchanged. Kinds are now 7 critters / 3 plants / 3 shellfish, so the Clam feeds Oysters and Pearl Bed, Seagrass feeds the Clam and Warm Current.
+- v16 (2026-10-15, Rob: more reef names): Kelp → Sargassum, Coral → Staghorn, Starfish → Sea Star, Sea Otter → Mantis Shrimp 🦐, and the Plant kind → Flora (Sargassum, Seagrass, Staghorn). Names only: effects, costs, tile ids and save keys unchanged, so saved runs load as before. Earlier log entries keep the old names.
   Same seeds, 1000 runs: planner 96.6% → 98.2% finish, avg 1004 → 1018, stars 0/1/2/3 = 19.2/37.8/24.7/18.3 → 19.5/39.0/21.1/20.4%. Greedy 91.5% → 95.8% finish, avg 550 → 542. No star change needed.
 
 ## Installable app (PWA)
