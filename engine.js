@@ -20,6 +20,7 @@
     charmOffers: 3,
     charmPriceStep: 6,            // charm price = base + step * (market number - 1)
     maxLevel: 3,            // level cap for most tiles; tiles marked stack: true have no cap
+    stackPriceEvery: 2,     // stacking tiles (Conch, Kelp) cost 1 more for every this many of that kind you have placed
     sellRate: 0.5,          // refund = floor(cost * level * sellRate)
     // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
     checkpoints: { 4: 12, 8: 120 },
@@ -172,7 +173,7 @@
       grid: Array(CONFIG.cols * CONFIG.rows).fill(null),
       offers: [], rerolls: 0, over: false, won: false, lastTide: null, history: [],
       rock: Array(CONFIG.cols * CONFIG.rows).fill(false), rocksBroken: 0,
-      charms: [], charmOffers: [], charmMarkets: 0, earned: 0, moves: [],
+      charms: [], charmOffers: [], charmMarkets: 0, earned: 0, moves: [], placed: {},
     };
     for (const r of CONFIG.rocks) state.rock[r] = true;
     for (const st of CONFIG.startTiles) state.grid[st.cell] = { kind: st.kind, lvl: 1, age: 1 };
@@ -215,7 +216,10 @@
   }
 
   const shopSize = (state) => CONFIG.shopSize + (has(state, 'sandbar') ? 1 : 0);
-  const tileCost = (state, kind) => Math.max(1, TILES[kind].cost - (has(state, 'map') ? 1 : 0));
+  // Stacking tiles get pricier as you place them (new tiles and level-ups both count), so the endless stack has a price.
+  const placedCount = (state, kind) => (state.placed && state.placed[kind]) || 0;
+  const tileCost = (state, kind) => Math.max(1, TILES[kind].cost - (has(state, 'map') ? 1 : 0)
+    + (TILES[kind].stack ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
 
   function rollOffers(state) {
     const kinds = Object.keys(TILES);
@@ -274,6 +278,7 @@
     state.shells -= cost;
     const t = state.grid[cell];
     if (t) t.lvl++; else state.grid[cell] = { kind, lvl: 1, age: 1 };
+    (state.placed || (state.placed = {}))[kind] = placedCount(state, kind) + 1;
     state.offers[offerIdx] = null;
     return true;
   }

@@ -37,6 +37,8 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Anemone parked to make room. Greedy drop-one test (500 runs, before the Dolphin): none 90% finish / avg 946; without Octopus 88% / 1017; without Hermit Crab 91% / 814; without Shrimp 95% / 1045; without Anemone 92% / 996. Shrimp scored a little better, but Anemone was the "plant" that is really an animal, so cutting it also fixes the kinds: plants are now just Kelp and Coral.
   Kinds are shown by color: shop cards and reef tiles are tinted green (plant), orange (shellfish) or lilac (critter); the help screen labels each tile and has a kinds list in the help, and rules text names the members ("each touching plant (Kelp, Coral)").
   Greedy bot: 91% finish (was 90%), median 850 (was 835), p90 1953, stars 0/1/2/3 = 84/185/146/42. Dolphin played in 11% of runs (0.12 per run).
+- v10 (2026-10-15, Rob: tides 11-12 are a grind of stacking whatever fits; see notes/late-game.md in the project files): Conch and Kelp cost 1 more shell for every 2 of that kind you have placed (new tiles and level-ups both count; `CONFIG.stackPriceEvery`). The late snowball was mostly stacked Conch feeding Oysters, which echoes then multiply.
+  Greedy bot: 89% finish (was 91%; tide-8 failures 32 → 42 of 500), median 801 (was 850), p90 1809 (was 1953), stars 0/1/2/3 = 93/187/138/29 (was 84/185/146/42). Highest Conch p90 ★9 → ★7, Kelp p90 ★4 → ★3.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.
