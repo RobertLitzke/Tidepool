@@ -522,12 +522,16 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       hint = { reads: new Set(l.reads), boosts: new Set(l.boosts), usedBy: new Set(usedBy) };
     }
     let deltas = null, bestCell = -1, costs = null;
+    // Previews show what the tile itself adds each tide: both sides are forecast with the price
+    // already paid, so shells an Otter would have traded don't show up as lost pearls and phantom shells.
+    const paid = (cost) => { const c = TP.clone(G); c.shells -= cost; return yieldOf(c); };
     if (kind && !busy) {
-      const base = yieldOf(G); deltas = {}; costs = {};
+      deltas = {}; costs = {};
       let bestV = -Infinity;
       G.grid.forEach((_, i) => {
         if (!TP.canPlace(G, kind, i)) return;
         costs[i] = TP.placeCost(G, kind, i);
+        const base = paid(costs[i]);
         const c = TP.clone(G); c.shells += 999; TP.buy(c, sel.i, i); c.shells -= 999;
         const y = yieldOf(c); const d = { p: y.p - base.p, s: y.s - base.s };
         deltas[i] = d;
@@ -536,7 +540,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       });
     }
     if (sel && sel.type === 'move' && sel.from != null && !busy) {
-      const base = yieldOf(G); deltas = {};
+      const base = paid(TP.tileCost(G, G.offers[sel.i])); deltas = {};
       let bestV = -Infinity;
       for (const i of TP.moverDests(G, sel.from)) {
         const c = TP.clone(G); c.shells += 999; TP.useMover(c, sel.i, sel.cell, sel.from, i); c.shells -= 999;
