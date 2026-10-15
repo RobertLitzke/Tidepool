@@ -120,7 +120,9 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   box-shadow: inset 0 -3px 0 rgba(0,0,0,.05);
   transition: transform .12s, box-shadow .12s, opacity .12s;
 }
-.cell .emo { font-size: clamp(26px, 9.5vw, 44px); line-height: 1; filter: drop-shadow(0 2px 0 rgba(0,0,0,.08)); }
+svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.25em; overflow: visible; }
+.cell .emo { font-size: clamp(26px, 9.5vw, 44px); line-height: 1; filter: drop-shadow(0 2px 0 rgba(0,0,0,.12)); }
+.cell .emo svg.art { display: block; }
 .cell .lvl { position: absolute; top: 4px; left: 6px; font-size: 11px; font-weight: 700; color: var(--shell); letter-spacing: -1px; }
 .cell .age { position: absolute; bottom: 3px; right: 6px; font-size: 11px; font-weight: 700; color: var(--pearl); font-variant-numeric: tabular-nums; }
 .cell .order { position: absolute; top: 3px; right: 6px; font-size: 10px; color: var(--ink-soft); opacity: .45; font-variant-numeric: tabular-nums; }
@@ -358,15 +360,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-shell" viewBox="0 0 24 24">
-      <path d="M12 3C6.5 3 2.5 7.6 3.2 12.6c.3 2.2 1.6 4.3 3.4 5.4l1.4 2.5c.3.5.8.8 1.4.8h5.2c.6 0 1.1-.3 1.4-.8l1.4-2.5c1.8-1.1 3.1-3.2 3.4-5.4C21.5 7.6 17.5 3 12 3z" fill="var(--shell)"/>
-      <path d="M12 5v14M8 6.2l2.4 12.6M16 6.2l-2.4 12.6M5 9.5l4 9M19 9.5l-4 9" stroke="rgba(255,255,255,.55)" stroke-width="1.3" stroke-linecap="round" fill="none"/>
-    </symbol>
-    <symbol id="i-pearl" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="9" fill="var(--pearl)"/>
-      <circle cx="9" cy="8.6" r="3" fill="rgba(255,255,255,.7)"/>
-      <circle cx="15.5" cy="16" r="1.4" fill="rgba(255,255,255,.35)"/>
-    </symbol>
+    <!--ART-->
   </defs>
 </svg>
 
@@ -417,6 +411,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   };
   const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
   const icon = (n) => `<svg><use href="#i-${n}"/></svg>`;
+  const art = (k) => `<svg class="art" aria-hidden="true"><use href="#t-${k}"/></svg>`;
   // An amount with its icon ("3" + shell), and rules text with "+2 pearls" style amounts turned into icons.
   const amt = (n, r) => `<span class="amt ${r[0]}">${n}${icon(r)}</span>`;
   const fx = (txt) => txt.replace(/([+-]?\d+) (shell|pearl)s?\b/g, (_, n, r) => amt(n, r));
@@ -556,15 +551,15 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       const def = t && TILES[t.kind];
       let html = '';
       if (G.rock[i]) {
-        html += `<span class="open">New spot</span><span class="emo">🪨</span><span class="price${G.pearls < TP.rockCost(G) ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}</span>`;
+        html += `<span class="open">New spot</span><span class="emo">${art('rock')}</span><span class="price${G.pearls < TP.rockCost(G) ? ' poor' : ''}">${TP.rockCost(G)}${icon('pearl')}</span>`;
       } else if (t) {
-        html += `<span class="emo">${def.emoji}</span>`;
+        html += `<span class="emo">${art(t.kind)}</span>`;
         const y = fc && fc.per[i];
         if (!deltas && y && (y.p || y.s)) html += `<span class="yield">${mini(y.p, 'pearl')}${mini(y.s, 'shell')}</span>`;
         if (t.lvl > 1 && !(costs && i in costs)) html += `<span class="lvl">${t.lvl <= 3 ? '★'.repeat(t.lvl) : '★' + t.lvl}</span>`;
         if (t.kind === 'coral') html += `<span class="age">${t.age}</span>`;
       } else if (sel && sel.type === 'move' && sel.cell === i) {
-        html += `<span class="emo ghost">${TILES[G.offers[sel.i]].emoji}</span>`;
+        html += `<span class="emo ghost">${art(G.offers[sel.i])}</span>`;
       } else {
         html += `<span class="order">${i + 1}</span>`;
       }
@@ -615,7 +610,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       if (sel && (sel.type === 'offer' || sel.type === 'move') && sel.i === i) b.classList.add('sel');
       if (dealt) { b.classList.add('new'); b.style.animationDelay = (i * 60) + 'ms'; }
       const twin = G.grid.find(t => t && t.kind === k && t.lvl < TP.maxLevel(k));
-      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${def.emoji}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${cost}</span>`;
+      b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${art(k)}</span><span class="nm">${def.name}</span><span class="cost">${icon('shell')}${cost}</span>`;
       b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${cost} shells. ${def.text(1)}${twin ? ' Can level up a tile you own.' : ''}`);
       b.addEventListener('click', () => onOffer(i));
       shop.appendChild(b);
@@ -739,7 +734,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     const legend = [l.reads.length ? '<span><i style="background:var(--ok)"></i>feeds it</span>' : '',
       l.boosts.length ? '<span><i style="background:var(--coral)"></i>powered by it</span>' : '',
       usedBy ? '<span><i style="background:var(--pearl)"></i>fed by it</span>' : ''].join('');
-    lowSheet(def.name, head(def.emoji, def.name + stars, `${kindChip(def.tag)} <span>fires ${ordinal(i + 1)}</span>`, 'k-' + def.tag) +
+    lowSheet(def.name, head(art(t.kind), def.name + stars, `${kindChip(def.tag)} <span>fires ${ordinal(i + 1)}</span>`, 'k-' + def.tag) +
       `<div class="effect">${fx(def.text(t.lvl))}</div>
       <div class="facts">
         <div><span class="k">Next tide</span><span class="v">${yieldTxt(y) || 'Nothing yet'}</span></div>
@@ -793,7 +788,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     sel = null; buzz([10, 30, 10]); save(); render();
     pulse($('reef').children[i], 'placed');
     if (swapped) pulse($('reef').children[from], 'placed');
-    floatAt(cell, `${TILES[G.moves[G.moves.length - 1].mover].emoji} bye!`, 'm');
+    floatAt(cell, `${art(G.moves[G.moves.length - 1].mover)} bye!`, 'm');
   }
 
   // Playtest record: every mover play, kept across runs (the run itself also keeps G.moves).
@@ -823,7 +818,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   function floatAt(i, text, cls, offsetY = 0) {
     const reef = $('reef'), cell = reef.children[i];
     const f = document.createElement('div');
-    f.className = 'float ' + cls; f.textContent = text;
+    f.className = 'float ' + cls; f.innerHTML = text;
     f.style.left = (cell.offsetLeft + cell.offsetWidth / 2) + 'px';
     f.style.top = (cell.offsetTop + cell.offsetHeight / 2 + offsetY) + 'px';
     reef.appendChild(f);
@@ -900,7 +895,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   function showStrike(st) {
     const ev = EVENTS[st.event];
-    const lost = st.lost.map(l => `${TILES[l.kind].emoji} ${TILES[l.kind].name}${l.lvl > 1 ? ' ★' + l.lvl : ''}`).join(', ');
+    const lost = st.lost.map(l => `${art(l.kind)} ${TILES[l.kind].name}${l.lvl > 1 ? ' ★' + l.lvl : ''}`).join(', ');
     const what = st.event === 'undertow' ? 'Every tile shifted one space left and one row down.'
       : lost ? `Lost: ${lost}.` : 'Your reef held. Nothing was lost.';
     buzz([30, 60, 30]);
@@ -968,7 +963,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 
   function showHelp() {
     store.set('seenHelp', true);
-    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${d.emoji}</span><span><b>${d.name}</b> ${kindChip(d.tag)} ${fx(d.text(1))} ${d.stack ? `<i>Stacks without limit${d.flat ? ' at the same price' : `. Costs 1 more for every ${CONFIG.stackPriceEvery} you place`}.</i>` : ''}${d.afterFirstGoal ? ' <i>In the shop after the first goal.</i>' : ''}</span><span class="c">${amt(d.cost, 'shell')}</span></div>`).join('');
+    const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${art(k)}</span><span><b>${d.name}</b> ${kindChip(d.tag)} ${fx(d.text(1))} ${d.stack ? `<i>Stacks without limit${d.flat ? ' at the same price' : `. Costs 1 more for every ${CONFIG.stackPriceEvery} you place`}.</i>` : ''}${d.afterFirstGoal ? ' <i>In the shop after the first goal.</i>' : ''}</span><span class="c">${amt(d.cost, 'shell')}</span></div>`).join('');
     const kinds = Object.keys(KINDS).map(tag => [tag, TP.kindNames(tag)]).filter(([, n]) => n).map(([tag, n]) => `<div>${kindChip(tag)}<span>${n}</span></div>`).join('');
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       <h2>Grow a reef that pays you back</h2>
