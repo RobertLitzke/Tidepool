@@ -6,7 +6,9 @@
     rows: 4,
     tides: 12,
     startShells: 4,
-    startTiles: [{ cell: 9, kind: 'scallop' }],
+    // The reef starts with one random tile from this list (all cost 2-3), on a random open spot. Shrimp, Jellyfish and Urn
+    // are left out: alone they make little, and bot runs that started with one finished 51-70% of the time (Conch 91%).
+    startKinds: ['scallop', 'kelp', 'oyster', 'crab'],
     tideIncome: 2,          // shells the tide brings each round, after the reef fires
     shopSize: 3,
     rerollBase: 2,          // first reroll cost in a tide
@@ -14,7 +16,12 @@
     // Tile kinds kept out of the shop. Clownfish is parked: it overlapped Anemone. Anemone made way for the Dolphin:
     // it was one of four look-alike "count your neighbors" tiles, and as a "plant" that is really an animal it blurred the kinds.
     disabled: ['clown', 'anemone'],
-    rocks: [12, 13, 14, 15],      // cells that start as rock
+    // Rock layouts (cells that start as rock), always resting on the bottom: flat about half the time, else a shelf piled left or right.
+    rockLayouts: [
+      { cells: [12, 13, 14, 15], weight: 2 },   // flat across the bottom
+      { cells: [12, 13, 14, 8], weight: 1 },    // shelf piled on the left
+      { cells: [13, 14, 15, 11], weight: 1 },   // shelf piled on the right
+    ],
     rockCosts: [5, 10, 16, 24],   // pearls to break the 1st, 2nd, ... rock
     charmTides: [5, 7, 9],        // a Tide Charm market opens at the start of these tides (after the tide 4 goal)
     charmOffers: 3,
@@ -230,8 +237,15 @@
       rock: Array(CONFIG.cols * CONFIG.rows).fill(false), rocksBroken: 0,
       charms: [], charmOffers: [], charmMarkets: 0, earned: 0, moves: [], placed: {},
     };
-    for (const r of CONFIG.rocks) state.rock[r] = true;
-    for (const st of CONFIG.startTiles) state.grid[st.cell] = { kind: st.kind, lvl: 1, age: 1, paid: 0 };
+    const layouts = CONFIG.rockLayouts;
+    let roll = rand(state) * layouts.reduce((a, l) => a + l.weight, 0), layout = layouts[0];
+    for (const l of layouts) { if (roll < l.weight) { layout = l; break; } roll -= l.weight; }
+    for (const r of layout.cells) state.rock[r] = true;
+    const starters = CONFIG.startKinds;
+    const open = state.grid.map((_, i) => i).filter(i => !state.rock[i]);
+    const kind = starters[Math.floor(rand(state) * starters.length)], cell = open[Math.floor(rand(state) * open.length)];
+    state.grid[cell] = { kind, lvl: 1, age: 1, paid: 0 };
+    state.start = { kind, cell, rocks: layout.cells };
     eventOf(state);
     startTide(state);
     return state;

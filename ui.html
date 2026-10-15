@@ -899,7 +899,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       <div class="dex">${dex}</div>
       <p class="build">Build __BUILD__</p>
       <div class="row"><button class="btn" id="helpDaily">Daily reef</button><button class="btn" id="helpNew">New reef</button></div>
-      <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > CONFIG.startTiles.length) ? 'Keep playing' : 'Play'}</button></div>
+      <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > 1) ? 'Keep playing' : 'Play'}</button></div>
     </div></div>`;
     $('helpClose').addEventListener('click', closeOverlay);
     $('helpDaily').addEventListener('click', () => newRun(todaySeed(), true));
