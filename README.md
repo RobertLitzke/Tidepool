@@ -52,6 +52,9 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Kelp variants (1000 runs, planner/greedy avg): old 825/524, +1 shell +1 pearl flat 881/543 (chosen), +1 pearl only 666/384.
   Fresh seeds, failures count as 0 stars: planner (5000 runs) 92.5% finish, avg 865, stars 0/1/2/3 = 31.3/33.9/24.1/10.7%. Greedy (3000) 89.4%, avg 537, 63.6/26.5/7.9/2.0%. Random (3000) 10.3%, avg 69, all 0 stars.
   Drop-one (1000 runs, planner): Conch −29%, Crab −16%, Kelp −6%, Turtle −6%; Shrimp +23%, Otter +13%, Jelly +11%, Octopus +9%, Coral +9% (weaker than the shop slot they use). Proposals in notes/tile-report.md (not applied): Otter keeps your shells (+1 pearl per 3 held), Shrimp base pearl, Coral 3 shells.
+- v14 (2026-10-15, Rob picked tile changes from notes/tile-report.md): Coral 4 → 3 shells. Sea Otter 6 → 4 shells, trades up to 6 shells a level at 2 pearls per shell (was 3 per 2). Shrimp +1 pearl, +1 more per touching plant. Whale 8 → 7, Octopus 5 → 4. Stars 550/1000/1550 → 500/1000/1500.
+  Fresh seeds (failures count as 0 stars): planner (5000 runs) 97.2% finish (v13 92.5%), avg 971 (865), stars 0/1/2/3 = 19.8/39.3/24.7/16.2%. Greedy (3000) 93.7%, avg 547, 56.7/33.8/7.0/2.5%. Random (3000) 22.4% finish, avg 116, 99.5% 0 stars.
+  Planner p30/p65/p90 = 605/1105/1714, so cutoffs near 600/1100/1700 would bring it back to 30/35/25/10. Otter is now bought in 81% of planner runs (was 71%) and makes 22 pearls per shell spent, the best rate of any tile.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

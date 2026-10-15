@@ -45,7 +45,7 @@ Planner, 2,000 runs (greedy in brackets). "Pearls/shell" counts only pearls the 
 
 **How to read the positive drops.** Shells are the bottleneck, not pearls. When any pearl tile leaves the shop, its slots go more often to Conch, Hermit Crab and Oyster, so the bots get richer. That is why even the Oyster shows +5%. Buffing a pearl tile's numbers moves its own row only a little, so the tiles worth acting on are the ones that are clearly worse than the rest: Otter and Shrimp, then Jellyfish, Octopus and Coral.
 
-## Proposed tile changes (simulated, not applied)
+## Proposed tile changes (simulated; see the v14 update below for what was applied)
 
 Average pearls vs. the current game on the same seeds (planner 875, greedy 539), 1,000 runs per bot:
 
@@ -71,3 +71,15 @@ Average pearls vs. the current game on the same seeds (planner 875, greedy 539),
 
 - The bots don't reposition tiles before the event, and they rarely use the Dolphin, so tiles that need set-up (Turtle, Starfish, Dolphin) may be better in human hands than these numbers say.
 - Drop-one results move by about ±3% from run-to-run noise at 1,000 runs. Differences under 5% are not meaningful.
+
+## v14 update: applied changes
+
+Rob picked: Coral 4 → 3, Sea Otter 6 → 4 shells at 2 pearls per shell, Shrimp base pearl, Whale 8 → 7, Octopus 5 → 4, stars 500/1000/1500.
+
+| Bot | Finish | Avg pearls | 0★ | 1★ | 2★ | 3★ |
+|---|---|---|---|---|---|---|
+| Planner (5,000 runs) | 97.2% | 971 | 19.8% | 39.3% | 24.7% | 16.2% |
+| Greedy (3,000) | 93.7% | 547 | 56.7% | 33.8% | 7.0% | 2.5% |
+| Random (3,000) | 22.4% | 116 | 99.5% | 0.5% | 0% | 0% |
+
+Scores rose, so at the new cutoffs the planner gets 3★ in 16% of runs. Its 30th/65th/90th percentiles are 605/1105/1714, so cutoffs near 600/1100/1700 would put it back at 30/35/25/10. Sea Otter is now the most efficient pearl tile per shell (22 pearls per shell spent, bought in 81% of planner runs).
