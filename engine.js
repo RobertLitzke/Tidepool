@@ -20,11 +20,12 @@
     charmOffers: 3,
     charmPriceStep: 6,            // charm price = base + step * (market number - 1)
     maxLevel: 3,            // level cap for most tiles; tiles marked stack: true have no cap
+    levelUpStep: 2,         // capped tiles: each level-up costs this much more than the last (Starfish 5, then 7, then 9)
     stackPriceEvery: 2,     // stacking tiles (Conch, Kelp) cost 1 more for every this many of that kind you have placed
     sellRate: 0.5,          // refund = floor(cost * level * sellRate)
     // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
-    checkpoints: { 4: 12, 8: 120 },
-    stars: [500, 1000, 2000],  // pearls held at the end for 1, 2, 3 stars
+    checkpoints: { 4: 12, 8: 110 },
+    stars: [350, 650, 1300],  // pearls held at the end for 1, 2, 3 stars
     // Shop weights by rarity; rare weight ramps up as tides pass.
     rarityWeight: (rarity, tide) => rarity === 'common' ? 10
       : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
@@ -33,6 +34,13 @@
     affordableOffers: 2,    // at least this many offers cost no more than your shells
     earlyPearlTiles: ['oyster', 'shrimp', 'jelly', 'coral'], // tiles that make pearls on their own early on
     pearlOfferUntil: 4,     // through this tide, every shop has at least one affordable early pearl tile
+    // Forecast: each run has one event, shown from eventRevealTide (with the first charm market) and striking
+    // at the end of eventTide, after the reef fires, so it reshapes the last tides.
+    events: ['surge', 'shark', 'undertow'],
+    eventRevealTide: 5,
+    eventTide: 10,
+    surgeAnchorKelp: 2,     // a center tile touching this many Kelp tiles survives the Storm Surge
+    sharkBites: 2,          // tiles the Hungry Shark eats
   };
 
   // Tile kinds. Effects that count "plants", "shellfish" or "critters" mean exactly the tiles tagged with that kind.
@@ -121,6 +129,16 @@
       } },
   };
 
+  // Forecast events. Each strikes once, at the end of CONFIG.eventTide.
+  const EVENTS = {
+    surge: { name: 'Storm Surge', emoji: '🌊',
+      text: () => `After tide ${CONFIG.eventTide}, a storm washes away every tile in the four center spots. A center tile touching ${CONFIG.surgeAnchorKelp} or more Kelp tiles is anchored and stays (a stacked Kelp counts once).` },
+    shark: { name: 'Hungry Shark', emoji: '🦈',
+      text: () => `After tide ${CONFIG.eventTide}, a shark eats the ${CONFIG.sharkBites} tiles you spent the most shells on, counting level-ups.` },
+    undertow: { name: 'Undertow', emoji: '🌀',
+      text: () => `After tide ${CONFIG.eventTide}, the whole reef shifts one space left and one row down. The left column wraps to the right side and the bottom row wraps to the top, rocks included.` },
+  };
+
   // Tide Charms: permanent rule changes bought with pearls at charm markets.
   const CHARMS = {
     current: { name: 'Warm Current', emoji: '🌊', base: 6, text: 'Plants make +1 pearl each time they fire.' },
@@ -139,6 +157,43 @@
   // Tiles marked afterFirstGoal stay out of the shop until the first pearl goal is behind you.
   const firstGoalTide = () => Math.min(...Object.keys(CONFIG.checkpoints).map(Number));
   const inShop = (state, k) => !CONFIG.disabled.includes(k) && !(TILES[k].afterFirstGoal && state.tide <= firstGoalTide());
+
+  // The run's event, picked from the seed so it doesn't disturb the shop's random stream.
+  const eventOf = (state) => state.event || (state.event = CONFIG.events[(state.seed >>> 0) % CONFIG.events.length]);
+  const eventKnown = (state) => state.tide >= CONFIG.eventRevealTide;
+
+  // Shells spent on a tile, level-ups and stacking prices included (older saves fall back to list price).
+  const invested = (t) => t.paid != null ? t.paid : TILES[t.kind].cost * t.lvl;
+  const centerCells = () => {
+    const out = [];
+    for (let r = 1; r < CONFIG.rows - 1; r++) for (let c = 1; c < CONFIG.cols - 1; c++) out.push(r * CONFIG.cols + c);
+    return out;
+  };
+  const kelpAnchors = (state, i) => neighbors(i).filter(j => state.grid[j] && state.grid[j].kind === 'kelp').length;
+
+  // Cells the event would take if it struck now (Undertow takes nothing; it moves everything).
+  function eventThreat(state) {
+    const ev = eventOf(state);
+    if (ev === 'surge') return centerCells().filter(i => state.grid[i] && kelpAnchors(state, i) < CONFIG.surgeAnchorKelp);
+    if (ev === 'shark') return state.grid.map((t, i) => t ? i : -1).filter(i => i >= 0)
+      .sort((a, b) => invested(state.grid[b]) - invested(state.grid[a]) || state.grid[b].lvl - state.grid[a].lvl || a - b)
+      .slice(0, CONFIG.sharkBites);
+    return [];
+  }
+
+  function strikeEvent(state) {
+    const ev = eventOf(state), lost = eventThreat(state).map(i => ({ cell: i, kind: state.grid[i].kind, lvl: state.grid[i].lvl }));
+    for (const l of lost) state.grid[l.cell] = null;
+    if (ev === 'undertow') {
+      const { cols, rows } = CONFIG, g = state.grid.slice(), rk = state.rock.slice();
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const from = ((r - 1 + rows) % rows) * cols + (c + 1) % cols;
+        state.grid[r * cols + c] = g[from]; state.rock[r * cols + c] = rk[from];
+      }
+    }
+    state.struck = { event: ev, tide: state.tide, lost };
+    return state.struck;
+  }
 
   const maxLevel = (kind) => TILES[kind].stack ? Infinity : CONFIG.maxLevel;
 
@@ -176,7 +231,8 @@
       charms: [], charmOffers: [], charmMarkets: 0, earned: 0, moves: [], placed: {},
     };
     for (const r of CONFIG.rocks) state.rock[r] = true;
-    for (const st of CONFIG.startTiles) state.grid[st.cell] = { kind: st.kind, lvl: 1, age: 1 };
+    for (const st of CONFIG.startTiles) state.grid[st.cell] = { kind: st.kind, lvl: 1, age: 1, paid: 0 };
+    eventOf(state);
     startTide(state);
     return state;
   }
@@ -218,6 +274,12 @@
   const shopSize = (state) => CONFIG.shopSize + (has(state, 'sandbar') ? 1 : 0);
   // Stacking tiles get pricier as you place them (new tiles and level-ups both count), so the endless stack has a price.
   const placedCount = (state, kind) => (state.placed && state.placed[kind]) || 0;
+  // Price to place `kind` on `cell`: leveling up a capped tile costs levelUpStep more per level it already has.
+  const placeCost = (state, kind, cell) => {
+    const t = state.grid[cell];
+    const up = t && t.kind === kind && !TILES[kind].stack ? CONFIG.levelUpStep * t.lvl : 0;
+    return tileCost(state, kind) + up;
+  };
   const tileCost = (state, kind) => Math.max(1, TILES[kind].cost - (has(state, 'map') ? 1 : 0)
     + (TILES[kind].stack ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
 
@@ -273,11 +335,11 @@
   function buy(state, offerIdx, cell) {
     const kind = state.offers[offerIdx];
     if (state.over || !kind) return false;
-    const cost = tileCost(state, kind);
+    const cost = placeCost(state, kind, cell);
     if (state.shells < cost || !canPlace(state, kind, cell)) return false;
     state.shells -= cost;
     const t = state.grid[cell];
-    if (t) t.lvl++; else state.grid[cell] = { kind, lvl: 1, age: 1 };
+    if (t) { t.paid = invested(t) + cost; t.lvl++; } else state.grid[cell] = { kind, lvl: 1, age: 1, paid: cost };
     (state.placed || (state.placed = {}))[kind] = placedCount(state, kind) + 1;
     state.offers[offerIdx] = null;
     return true;
@@ -351,7 +413,7 @@
       if (has(state, 'school') && def.tag === 'critter' && nb.reduce((n, j) => n + (state.grid[j] && TILES[state.grid[j].kind].tag === 'critter' ? state.grid[j].lvl : 0), 0) >= 2) bonus++;
       const s = r.conv ? r.s : r.s * mult, p = (r.p + bonus) * mult;
       state.shells += s; state.pearls += p; state.earned += Math.max(0, p);
-      events.push({ cell: i, type: 'fire', s, p, mult, from, depth, shells: state.shells, pearls: state.pearls });
+      events.push({ cell: i, kind: t.kind, type: 'fire', s, p, mult, from, depth, shells: state.shells, pearls: state.pearls });
     };
 
     const first = state.grid.findIndex(Boolean);
@@ -368,6 +430,7 @@
     state.history.push({ tide: state.tide, earned, pearls: state.pearls, shells: state.shells });
     state.lastTide = { tide: state.tide, earned, income };
     state.charmOffers = [];
+    if (state.tide === CONFIG.eventTide) state.lastTide.struck = strikeEvent(state);
 
     const need = CONFIG.checkpoints[state.tide];
     if (need != null && state.pearls < need) { state.over = true; state.won = false; state.failedAt = state.tide; }
@@ -410,8 +473,8 @@
 
   const clone = (s) => JSON.parse(JSON.stringify(s));
 
-  const api = { CONFIG, TILES, CHARMS, KINDS, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
-    maxLevel, tileCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
+  const api = { CONFIG, TILES, CHARMS, EVENTS, eventOf, eventKnown, eventThreat, invested, KINDS, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
+    maxLevel, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
     inShop, moverSpots, moverTargets, moverDests, useMover };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Tidepool = api;
 })(typeof window !== 'undefined' ? window : globalThis);

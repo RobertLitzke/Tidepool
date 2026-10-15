@@ -167,6 +167,10 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 .cell.best { box-shadow: inset 0 0 0 3px var(--coral), 0 0 0 3px var(--glow); }
 .cell.invalid { opacity: .45; }
 .cell.picked { box-shadow: inset 0 0 0 3px var(--ink-soft); }
+.cell.threat { outline: 2px dashed var(--bad); outline-offset: -4px; }
+.cell .threat-mark { position: absolute; top: 2px; left: 4px; font-size: 12px; }
+.charms .forecast { font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+.forecast-big { font-size: 48px; text-align: center; }
 .cell.k-plant { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
 .cell.k-shellfish { background: color-mix(in srgb, var(--shell) 22%, var(--sand)); }
 .cell.k-critter { background: color-mix(in srgb, var(--pearl) 20%, var(--sand)); }
@@ -371,7 +375,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
 <script>
 (() => {
   const TP = window.Tidepool;
-  const { CONFIG, TILES, CHARMS, KINDS } = TP;
+  const { CONFIG, TILES, CHARMS, KINDS, EVENTS } = TP;
   const kindChip = (tag) => `<span class="kind ${tag}">${KINDS[tag].name}</span>`;
   const $ = (id) => document.getElementById(id);
   const store = {
@@ -393,8 +397,12 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     render();
     if (G.over) endRun();
     else if (!store.get('seenHelp')) showHelp();
+    else if (eventPending() && !G.forecastSeen) showForecast(true);
     else if (G.charmOffers.length && G.charmSeen !== G.tide) showCharms();
   }
+
+  // The run's forecast event is shown from CONFIG.eventRevealTide until it strikes.
+  const eventPending = () => !G.over && TP.eventKnown(G) && !G.struck;
 
   function newRun(seed, daily) {
     G = TP.newGame(seed);
@@ -450,12 +458,15 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
   function renderCharms() {
     const el = $('charms');
     const owned = G.charms.map(id => `<button data-charm="${id}" aria-label="${CHARMS[id].name}">${CHARMS[id].emoji}</button>`).join('');
+    const ev = eventPending() ? EVENTS[TP.eventOf(G)] : null;
     el.innerHTML = `<div class="owned">${owned}</div><div class="spacer"></div>` +
+      (ev ? `<button class="forecast" id="forecastBtn">${ev.emoji} ${ev.name} after tide ${CONFIG.eventTide}</button>` : '') +
       (G.charmOffers.length && !G.over ? `<button class="market" id="marketBtn">Tide Charms</button>` : '');
     el.querySelectorAll('[data-charm]').forEach(b => b.addEventListener('click', () => {
       const c = CHARMS[b.dataset.charm]; sel = { type: 'charm', id: b.dataset.charm }; render();
     }));
     if ($('marketBtn')) $('marketBtn').addEventListener('click', showCharms);
+    if ($('forecastBtn')) $('forecastBtn').addEventListener('click', () => showForecast());
   }
 
   function renderReef() {
@@ -497,6 +508,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         if (v > bestV) { bestV = v; bestCell = i; }
       }
     }
+    const threat = new Set(eventPending() ? TP.eventThreat(G) : []);
     [...$('reef').children].forEach((el, i) => {
       const t = G.grid[i];
       const def = t && TILES[t.kind];
@@ -519,13 +531,15 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         const part = (n, r) => n ? `<span class="${r[0]}">${n > 0 ? '+' : ''}${n}<svg><use href="#i-${r}"/></svg></span>` : '';
         const txt = part(d.p, 'pearl') + part(d.s, 'shell') || '<span class="z">+0</span>';
         html += `<span class="delta">${txt}</span>`;
-        if (t && !(sel && sel.type === 'move')) html += `<span class="lvlup">★${t.lvl + 1}</span>`;
+        if (t && !(sel && sel.type === 'move')) html += `<span class="lvlup">★${t.lvl + 1} · ${TP.placeCost(G, kind, i)}</span>`;
       }
       if (hint) {
         const tag = hint.boosts.has(i) ? 'powered' : hint.reads.has(i) ? 'feeds' : hint.usedBy.has(i) ? 'fed' : '';
         if (tag) html += `<span class="tag">${tag}</span>`;
       }
+      if (threat.has(i)) html += `<span class="threat-mark">${EVENTS[TP.eventOf(G)].emoji}</span>`;
       el.innerHTML = html;
+      el.classList.toggle('threat', threat.has(i));
       el.classList.toggle('rock', !!G.rock[i]);
       el.classList.toggle('reads', !!hint && hint.reads.has(i) && !hint.boosts.has(i));
       el.classList.toggle('boosts', !!hint && hint.boosts.has(i));
@@ -582,7 +596,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       }
       const twin = G.grid.filter(t => t && t.kind === k && t.lvl < TP.maxLevel(k)).sort((a, b) => b.lvl - a.lvl)[0];
       el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${def.text(1)}` +
-        (twin ? `<span class="next">On your ★${twin.lvl} ${def.name}: ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
+        (twin ? `<span class="next">On your ★${twin.lvl} ${def.name} (${TP.placeCost(G, k, G.grid.indexOf(twin))} shells): ★${twin.lvl + 1} ${def.text(twin.lvl + 1)}</span>` : '') + `</div>` +
         `<span class="chip">${poor ? `Need ${cost - G.shells} more ${icon('shell').replace('<svg>', '<svg style="width:12px;height:12px;vertical-align:-2px">')}` : 'Tap a spot'}</span>`;
       return;
     }
@@ -661,6 +675,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
         return;
       }
       if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
+      if (TP.placeCost(G, k, i) > G.shells) { toast(`Leveling up costs ${TP.placeCost(G, k, i)} shells`); return; }
       undo.push(TP.clone(G));
       const lvlUp = !!G.grid[i];
       TP.buy(G, sel.i, i);
@@ -757,7 +772,7 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
       if (e.mult > 1) floatAt(e.cell, `×${e.mult}`, 'm', -22);
       if (e.p) floatAt(e.cell, `${e.p > 0 ? '+' : ''}${e.p}`, 'p', e.s ? -8 : 0);
       if (e.s) floatAt(e.cell, `${e.s > 0 ? '+' : ''}${e.s}`, 's', e.p ? 14 : 0);
-      if (G.grid[e.cell] && G.grid[e.cell].kind === 'puffer') floatAt(e.cell, 'puff!', 'm');
+      if (e.kind === 'puffer') floatAt(e.cell, 'puff!', 'm');
       setCounter('shells', e.shells); setCounter('pearls', e.pearls);
       if (e.p) pulse($('pearls'), 'bump');
       if (e.s) pulse($('shells'), 'bump');
@@ -773,7 +788,44 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     if (G.over) { endRun(before); return; }
     const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
     toast(passed ? `Goal reached! +${earned} pearls this tide` : `+${earned} pearls · the tide brings ${G.lastTide.income} shells`);
-    if (G.charmOffers.length) setTimeout(showCharms, 700);
+    const struck = G.lastTide.struck;
+    if (struck) setTimeout(() => showStrike(struck), 700);
+    else if (eventPending() && !G.forecastSeen) setTimeout(() => showForecast(true), 700);
+    else if (G.charmOffers.length) setTimeout(showCharms, 700);
+  }
+
+  // Forecast sheet: first shown when the event is revealed, then from the forecast chip. Leads into the charm market.
+  function showForecast(first) {
+    const ev = EVENTS[TP.eventOf(G)];
+    G.forecastSeen = true; save();
+    const left = CONFIG.eventTide - G.tide + 1;
+    const extra = TP.eventOf(G) === 'undertow' ? 'Plan for the new neighbors.' : 'Tiles it would take right now have a dashed red outline.';
+    $('overlay').innerHTML = `<div class="sheet-bg" id="fcBg"><div class="sheet" role="dialog" aria-label="Forecast">
+      <h2>${first ? 'Forecast' : ev.name}</h2>
+      <div class="forecast-big">${ev.emoji}</div>
+      <p><b>${ev.name}.</b> ${ev.text()}</p>
+      <p>${left} tide${left === 1 ? '' : 's'} to get ready. ${extra}</p>
+      <div class="row"><button class="btn go" id="fcClose">Got it</button></div>
+    </div></div>`;
+    const done = () => { closeOverlay(); if (first && G.charmOffers.length && G.charmSeen !== G.tide) showCharms(); };
+    $('fcClose').addEventListener('click', done);
+    $('fcBg').addEventListener('click', (e) => { if (e.target.id === 'fcBg') done(); });
+  }
+
+  function showStrike(st) {
+    const ev = EVENTS[st.event];
+    const lost = st.lost.map(l => `${TILES[l.kind].emoji} ${TILES[l.kind].name}${l.lvl > 1 ? ' ★' + l.lvl : ''}`).join(', ');
+    const what = st.event === 'undertow' ? 'Every tile shifted one space left and one row down.'
+      : lost ? `Lost: ${lost}.` : 'Your reef held. Nothing was lost.';
+    buzz([30, 60, 30]);
+    $('overlay').innerHTML = `<div class="sheet-bg" id="stBg"><div class="sheet" role="dialog" aria-label="${ev.name}">
+      <h2>${ev.name}!</h2>
+      <div class="forecast-big">${ev.emoji}</div>
+      <p>${what} Two tides left to rebuild.</p>
+      <div class="row"><button class="btn go" id="stClose">Rebuild</button></div>
+    </div></div>`;
+    $('stClose').addEventListener('click', closeOverlay);
+    $('stBg').addEventListener('click', (e) => { if (e.target.id === 'stBg') closeOverlay(); });
   }
 
   // ---------- Overlays ----------
@@ -835,9 +887,10 @@ button:focus-visible, .cell:focus-visible, .card:focus-visible { outline: 3px so
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       <h2>Grow a reef that pays you back</h2>
       <ol>
-        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Kelp counts as two Kelp for its neighbors. Most tiles stop at ★3, but cheap Kelp and Conch stack without limit, so a forest or shell bed can snowball late.</li>
+        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Kelp counts as two Kelp for its neighbors. Most tiles stop at ★3, and each level-up costs ${CONFIG.levelUpStep} more than the last. Cheap Kelp and Conch stack without limit, but cost 1 more for every ${CONFIG.stackPriceEvery} you place.</li>
         <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
         <li>Pearls are your score and your money. Spend them to break rocks for more space and on Tide Charms (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
+        <li>At tide ${CONFIG.eventRevealTide} you learn the forecast: a Storm Surge, Hungry Shark or Undertow that hits after tide ${CONFIG.eventTide}. Build so your reef survives it.</li>
         <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
       </ol>
       <p>When you pick a shop tile, each spot shows what it would add to your next tide. Tap a placed tile to see what feeds it and what it feeds. Daily reef and New reef start over from here.</p>

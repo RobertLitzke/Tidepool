@@ -81,7 +81,7 @@ const bots = {
             let refund = 0;
             if (v === 'replace') { refund = TP.sellValue(c.grid[cell]); TP.sell(c, cell); }
             if (!TP.buy(c, oi, cell)) continue;
-            const gain = score(tideYield(c)) - base - shellW * (TP.tileCost(state, k) - refund);
+            const gain = score(tideYield(c)) - base - shellW * (state.shells - c.shells);
             if (!best || gain > best.gain) best = { gain, oi, cell, v };
           }
         }
@@ -111,7 +111,7 @@ function play(botName, seed) {
     for (const m of state.moves.slice(movesBefore)) picks[m.mover] = (picks[m.mover] || 0) + 1;
     for (const e of TP.runTide(state)) {
       if (e.type !== 'fire') continue;
-      const k = state.grid[e.cell].kind;
+      const k = e.kind;
       pearlsBy[k] = (pearlsBy[k] || 0) + e.p;
     }
   }
