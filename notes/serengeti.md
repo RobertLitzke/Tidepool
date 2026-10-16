@@ -31,3 +31,9 @@ Reef and forest give byte-identical bot runs on the same seeds before and after.
 
 ## Bot caveats
 The bots value a Treasure only by the next turn's frozen yield, so they never buy Migration Trail, Flash Flood, Deep Taproot, Oasis Mirage or Termite Symbiosis. Their real value is untested.
+
+## v21: Grazed made common (Rob)
+- Every Dry turn starts with all flora Grazed except the ones a Waterhole waters. Wet turns still start all Lush.
+- A Waterhole waters only the three touching cells in the row above it (end of turn, and at the start of Dry turns).
+- Stars 950/1800/2850. Flora Grazed at the start of Dry turns: 27% -> 66%.
+- `CONFIG.graze` keeps the other tested knobs (off): `zebra` (Zebras graze 1 Lush flora), `herdRain` (the rain skips flora beside a grazer), `dung`/`croc`/`waterhole` (max flora restored per level).

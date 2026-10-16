@@ -41,7 +41,7 @@
       sellRate: 0.5,
       checkpoints: { 4: 12, 8: 110 },   // goals fall on Dry rounds
       // Amber held at the end for 1, 2, 3 stars. The spec said 500/1000/1500; calibrated like the other ecosystems so the planner bot gets 0/1/2/3 about 30/35/25/10%.
-      stars: [950, 1700, 2700],
+      stars: [950, 1800, 2850],
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
@@ -54,7 +54,12 @@
       eventTide: 10,
       migrationBonus: 5,   // amber per grazer that grazes after the Great Migration
       sproutAmber: 3,      // Fresh Sprouts: amber per flora restored mid-round or at round end
-      vultureAmber: 3,     // Vulture Kettle: amber per Grazed flora after the board fires
+      vultureAmber: 3,
+      // v21 (Rob: Grazed was too easy to avoid): Dry turns start with every flora a Waterhole doesn't water Grazed
+      // (dryWilt), and a Waterhole waters only the three cells above it (waterUp).
+      // Grazing tuning knobs: how many Grazed flora a restore can turn Lush (per level of the restoring tile),
+      // and whether Zebras graze. Infinity = every touching flora, the spec's rule.
+      graze: { waterhole: Infinity, dung: Infinity, croc: Infinity, zebra: false, waterUp: true, dryWilt: true, herdRain: false },     // Vulture Kettle: amber per Grazed flora after the board fires
     };
 
     const KINDS = {
@@ -94,13 +99,21 @@
       return has(state, 'sprouts') ? CONFIG.sproutAmber : 0;
     }
     const restoreAll = (state, list) => list.reduce((n, j) => n + restore(state, j), 0);
+    // Restore at most n of the Grazed flora in list, highest level first.
+    const restoreSome = (state, list, n) => restoreAll(state, list.filter(j => grazed(state.grid[j])).sort((a, b) => state.grid[b].lvl - state.grid[a].lvl || a - b).slice(0, n));
+    // The cells a Waterhole waters at the end of a turn: the three touching it from the row above (CONFIG.graze.waterUp),
+    // or all eight touching cells.
+    const waterCells = (i) => CONFIG.graze.waterUp ? neighbors(i).filter(j => j < i - 1 && Math.floor(j / CONFIG.cols) === Math.floor(i / CONFIG.cols) - 1) : neighbors(i);
     const oasis = (state, t) => dry(state) && has(state, 'oasis') ? 1 : 0;
 
     const TILES = {
       // ---------- Stackers ----------
       zebra: { name: 'Zebra', emoji: '🦓', cost: 2, rarity: 'common', tag: 'grazer', stack: true,
         text: (L) => `+${2 * L} seeds.`,
-        fire: (c, L) => ({ s: 2 * L, p: 0 }) },
+        fire: (c, L) => {
+          if (CONFIG.graze.zebra) { const j = lushNear(c.state, c.i)[0]; if (j != null) { const x = graze(c.state, j); return { s: 2 * L + x.s, p: x.p }; } }
+          return { s: 2 * L, p: 0 };
+        } },
       red_oat_grass: { name: 'Red Oat Grass', emoji: '🌾', cost: 2, rarity: 'common', tag: 'flora', stack: true, flat: true,
         text: (L) => `+${L} seed and +${L} amber.`,
         fire: (c, L) => ({ s: L, p: L }) },
@@ -165,7 +178,7 @@
         text: (L) => `Restores all touching Grazed flora to Lush for +${2 * L} amber each, then trades up to ${6 * L} seeds for 2 amber each.`,
         reads: (c) => c.nb.filter(j => grazed(c.grid[j])),
         fire: (c, L) => {
-          const list = c.nb.filter(j => grazed(c.grid[j]));
+          const list = c.nb.filter(j => grazed(c.grid[j])).sort((a, b) => c.grid[b].lvl - c.grid[a].lvl || a - b).slice(0, CONFIG.graze.dung * L);
           const p = 2 * L * list.length + restoreAll(c.state, list);
           const n = Math.min(c.state.shells, 6 * L);
           return { s: -n, p: p + 2 * n, conv: true };
@@ -187,13 +200,13 @@
           if (col < CONFIG.cols - 1) out.push(i + 1);
           return out;
         },
-        beforeEcho: (state, i) => wet(state) ? { p: restoreAll(state, neighbors(i)) } : {} },
+        beforeEcho: (state, i, t) => wet(state) ? { p: restoreSome(state, neighbors(i), CONFIG.graze.croc * t.lvl) } : {} },
 
       // ---------- Object ----------
       waterhole: { name: 'Waterhole', emoji: '💧', cost: 3, rarity: 'uncommon', tag: 'object',
-        text: (L) => `Wet: +${L} seed for every 4 seeds you hold (up to +${6 * L}). Dry: +${L} amber per level of touching grazers. End of each ${'turn'}: touching flora turn Lush.`,
+        text: (L) => `Wet: +${L} seed for every 4 seeds you hold (up to +${6 * L}). Dry: +${L} amber per level of touching grazers. End of each turn: the three cells above it turn Lush, and they stay Lush when a Dry turn starts.`,
         reads: (c) => wet(c.state) ? [] : c.nb.filter(j => isGrazer(c.grid[j])),
-        boosts: (c) => c.nb.filter(j => isFlora(c.grid[j])),
+        boosts: (c) => waterCells(c.i).filter(j => isFlora(c.grid[j])),
         repeats: oasis,
         fire: (c, L) => wet(c.state) ? { s: L * Math.min(6, Math.floor(c.state.shells / 4)), p: 0 } : { s: 0, p: L * count(c, isGrazer) } },
 
@@ -295,7 +308,14 @@
       // Start of a round: the rain turns every flora Lush in Wet rounds. Deep Taproot keeps ★3 flora Lush in Dry ones.
       startTide(state) {
         const w = wet(state), deep = has(state, 'taproot');
-        for (const t of state.grid) if (isFlora(t) && (w || (deep && t.lvl >= 3))) t.grazed = false;
+        state.grid.forEach((t, i) => {
+          if (!isFlora(t)) return;
+          // herdRain: the rain can't regrow flora a grazer is standing beside.
+          if (w && !(CONFIG.graze.herdRain && neighbors(i).some(j => isGrazer(state.grid[j])))) t.grazed = false;
+          else if (deep && t.lvl >= 3) t.grazed = false;
+          // dryWilt: Dry turns start with every flora a Waterhole doesn't water turning Grazed.
+          else if (!w && CONFIG.graze.dryWilt && !state.grid.some((u, k) => u && u.kind === 'waterhole' && waterCells(k).includes(i))) t.grazed = true;
+        });
       },
       onPlace: bought,
       onLevelUp: bought,
@@ -311,7 +331,7 @@
         }
         state.grid.forEach((t, i) => {
           if (!t || t.kind !== 'waterhole') return;
-          const p = restoreAll(state, neighbors(i)); state.pearls += p; state.earned += p;
+          const p = restoreSome(state, waterCells(i), CONFIG.graze.waterhole * t.lvl); state.pearls += p; state.earned += p;
         });
       },
       tileState: (state, i) => grazed(state.grid[i]) ? { cls: 'grazed', label: 'Grazed' } : isFlora(state.grid[i]) ? { cls: 'lush', label: 'Lush' } : null,

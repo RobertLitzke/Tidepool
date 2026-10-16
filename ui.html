@@ -869,7 +869,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const tip = rocks && open <= 1 ? `Your ${T.board} is nearly full. Tap a ${T.rock} to ${T.clear.toLowerCase()} it with ${unit('pearl')} and open a new spot.`
       : rocks && G.tide <= 2 ? `The striped ${T.rock}s are locked spots. Later you can ${T.clear.toLowerCase()} them with ${unit('pearl')} to grow your ${T.board}.`
       : CONFIG.calendar && G.tide <= 2 ? 'Every tile keeps its own calendar. Tap one to see what it does in each season, and watch the year strip above.'
-      : CONFIG.cycle && G.tide <= 2 ? `Odd ${T.round}s are Wet: the rain turns every flora Lush. Grazers eat Lush flora and leave it Grazed (straw-colored) until something waters it.`
+      : CONFIG.cycle && G.tide <= 2 ? `Odd ${T.round}s are Wet: the rain turns every flora Lush. Dry ones start with flora Grazed (straw-colored) unless a Waterhole below waters them.`
       : `Tap a tile to see what it does. Tiles fire in order, 1 to 16.`;
     el.innerHTML = `<div class="txt">${tip}</div>`;
   }
@@ -1214,8 +1214,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       <h2>${T.title}</h2>
       <ol>
         <li>Buy tiles with seeds and place them on the savanna. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple. Zebra and Red Oat Grass stack without limit.</li>
-        <li><b>Seasons.</b> Turns alternate: odd turns are 🌧️ Wet, even turns ☀️ Dry. Each Wet turn starts with rain that turns every flora Lush, and ends with ${w(CONFIG.phaseIncome.wet, 'shell')}. Dry turns bring no rain and only ${w(CONFIG.phaseIncome.dry, 'shell')}. Some tiles do different things in each.</li>
-        <li><b>Grazing.</b> Gazelles and Wildebeest graze touching Lush flora for amber, leaving it Grazed (straw-colored, with a brown GRAZED tag; Lush flora are green with a LUSH tag). Grazed flora still fire as normal, but can't be grazed again until something turns them Lush: the next rain, a Waterhole at the end of the turn, a Dung Beetle, an Oxpecker, a Crocodile in the wet, or an Elephant. Tiles fire in order 1 to 16, so put grazers after the tiles that want Lush flora.</li>
+        <li><b>Seasons.</b> Turns alternate: odd turns are 🌧️ Wet, even turns ☀️ Dry. Each Wet turn starts with rain that turns every flora Lush, and ends with ${w(CONFIG.phaseIncome.wet, 'shell')}. Each Dry turn starts with every flora Grazed except the ones a Waterhole waters (the three cells above it), and ends with only ${w(CONFIG.phaseIncome.dry, 'shell')}. Some tiles do different things in each.</li>
+        <li><b>Grazing.</b> Gazelles and Wildebeest graze touching Lush flora for amber, leaving it Grazed (straw-colored, with a brown GRAZED tag; Lush flora are green with a LUSH tag). Grazed flora still fire as normal, but can't be grazed again until something turns them Lush: the next rain, a Waterhole at the end of the turn (the three cells above it), a Dung Beetle, an Oxpecker, a Crocodile in the wet, or an Elephant. Tiles fire in order 1 to 16, so put grazers after the tiles that want Lush flora.</li>
         <li>Amber is your score and your money. Spend it on Treasures (offered at turns ${CONFIG.charmTides.join(', ')}) and to clear kopjes for more space, but hold enough to meet the goals at turns ${Object.keys(CONFIG.checkpoints).join(' and ')} (both Dry).</li>
         <li>At turn ${CONFIG.eventRevealTide} you learn the forecast: an Endless Drought, Brushfire or Great Migration after turn ${CONFIG.eventTide}.</li>
         <li>Your score is the amber you hold after turn ${CONFIG.tides}.</li>
