@@ -54,12 +54,12 @@
       eventTide: 10,
       migrationBonus: 5,   // amber per grazer that grazes after the Great Migration
       sproutAmber: 3,      // Fresh Sprouts: amber per flora restored mid-round or at round end
-      vultureAmber: 3,
+      vultureAmber: 3,     // Vulture Kettle: amber per Grazed flora after the board fires
       // v21 (Rob: Grazed was too easy to avoid): Dry turns start with every flora a Waterhole doesn't water Grazed
       // (dryWilt), and a Waterhole waters only the three cells above it (waterUp).
       // Grazing tuning knobs: how many Grazed flora a restore can turn Lush (per level of the restoring tile),
       // and whether Zebras graze. Infinity = every touching flora, the spec's rule.
-      graze: { waterhole: Infinity, dung: Infinity, croc: Infinity, zebra: false, waterUp: true, dryWilt: true, herdRain: false },     // Vulture Kettle: amber per Grazed flora after the board fires
+      graze: { waterhole: Infinity, dung: Infinity, croc: Infinity, zebra: false, waterUp: true, dryWilt: true, herdRain: false },
     };
 
     const KINDS = {
