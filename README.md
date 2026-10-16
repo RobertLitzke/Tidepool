@@ -1,15 +1,15 @@
 # Tidepool
 
-A cozy engine builder for phones. Pick an ecosystem: a reef over twelve tides, or an Eastern US forest over one year.
+A cozy engine builder for phones. Pick an ecosystem: a reef over twelve tides, an Eastern US forest over one year, or the Serengeti's wet and dry seasons.
 
 Play and install: https://robertlitzke.github.io/Tidepool/ (open in Chrome on Android, then Install app).
 Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 
 - `engine.js`: the shared rules engine (`forEco(id)` builds one per ecosystem).
-- `eco-reef.js`, `eco-forest.js`: one module per ecosystem with its `CONFIG`, `TILES`, events, bonuses (Treasures, Heirlooms), terms and hooks.
+- `eco-reef.js`, `eco-forest.js`, `eco-serengeti.js`: one module per ecosystem with its `CONFIG`, `TILES`, events, bonuses (Treasures, Heirlooms), terms and hooks.
 - `ui.html`: touch UI and the ecosystem picker; `/*ENGINE*/` gets replaced by the eco files plus engine.js.
 - `build.sh`: `sh build.sh` writes `tidepool.html` (the published single file).
-- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates. Set `ECO=forest` for the forest (sim.js and tune.js).
+- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates. Set `ECO=forest` or `ECO=serengeti` (sim.js and tune.js).
 - `tune.js`: `node tune.js planner 2000 [variant.js] [seed0]` runs bots in parallel for big batches and variant tests (drop-one, cost tweaks); `DUMP=out.json` saves per-run rows.
 - `notes/tile-report.md`: per-tile effectiveness, drop-one tests and proposed changes (latest round).
 
@@ -67,6 +67,10 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - v18.1 (2026-10-15, Rob): the Beech drops its leaves in March and April (was April only). Planner, 600 runs, seeds 9000+: avg 1022, 98.2% finish, stars 0/1/2/3 = 28/31.5/29.5/11%; no star change. Drop-one results and a proposed retune are in notes/forest-ablation.md (not applied).
 - v19 (2026-10-16, Rob approved the retune in notes/forest-ablation.md): Mountain Laurel 4 → 5 seeds; Wild Ginger +2 → +3 amber per level; Trillium +2 → +3; Witch Hazel +1 → +2 amber; Gray Squirrel costs 2 (was 3) and makes +1 seed plus 1 per touching tree. Stars 925/1080/1250 → 1115/1280/1450.
   Seeds 9000+, 1000 runs: planner 99.9% finish, avg 1211, stars 0/1/2/3 = 29.8/34/26.3/9.9%. Greedy 99.9%, avg 1163, 40.1/30.3/20.7/8.9%. Dropping the Squirrel still raises the planner's average by 4% (1260), so it remains the weakest tile.
+
+- v20 (2026-10-16, Rob's Serengeti spec; notes/serengeti.md): a third ecosystem, the Serengeti. Turns alternate Wet (odd: rain turns all flora Lush, +3 seeds) and Dry (even: no rain, +1 seed). Gazelles and Wildebeest graze Lush flora for amber and leave it Grazed; Waterhole, Dung Beetle, Oxpecker, Crocodile (wet) and Elephant restore it. 16 tiles, 3 events (Endless Drought, Brushfire, Great Migration), 10 Treasures. The forest's seasons became a shared phase layer in engine.js (`CONFIG.cycle`/`calendar`, `TP.phase`, `phaseIncome`); reef and forest bot runs are identical to v19 on the same seeds.
+  Spec numbers first (seeds 20000+, planner 400 runs): 98.5% finish, avg 2165, p30/p65/p90 1294/2357/4000, stars 0/1/2/3 = 4.8/14/21.5/59.8%. Baobab made 1132 amber a run, half of everything. Baobab Dry 2L → L amber per age: avg 1552, Baobab 314 (still the top tile). Dropping its extra Wet age instead: avg 1609.
+  Stars 500/1000/1500 → 950/1700/2700. Fresh seeds 40000+, 1000 runs: planner 97.7% finish, avg 1540, p30/p65/p90 948/1736/2752, stars 0/1/2/3 = 30.2/32.5/26.8/10.5%. Greedy 91.9%, avg 784, 71.8/21.3/5.9/1%. Random 27.2%, avg 140. Planner amber by tile: Baobab 328, Lion 269, Dung Beetle 238, Wildebeest 185, Hyena 160, Giraffe 158. By event, median: Drought 1506, Brushfire 1371, Migration 1305.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

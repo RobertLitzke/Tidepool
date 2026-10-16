@@ -6,6 +6,7 @@
   if (typeof require !== 'undefined' && typeof module !== 'undefined') {
     ECOS.reef = ECOS.reef || require('./eco-reef.js');
     ECOS.forest = ECOS.forest || require('./eco-forest.js');
+    ECOS.serengeti = ECOS.serengeti || require('./eco-serengeti.js');
   }
 
   function make(eco) {
@@ -38,9 +39,18 @@
       return out;
     }
 
-    // Calendar (ecosystems that have one): the month index 0-11 (0 = January) and season of a round.
+    // Phases: ecosystems whose rounds alternate between states (forest seasons, Serengeti wet and dry).
+    // CONFIG.calendar maps rounds to months and months to seasons; CONFIG.cycle is a plain repeating list
+    // of phase ids, one per round. state.phaseAt[tide] overrides either (an event can make a round dry).
+    // Each ecosystem module names its phases in eco.seasons ({ id: { name, emoji } }).
     const month = (state, tide = state.tide) => CONFIG.calendar ? (CONFIG.calendar.firstMonth + tide - 1) % 12 : null;
-    const season = (state, tide) => CONFIG.calendar ? CONFIG.calendar.seasons[month(state, tide)] : null;
+    function phase(state, tide = state.tide) {
+      if (state && state.phaseAt && state.phaseAt[tide]) return state.phaseAt[tide];
+      if (CONFIG.calendar) return CONFIG.calendar.seasons[month(state, tide)];
+      if (CONFIG.cycle) return CONFIG.cycle[(tide - 1) % CONFIG.cycle.length];
+      return null;
+    }
+    const season = phase;
 
     // Shells spent on a tile, level-ups and stacking prices included (older saves fall back to list price).
     const invested = (t) => t.paid != null ? t.paid : TILES[t.kind].cost * t.lvl;
@@ -60,7 +70,7 @@
 
     // The engine helpers an ecosystem's rules may use.
     const E = {
-      count, neighbors, has, invested, centerCells, month, season, removeTile, rand,
+      count, neighbors, has, invested, centerCells, month, season, phase, removeTile, rand,
       kindNames: (tag) => kindNames(tag),
       addOffer: (state) => { const o = state.offers; rollOffers(state); state.offers = o.concat(state.offers[0]).slice(0, shopSize(state)); },
       get CONFIG() { return CONFIG; }, get TILES() { return TILES; },
@@ -85,6 +95,8 @@
 
     function strikeEvent(state) {
       const id = eventOf(state), ev = EVENTS[id];
+      // An event with strike(state) does it all itself and returns { lost, note }.
+      if (ev && ev.strike) { const r = ev.strike(state); state.struck = { event: id, tide: state.tide, lost: r.lost || [], note: r.note }; return state.struck; }
       const lost = (ev && ev.spares ? [] : eventThreat(state)).map(i => ({ cell: i, kind: state.grid[i].kind, lvl: state.grid[i].lvl }));
       for (const l of lost) ev.take ? ev.take(state, l.cell) : removeTile(state, l.cell, 'event');
       if (ev && ev.after) ev.after(state, lost);
@@ -142,6 +154,7 @@
 
     function startTide(state) {
       state.rerolls = 0;
+      if (HOOKS.startTide) HOOKS.startTide(state);
       rollOffers(state);
       state.charmOffers = [];
       if (CONFIG.charmTides.includes(state.tide)) {
@@ -180,7 +193,7 @@
       return true;
     }
 
-    const shopSize = (state) => CONFIG.shopSize + charmSum(state, 'shopBonus');
+    const shopSize = (state) => CONFIG.shopSize + charmSum(state, 'shopBonus', state);
     // Stacking tiles get pricier as you place them (new tiles and level-ups both count), so the endless stack has a price.
     const placedCount = (state, kind) => (state.placed && state.placed[kind]) || 0;
     // Price to place `kind` on `cell`: leveling up a capped tile costs levelUpStep more per level it already has.
@@ -191,7 +204,7 @@
     };
     // Stacking tiles marked flat (Sargassum) keep their list price however many you place.
     const stackPriced = (kind) => TILES[kind].stack && !TILES[kind].flat;
-    const tileCost = (state, kind) => Math.max(1, TILES[kind].cost + charmSum(state, 'costDelta')
+    const tileCost = (state, kind) => Math.max(1, TILES[kind].cost + charmSum(state, 'costDelta', kind, state)
       + (stackPriced(kind) ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
 
     function rollOffers(state) {
@@ -224,7 +237,7 @@
     }
 
     const rerollCost = (state) => {
-      const n = state.rerolls - charmSum(state, 'freeRerolls');
+      const n = state.rerolls - charmSum(state, 'freeRerolls', state);
       return n < 0 ? 0 : CONFIG.rerollBase + CONFIG.rerollStep * n;
     };
 
@@ -250,7 +263,10 @@
       if (state.shells < cost || !canPlace(state, kind, cell)) return false;
       state.shells -= cost;
       const t = state.grid[cell];
-      if (t) { t.paid = invested(t) + cost; t.lvl++; } else {
+      if (t) {
+        t.paid = invested(t) + cost; t.lvl++;
+        if (HOOKS.onLevelUp) HOOKS.onLevelUp(state, cell);
+      } else {
         state.grid[cell] = { kind, lvl: 1, age: 1, paid: cost };
         if (HOOKS.onPlace) HOOKS.onPlace(state, cell);
       }
@@ -283,6 +299,7 @@
       const moved = state.grid[from], other = state.grid[to];
       state.grid[to] = moved; state.grid[from] = other;
       state.offers[offerIdx] = null;
+      if (TILES[kind].onMove) TILES[kind].onMove(state, to, from);
       (state.moves || (state.moves = [])).push({ tide: state.tide, mover: kind, at: cell, kind: moved.kind, from, to, swapped: other ? other.kind : null });
       return true;
     }
@@ -322,7 +339,10 @@
       return !!(d && d.dormant && d.dormant(state, t, i));
     };
 
-    const ctxOf = (state, i, filled) => ({ grid: state.grid, i, t: state.grid[i], state, nb: neighbors(i), filled, month: month(state), season: season(state) });
+    // A tile's extra state to show on the board (the Serengeti's grazed flora): { cls, label } or null.
+    const tileState = (state, i) => state.grid[i] && HOOKS.tileState ? HOOKS.tileState(state, i) : null;
+
+    const ctxOf = (state, i, filled) => { const ph = phase(state); return { grid: state.grid, i, t: state.grid[i], state, nb: neighbors(i), filled, month: month(state), season: ph, phase: ph }; };
 
     // Fire the whole board in reading order. Returns the event list for animation.
     function runTide(state) {
@@ -339,7 +359,10 @@
         // Echo tiles fire other tiles again. An echo tile whose targets() is null this round fires like any tile.
         const tg = def.echo ? def.targets(i, state, t) : null;
         if (tg) {
-          events.push({ cell: i, type: 'echo', targets: tg.filter(j => state.grid[j]), from, depth, shells: state.shells, pearls: state.pearls, s: 0, p: 0 });
+          // beforeEcho(state, i, t) can act first (the Oxpecker restores a pasture) and returns {s, p} it made.
+          const pre = depth === 0 && def.beforeEcho ? def.beforeEcho(state, i, t) || {} : {};
+          state.shells += pre.s || 0; state.pearls += pre.p || 0; state.earned += Math.max(0, pre.p || 0);
+          events.push({ cell: i, type: 'echo', targets: tg.filter(j => state.grid[j]), from, depth, shells: state.shells, pearls: state.pearls, s: pre.s || 0, p: pre.p || 0 });
           if (depth > 0) return; // echoes of echoes do nothing, which keeps chains finite
           for (let k = 0; k < t.lvl + echoExtra; k++) for (const j of tg) {
             if (state.grid[j] && !TILES[state.grid[j].kind].echo) activate(j, depth + 1, i);
@@ -359,14 +382,19 @@
       const first = state.grid.findIndex(Boolean);
       const twice = charmAny(state, 'firstTwice');
       for (let i = 0; i < state.grid.length; i++) {
-        activate(i, 0, null);
+        // A tile with repeats(state, t) fires that many extra times in a row (Oasis Mirage's dry-season Waterholes).
+        const t = state.grid[i], reps = t && TILES[t.kind].repeats ? TILES[t.kind].repeats(state, t) : 0;
+        for (let k = 0; k <= reps; k++) activate(i, 0, null);
         if (i === first && twice) activate(i, 0, null);
       }
-      delete state._mult;
 
       for (const t of state.grid) if (t) t.age += 1 + charmSum(state, 'ageBonus', t);
-      if (HOOKS.afterFire) HOOKS.afterFire(state, events);
-      const income = CONFIG.tideIncome + charmSum(state, 'income');
+      // afterFire may fire tiles again (fire(i), animated like the rest) after the board's pass.
+      if (HOOKS.afterFire) HOOKS.afterFire(state, events, (i) => { state._mult = 1; activate(i, 0, 'bonus'); });
+      delete state._mult;
+      // Income per round, or per phase (CONFIG.phaseIncome: the Serengeti's wet rounds pay more than dry ones).
+      const ph = phase(state), base = CONFIG.phaseIncome && CONFIG.phaseIncome[ph] != null ? CONFIG.phaseIncome[ph] : CONFIG.tideIncome;
+      const income = base + charmSum(state, 'income', state);
       state.shells += income;
       const earned = events.reduce((a, e) => a + e.p, 0);
       state.history.push({ tide: state.tide, earned, pearls: state.pearls, shells: state.shells });
@@ -418,7 +446,8 @@
 
     return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, eventOf, eventKnown, eventThreat, invested, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
       maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
-      inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season };
+      inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season, phase, tileState,
+      phased: !!(CONFIG.calendar || CONFIG.cycle) };
   }
 
   const built = {};

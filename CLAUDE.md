@@ -9,18 +9,20 @@ Kinds: Flora (plant), Shellfish, Critter, plus Object and Mover (Dolphin). Tiles
 
 Ecosystems (v17): the app opens on a picker. `reef` is the game above. `forest` (Eastern US deciduous forest) runs November to October, one month a round, on two rules only (v18, Rob asked for simple interactions): every tile makes ×2 in its season, and fall leaves from trees grow touching understory plants (or wait on empty spots). Logs clear for amber or seeds. Its bonuses are Heirlooms. Current design: `notes/forest-simple.md`; `notes/forest.md` is the older, bigger design. Keep new forest ideas to seasons plus the leaves mechanic. Sea ecosystems pay shells and pearls, land ones seeds and amber; code always says `shells`/`pearls`, and ui.html swaps the words and icons (`REALM`). Every player-facing word comes from the ecosystem's `terms` (board, round, rock, clear, go, bonus...).
 
+`serengeti` (v20, Rob's spec in `notes/serengeti.md`): turns alternate Wet (odd) and Dry (even); grazers graze Lush flora and leave it Grazed (`tile.grazed`) until something restores it. Seeds and amber, bonuses called Treasures, kopjes for rocks. Phases are shared engine code: `CONFIG.calendar` (forest months) or `CONFIG.cycle` (`['wet','dry']`), `TP.phase(state, tide)`, `state.phaseAt` overrides, `CONFIG.phaseIncome`. Reuse these for any new ecosystem with alternating turns.
+
 Play: https://robertlitzke.github.io/Tidepool/ . Repo: github.com/RobertLitzke/Tidepool.
 
 ## File map
 | File | Role |
 |---|---|
 | `engine.js` | Shared rules engine, pure logic, no DOM. `forEco(id)` returns a cached engine for one ecosystem; `require('./engine.js')` alone is the reef engine (old API) plus `forEco`/`list`. |
-| `eco-reef.js`, `eco-forest.js` | One module per ecosystem: `{id, name, realm, terms, icon, def(E)}`; `def` returns `CONFIG`, `KINDS`, `TILES`, `EVENTS`, `CHARMS` and `hooks` (init, afterFire, onRemove, onPlace, actions/act...). Forest tile numbers live in `CONFIG.k`. In the page they load before engine.js. |
+| `eco-reef.js`, `eco-forest.js`, `eco-serengeti.js` | One module per ecosystem: `{id, name, realm, terms, icon, def(E)}`; `def` returns `CONFIG`, `KINDS`, `TILES`, `EVENTS`, `CHARMS` and `hooks` (init, startTide, afterFire, onRemove, onPlace, onLevelUp, tileState, actions/act...). Forest tile numbers live in `CONFIG.k`. In the page they load before engine.js. |
 | `ui.html` (~1200 lines) | Touch UI, CSS (forest theme and seasonal tints via `data-eco`/`data-season`), ecosystem picker, overlays, help screen. `/*ENGINE*/` and `<!--ART-->` are placeholders filled by build.sh. |
 | `art.js` | Sticker-style SVG art for every tile of both ecosystems, rock, log, cache, shell, pearl, seed, amber. `node art.js` prints `<symbol>`s; `node art.js --preview out.html` previews all icons. Charms, events and kind chips still use emoji. |
 | `build.sh` | `sh build.sh` writes `tidepool.html` (single file) and `dist/` (PWA). Both are gitignored build output: never edit them. |
 | `pwa/` | `head.html`, `tail.html`, `sw.js` (`__VERSION__` stamped by build), manifest, icons. |
-| `sim.js` | Bots (`ECO=forest` for the forest, same for tune.js and CI): `node sim.js 500 [random\|greedy\|planner\|all]`. Prints finish rate, score spread, stars, pearl curve, pick rates. Exports `play`. |
+| `sim.js` | Bots (`ECO=forest` or `ECO=serengeti`, same for tune.js and CI): `node sim.js 500 [random\|greedy\|planner\|all]`. Prints finish rate, score spread, stars, pearl curve, pick rates. Exports `play`. |
 | `tune.js` | Parallel batches: `node tune.js planner 2000 [variant.js\|-] [seed0] [workers]`. A variant exports `(TP) => { ...mutate TP.CONFIG/TP.TILES... }`. `DUMP=out.json` saves per-run rows. |
 | `ablate.js` | Drop-one tile test: `node ablate.js [tally=100] [drop=50] [bot]`. |
 | `README.md` | Short file list, then the **balance log** (v1..vN). Read only the last 2-3 entries (`tail -20 README.md`). |

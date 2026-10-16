@@ -46,6 +46,24 @@ const PAL = {
   stash: { basket: '#C8964E', dark: '#946634', nut: '#B9773A', cap: '#7A4E2A', berry: '#C2384E' },
   log: { bark: '#8A5A34', dark: '#5E3C22', end: '#E3C08A', ring: '#B48A55', moss: '#7CB654' },
   cache: { soil: '#9A7148', dark: '#6E4E30', nut: '#C8893E', cap: '#7A4E2A' },
+  // serengeti
+  zebra: { body: '#FFFFFF', stripe: '#2A2A2E', muzzle: '#4A4A50', mane: '#2A2A2E' },
+  red_oat_grass: { blade: '#C9A24A', dark: '#9A6E2A', head: '#B8553A', light: '#E7C978' },
+  gazelle: { body: '#D49A5A', light: '#FBF1E0', stripe: '#3A2A1E', horn: '#4A3A2A', nose: '#2A2220' },
+  giraffe: { body: '#F2C86A', patch: '#B86A2E', light: '#FBE6B4', horn: '#7A4E2A' },
+  wildebeest: { body: '#6E6A6A', dark: '#3E3A3A', horn: '#D8CFC0', beard: '#2A2626', nose: '#1E1A1A' },
+  acacia: { trunk: '#7A5636', leaf: '#7FA543', light: '#A9C76A', thorn: '#F2E6C8' },
+  baobab: { trunk: '#B88A66', dark: '#8A6448', leaf: '#7CB654', light: '#A9D27E' },
+  meerkat: { body: '#D9B07A', light: '#F3DFC0', dark: '#4A3424', nose: '#2A1E16' },
+  cheetah: { body: '#F2BE4E', light: '#FFF1CC', spot: '#2A2220', nose: '#2A2220' },
+  oxpecker: { body: '#8A6A4A', belly: '#D9C2A0', beak: '#E5402E', ring: '#F2D02E' },
+  dung_beetle: { shell: '#2E2A36', light: '#5A5470', ball: '#8A6440', dark: '#5E4228' },
+  hyena: { body: '#C9A272', spot: '#5A3E26', dark: '#3A2A1E', light: '#E8D4B4' },
+  lion: { body: '#E3A84A', mane: '#A8602A', light: '#F7D9A0', nose: '#4A2A1E' },
+  crocodile: { body: '#5E8A4A', light: '#A9C77A', dark: '#3E6234', tooth: '#FFFFFF' },
+  waterhole: { water: '#5AA6D6', light: '#A9DBF2', sand: '#D9B97A', reed: '#6A9A3E' },
+  elephant: { body: '#9AA0A8', dark: '#6E747C', ear: '#B9BEC6', tusk: '#FBF3E0', pink: '#E8A9B0' },
+  kopje: { body: '#BFA88A', light: '#DCCBB0', dark: '#8E7A60', grass: '#C9A24A' },
 };
 
 const f = n => +n.toFixed(2);
@@ -441,6 +459,166 @@ const DRAW = {
     p.limbs(['M24 21.6 L24.6 18.5'], 'cap', 1.6);
     p.shine('M20.5 31 C20.5 28.5 21.5 27 22.8 26.5 C22.3 28 22.2 29.6 22.4 31.5Z', .5);
   },
+  // ---- serengeti ----
+  zebra(p) { // Zebra: striped head, dark muzzle, mohawk mane
+    p.shape('M15 9 L13 2 L19 6Z', 'body'); p.shape('M33 9 L35 2 L29 6Z', 'body');
+    p.shape('M20 6 L22 1.5 L24 5 L26 1.5 L28 6 L26 9 L22 9Z', 'mane');
+    const head = 'M24 6 C32 6 36 12 35 20 C34 27 31 32 30 38 C29 44 19 44 18 38 C17 32 14 27 13 20 C12 12 16 6 24 6Z';
+    p.shape(head, 'body');
+    p.raw('<clipPath id="zebClip"><path d="' + head + '"/></clipPath><g clip-path="url(#zebClip)">');
+    p.shape('M10 13 C16 12 18 14 20 17 C16 16 13 16 10 17Z M38 13 C32 12 30 14 28 17 C32 16 35 16 38 17Z M10 22 C15 21 18 23 19 26 C15 25 12 25 10 26Z M38 22 C33 21 30 23 29 26 C33 25 36 25 38 26Z M22 8 L24 14 L26 8Z', 'stripe', { flat: true });
+    p.raw('</g>');
+    p.shape(head, 'none', { outline: true });
+    p.shape('M18 34 C18 30 30 30 30 34 C30 41 27 43.5 24 43.5 C21 43.5 18 41 18 34Z', 'muzzle');
+    p.dots([[21.5, 37, 1.2], [26.5, 37, 1.2]], 'stripe');
+    p.eye(18, 20, 2.3); p.eye(30, 20, 2.3);
+  },
+  red_oat_grass(p) { // Red Oat Grass: a tuft of golden blades with rusty seed heads
+    p.shape('M8 46 C10 40 38 40 40 46Z', 'dark');
+    p.limbs(['M12 44 C11 34 8 26 5 20', 'M18 44 C17 32 16 22 14 10', 'M24 44 C24 32 24 20 24 6', 'M30 44 C31 32 32 22 34 10', 'M36 44 C37 34 40 26 43 20'], 'blade', 2.4);
+    for (const [x, y, r] of [[5, 18, -30], [14, 8, -12], [24, 4.5, 0], [34, 8, 12], [43, 18, 30]]) p.shape(ell(x, y, 2.2, 4.6, r), 'head');
+    p.limbs(['M20 44 C19 38 17 34 13 30', 'M28 44 C29 38 31 34 35 30'], 'light', 1.6);
+  },
+  gazelle(p) { // Thomson's Gazelle: tan face, white eye rings, ringed horns
+    p.limbs(['M20 10 C18 5 17 2 18.5 0.8', 'M28 10 C30 5 31 2 29.5 0.8'], 'horn', 2.2);
+    p.detail('M17.8 5 L19.6 4.6 M17.6 7.4 L19.6 7 M30.2 5 L28.4 4.6 M30.4 7.4 L28.4 7', 'light');
+    p.shape('M15 13 C9 9 4 10 3 13 C6 16 11 17 16 16Z', 'body'); p.shape('M33 13 C39 9 44 10 45 13 C42 16 37 17 32 16Z', 'body');
+    p.shape('M24 8 C31 8 35 12.5 35 18 C35 25 30 30 28.5 38 C27.5 43 20.5 43 19.5 38 C18 30 13 25 13 18 C13 12.5 17 8 24 8Z', 'body');
+    p.shape('M17 14 C19 16 19.5 22 21 28 L19.5 28 C17.5 22 16 18 17 14Z M31 14 C29 16 28.5 22 27 28 L28.5 28 C30.5 22 32 18 31 14Z', 'stripe', { flat: true });
+    p.shape(ell(19, 19, 3.6, 3.2), 'light', { flat: true }); p.shape(ell(29, 19, 3.6, 3.2), 'light', { flat: true });
+    p.shape('M21 38 C21 35.5 27 35.5 27 38 C27 41.5 21 41.5 21 38Z', 'nose');
+    p.eye(19, 19.5, 2.2); p.eye(29, 19.5, 2.2);
+  },
+  giraffe(p) { // Giraffe: tall patchy neck, ossicones, little ears
+    p.shape('M20 46 C21 36 22 26 21 18 L31 18 C31 26 30 36 32 46Z', 'body');
+    p.shape('M22 24 L27 23 L28 28 L23 29Z M23 33 L29 32.5 L29.5 38 L23.5 39Z M24 42 L30 41.5 L30.5 46 L23.5 46Z', 'patch', { flat: true });
+    p.limbs(['M20 9 L19 3', 'M28 9 L29 3'], 'horn', 2);
+    p.dots([[19, 2.5, 2], [29, 2.5, 2]], 'horn', { outline: true });
+    p.shape('M15 10 C11 7 8 8 7.5 10 C10 12.5 13 12.5 16 12Z', 'body'); p.shape('M33 10 C37 7 40 8 40.5 10 C38 12.5 35 12.5 32 12Z', 'body');
+    p.shape('M24 6 C30 6 33 9.5 33 14 C33 19 30 21 30 25 C30 28 18 28 18 25 C18 21 15 19 15 14 C15 9.5 18 6 24 6Z', 'body');
+    p.shape('M19 21 C19 19 29 19 29 21 C29 26.5 19 26.5 19 21Z', 'light');
+    p.dots([[22, 22.5, 1], [26, 22.5, 1]], 'patch');
+    p.dots([[21, 10, 1.4], [28, 11, 1.2]], 'patch');
+    p.eye(19.5, 14.5, 2.2); p.eye(28.5, 14.5, 2.2);
+  },
+  wildebeest(p) { // Wildebeest: dark long face, hooked horns, shaggy beard
+    p.limbs(['M17 12 C11 12 6 9 6 4 C6 2.5 7 2 8 3', 'M31 12 C37 12 42 9 42 4 C42 2.5 41 2 40 3'], 'horn', 2.6);
+    p.shape('M14 15 C9 13 5 15 4.5 17 C8 19 12 19 15 18Z', 'body'); p.shape('M34 15 C39 13 43 15 43.5 17 C40 19 36 19 33 18Z', 'body');
+    p.shape('M38 26 C40 32 38 40 32 44 L16 44 C10 40 8 32 10 26Z', 'beard');
+    p.shape('M24 8 C31 8 34 13 34 19 C34 26 30 31 29.5 38 C29 43 19 43 18.5 38 C18 31 14 26 14 19 C14 13 17 8 24 8Z', 'body');
+    p.shape('M22 10 C23 14 23 26 22 32 L26 32 C25 26 25 14 26 10Z', 'dark', { flat: true });
+    p.shape('M19 37 C19 34 29 34 29 37 C29 42 19 42 19 37Z', 'nose');
+    p.dots([[22, 37.5, 1.1], [26, 37.5, 1.1]], 'dark');
+    p.eye(18.5, 19, 2.2); p.eye(29.5, 19, 2.2);
+  },
+  acacia(p) { // Umbrella Thorn Acacia: flat crown on a forked trunk
+    p.limbs(['M24 46 L24 30 C24 26 20 22 14 19', 'M24 32 C25 27 29 23 35 19', 'M24 28 L24 18'], 'trunk', 3);
+    p.shape('M4 17 C4 11 12 7 24 7 C36 7 44 11 44 17 C44 20 40 21 34 20 C30 22 18 22 14 20 C8 21 4 20 4 17Z', 'leaf');
+    p.dots([[12, 12, 1.5], [22, 10, 1.6], [33, 11, 1.5], [39, 15, 1.2], [17, 16, 1.3], [28, 16, 1.3]], 'light');
+    p.detail('M21 38 L18.5 37 M27 35 L29.5 34 M22 33 L19.5 32', 'thorn');
+    p.shine('M9 13 C11 10 16 8.4 21 8.2 C16 9.8 12.4 11.4 10.6 14Z', .4);
+  },
+  baobab(p) { // Baobab: a fat bottle trunk with stubby branches and a little crown
+    p.limbs(['M17 16 L11 9 M17 14 L15 6 M24 13 L24 5 M31 14 L33 6 M31 16 L37 9'], 'trunk', 2.4);
+    for (const [x, y] of [[10, 8], [15, 5], [24, 4], [33, 5], [38, 8]]) p.shape(ell(x, y, 4, 2.8), 'leaf');
+    p.shape('M15 46 C11 40 11 30 14 22 C15.5 18 16 16 17 14 L31 14 C32 16 32.5 18 34 22 C37 30 37 40 33 46Z', 'trunk');
+    p.detail('M19 22 C18 28 18 36 19.5 42 M28 20 C29.5 27 30 35 28.5 43 M24 18 L24 24', 'dark');
+    p.shine('M17 26 C17.5 22 18.5 19.5 20 17.5 C19.4 21 19 24 19.2 28Z', .35);
+  },
+  meerkat(p) { // Meerkat: standing sentry, dark eye patches
+    p.shape('M16 46 C13 38 14 28 17 22 C19 18 29 18 31 22 C34 28 35 38 32 46Z', 'body');
+    p.shape('M19 45 C17 38 18 30 20.5 26 C22.5 24 25.5 24 27.5 26 C30 30 31 38 29 45Z', 'light', { flat: true });
+    p.limbs(['M18 27 C19 30 21 31 23 30', 'M30 27 C29 30 27 31 25 30'], 'body', 2.4);
+    p.shape('M24 3 C30 3 33 7 33 11 C33 15 29 20 24 21 C19 20 15 15 15 11 C15 7 18 3 24 3Z', 'body');
+    p.dots([[15.5, 9, 2], [32.5, 9, 2]], 'dark', { outline: true });
+    p.shape(ell(19.5, 10.5, 3, 2.6), 'dark', { flat: true }); p.shape(ell(28.5, 10.5, 3, 2.6), 'dark', { flat: true });
+    p.eye(19.5, 10.5, 1.8); p.eye(28.5, 10.5, 1.8);
+    p.shape('M22.5 16 C22.5 15 25.5 15 25.5 16 C25.5 17.5 22.5 17.5 22.5 16Z', 'nose');
+  },
+  cheetah(p) { // Cheetah: spotted gold face with black tear lines
+    p.shape(ell(12, 11, 4.5, 4.5), 'body'); p.shape(ell(36, 11, 4.5, 4.5), 'body');
+    p.shape('M24 7 C35 7 41 14 41 23 C41 34 33 41 24 41 C15 41 7 34 7 23 C7 14 13 7 24 7Z', 'body');
+    p.shape('M24 24 C30 24 33 28 33 32 C33 37 29 39.5 24 39.5 C19 39.5 15 37 15 32 C15 28 18 24 24 24Z', 'light');
+    p.dots([[13, 18, 1.2], [16, 13, 1.1], [24, 11, 1.2], [32, 13, 1.1], [35, 18, 1.2], [11, 25, 1.1], [37, 25, 1.1], [20, 14.5, 1], [28, 14.5, 1]], 'spot');
+    p.limbs(['M17.5 22 C17 26 17.5 30 19.5 33', 'M30.5 22 C31 26 30.5 30 28.5 33'], 'spot', 1.2);
+    p.shape('M21 28 C21 26.4 27 26.4 27 28 C27 29.8 25.2 30.8 24 30.8 C22.8 30.8 21 29.8 21 28Z', 'nose');
+    p.mouth('M21 34 q3 2 6 0');
+    p.eye(18, 20, 2.3); p.eye(30, 20, 2.3);
+  },
+  oxpecker(p) { // Oxpecker: little brown bird, red beak, yellow eye ring
+    p.shape('M28 30 L45 26 L44 33 L30 36Z', 'body');
+    p.limbs(['M20 38 L18 46 M26 38 L27 46'], 'beak', 1.4);
+    p.shape('M9 22 C9 14 14 9 21 9 C28 9 32 14 32 20 C36 24 36 32 31 36 C27 40 19 40 14 38 C10 35 9 29 9 22Z', 'body');
+    p.shape('M11 24 C16 24 25 26 30 30 C29 35 25 38 19 38 C13 37 10.5 31 11 24Z', 'belly', { flat: true });
+    p.shape('M9.5 16 L1.5 18.5 L9.5 21Z', 'beak');
+    p.dots([[15, 16, 3.4]], 'ring', { outline: true });
+    p.eye(15, 16, 1.9);
+  },
+  dung_beetle(p) { // Dung Beetle: shiny black beetle with its ball
+    p.shape(ell(15, 30, 12, 12), 'ball');
+    p.dots([[11, 25, 1.1], [18, 34, 1.2], [9, 34, 1], [20, 24, 1]], 'dark');
+    p.limbs(['M30 26 L24 22', 'M30 32 L25 34', 'M38 32 L42 40', 'M36 25 L40 19'], 'shell', 1.6);
+    p.shape(ell(35, 28.5, 8.5, 7, -10), 'shell');
+    p.detail('M33.5 21.8 L36 35', 'light');
+    p.shape(ell(26.5, 27, 3.6, 3.2, -10), 'shell');
+    p.limbs(['M23.5 25 L20.5 21.5', 'M23.5 28.5 L20.5 29.5'], 'shell', 1.2);
+    p.shine('M31 24 C32 22.4 34 21.8 35.5 22 C34 23 33 24.2 32.4 26Z', .5);
+    p.eye(25.5, 26.4, 1.2);
+  },
+  hyena(p) { // Spotted Hyena: round ears, spotted face, dark muzzle
+    p.shape(ell(12.5, 9.5, 5, 5), 'body'); p.shape(ell(35.5, 9.5, 5, 5), 'body');
+    p.dots([[12.5, 9.5, 2.4], [35.5, 9.5, 2.4]], 'dark');
+    p.shape('M24 8 C34 8 39 15 39 22 C39 30 33 34 31 40 C30 44 18 44 17 40 C15 34 9 30 9 22 C9 15 14 8 24 8Z', 'body');
+    p.dots([[14, 18, 1.3], [33, 17, 1.3], [12, 26, 1.2], [36, 26, 1.2], [24, 12, 1.3], [19, 13, 1], [29, 13, 1]], 'spot');
+    p.shape('M18 32 C18 28 30 28 30 32 C30 39 27 42 24 42 C21 42 18 39 18 32Z', 'dark');
+    p.shape('M21 31 C21 29.6 27 29.6 27 31 C27 32.6 25 33.6 24 33.6 C23 33.6 21 32.6 21 31Z', 'light', { flat: true });
+    p.mouth('M21 37.5 q3 2 6 0');
+    p.eye(18, 21, 2.3); p.eye(30, 21, 2.3);
+  },
+  lion(p) { // Lion: big maned head
+    p.shape('M24 2 C30 2 33 5 35 6 C40 6 44 10 44 15 C47 19 46 26 43 29 C44 34 40 40 35 41 C32 45 27 46 24 46 C21 46 16 45 13 41 C8 40 4 34 5 29 C2 26 1 19 4 15 C4 10 8 6 13 6 C15 5 18 2 24 2Z', 'mane');
+    p.shape(ell(14, 13, 3.6, 3.6), 'body'); p.shape(ell(34, 13, 3.6, 3.6), 'body');
+    p.shape('M24 10 C33 10 37 16 37 24 C37 33 31 39 24 39 C17 39 11 33 11 24 C11 16 15 10 24 10Z', 'body');
+    p.shape('M24 25 C29.5 25 32 28.5 32 31.5 C32 35.5 28.5 37.5 24 37.5 C19.5 37.5 16 35.5 16 31.5 C16 28.5 18.5 25 24 25Z', 'light');
+    p.shape('M21 27.5 C21 26 27 26 27 27.5 C27 29.2 25.2 30.2 24 30.2 C22.8 30.2 21 29.2 21 27.5Z', 'nose');
+    p.mouth('M21 33.5 q3 2 6 0');
+    p.eye(19, 21, 2.3); p.eye(29, 21, 2.3);
+  },
+  crocodile(p) { // Crocodile: long toothy snout, eyes on top, peeking from the water
+    p.shape('M3 30 C3 25 8 22 14 22 L40 24 C44 24.5 46 27 45 30 C44 33 41 34 38 34 L14 36 C8 36 3 34 3 30Z', 'body');
+    p.limbs(['M14 30 L44 30'], 'dark', 1.2);
+    p.shape('M17 30.8 L19 33.8 L21 31 L23 34 L25 31.2 L27 34 L29 31.4 L31 33.8 L33 31.6 L35 33.4 L37 31.8Z', 'tooth', { flat: true });
+    p.shape(ell(10, 18, 5, 5), 'body'); p.shape(ell(20, 17, 5, 5), 'body');
+    p.dots([[38, 26.5, .9], [41, 27, .9]], 'dark');
+    p.dots([[26, 22.5, 1.2], [31, 23, 1.2], [8, 26, 1.2], [13, 25, 1.1]], 'light');
+    p.eye(10, 17, 2.3); p.eye(20, 16, 2.3);
+    p.raw('<path d="M2 40 C9 37.5 15 42 24 40 C33 38 40 42 46 40" fill="none" stroke="#7FC1E8" stroke-width="2.4" stroke-linecap="round"/>');
+  },
+  waterhole(p) { // Waterhole: a blue pool in a sandy rim, reeds at the edge
+    p.shape(ell(24, 31, 21, 12), 'sand');
+    p.shape(ell(24, 31.5, 16, 8.5), 'water');
+    p.shine('M13 30 C15 27 20 25.5 26 25.5 C20 27 16 28.6 14.6 31Z', .6);
+    p.detail('M20 34 C23 35 27 35 30 34 M26 30 C28 30.4 30 30.4 32 30', 'light');
+    p.limbs(['M37 28 C37 20 36 14 34 8', 'M40 29 C41 22 42 17 44 12', 'M8 27 C8 21 7 16 5 12'], 'reed', 2);
+    p.shape(ell(34, 9, 1.8, 3.8, -12), 'sand'); p.shape(ell(5, 12.5, 1.6, 3.4, -14), 'sand');
+  },
+  elephant(p) { // African Elephant: big flapping ears, curled trunk, tusks
+    p.shape('M14 12 C6 8 1 13 2 22 C3 30 8 34 15 32Z', 'ear'); p.shape('M34 12 C42 8 47 13 46 22 C45 30 40 34 33 32Z', 'ear');
+    p.detail('M9 17 C7 21 8 26 11 28 M39 17 C41 21 40 26 37 28', 'dark');
+    p.shape('M24 6 C32 6 36 11 36 19 C36 25 32 28 29 30 C29 34 30 38 33 40 C35 41 36 43 34 44.5 C30 46 26 43 25 38 L23 32 C17 30 12 25 12 19 C12 11 16 6 24 6Z', 'body');
+    p.limbs(['M19 29 C18 33 16 35 14 35.5'], 'tusk', 2.4);
+    p.detail('M24 34 L27.5 33.5 M24.6 37 L28.4 36.5', 'dark');
+    p.cheek(16, 24); p.cheek(32, 24);
+    p.eye(19, 18.5, 2.2); p.eye(29, 18.5, 2.2);
+  },
+  kopje(p) { // Kopje: a pile of rounded granite boulders with dry grass
+    p.shape('M5 44 C4 36 9 30 16 30 C22 30 25 36 24 44Z', 'body');
+    p.shape('M20 44 C19 34 25 26 33 27 C41 28 45 36 43 44Z', 'body');
+    p.shape('M12 30 C11 21 17 14 24 15 C31 16 34 23 32 29 C28 28 22 31 20 34 C18 31 15 30 12 30Z', 'light');
+    p.detail('M17 22 C19 20 21 19 23 19 M28 33 C31 32 34 33 36 35 M9 37 C11 35 13 34.5 15 35', 'dark');
+    p.limbs(['M3 44 L2 39 M5 44 L6 38.5 M44 44 L45 39 M42 44 L41 38'], 'grass', 1.4);
+    p.shine('M15 22 C16 19 19 17 22 16.6 C19.5 18.4 17.6 20.4 16.8 23.4Z', .5);
+  },
 };
 
 function painter(pal) {
@@ -512,7 +690,7 @@ if (require.main === module) {
   if (i < 0) { process.stdout.write(symbols()); }
   else {
     const fs = require('fs');
-    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', chipmunk: 'Chipmunk', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache' };
+    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', chipmunk: 'Chipmunk', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache', zebra: 'Zebra', red_oat_grass: 'Red Oat Grass', gazelle: 'Gazelle', giraffe: 'Giraffe', wildebeest: 'Wildebeest', acacia: 'Acacia', baobab: 'Baobab', meerkat: 'Meerkat', cheetah: 'Cheetah', oxpecker: 'Oxpecker', dung_beetle: 'Dung Beetle', hyena: 'Hyena', lion: 'Lion', crocodile: 'Crocodile', waterhole: 'Waterhole', elephant: 'Elephant', kopje: 'Kopje' };
     const cells = Object.keys(DRAW).map(id => `<figure><div class="c"><svg viewBox="0 0 48 48">${art(id)}</svg></div><figcaption>${names[id]}</figcaption></figure>`).join('');
     fs.writeFileSync(process.argv[i + 1], `<style>:root{--shell:#F2B85C;--pearl:#B7AAF5}body{background:#0F2C38;color:#9DBEC6;font:13px system-ui;margin:0;padding:16px}.g{display:grid;grid-template-columns:repeat(6,80px);gap:10px}.c{width:80px;height:80px;border-radius:14px;background:#2a4757;display:grid;place-items:center}.c svg{width:58px;height:58px}figure{margin:0;text-align:center}.cur svg{width:40px;height:40px}.sm svg{width:11px;height:11px}</style><svg width="0" height="0" style="position:absolute"><defs>${CURRENCY}</defs></svg><div class="g">${cells}</div><p class="cur"><svg><use href="#i-shell"/></svg><svg><use href="#i-pearl"/></svg><svg style="--shell:#A86B2D"><use href="#i-seed"/></svg><svg style="--pearl:#D98C10"><use href="#i-amber"/></svg> <span class="sm"><svg><use href="#i-shell"/></svg>3 <svg><use href="#i-pearl"/></svg>2</span></p>`);
   }
