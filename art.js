@@ -49,6 +49,7 @@ const PAL = {
   // serengeti
   zebra: { body: '#FFFFFF', stripe: '#2A2A2E', muzzle: '#4A4A50', mane: '#2A2A2E' },
   red_oat_grass: { blade: '#C9A24A', dark: '#9A6E2A', head: '#B8553A', light: '#E7C978' },
+  star_grass: { blade: '#6FB84A', dark: '#3F7E34', spike: '#A7D45E', light: '#CDEB8A' },
   gazelle: { body: '#D49A5A', light: '#FBF1E0', stripe: '#3A2A1E', horn: '#4A3A2A', nose: '#2A2220' },
   giraffe: { body: '#F2C86A', patch: '#B86A2E', light: '#FBE6B4', horn: '#7A4E2A' },
   wildebeest: { body: '#6E6A6A', dark: '#3E3A3A', horn: '#D8CFC0', beard: '#2A2626', nose: '#1E1A1A' },
@@ -479,6 +480,17 @@ const DRAW = {
     for (const [x, y, r] of [[5, 18, -30], [14, 8, -12], [24, 4.5, 0], [34, 8, 12], [43, 18, 30]]) p.shape(ell(x, y, 2.2, 4.6, r), 'head');
     p.limbs(['M20 44 C19 38 17 34 13 30', 'M28 44 C29 38 31 34 35 30'], 'light', 1.6);
   },
+  star_grass(p) { // Star Grass: a low green tuft with finger-like seed spikes spread in stars
+    p.shape('M6 46 C9 39 39 39 42 46Z', 'dark');
+    p.limbs(['M10 44 C9 38 6 34 3 32', 'M16 44 C15 36 13 30 11 26', 'M32 44 C33 36 35 30 37 26', 'M38 44 C39 38 42 34 45 32'], 'blade', 2.4);
+    p.limbs(['M20 44 C19 34 16 24 14 16', 'M28 44 C29 34 32 24 34 16', 'M24 44 C24 34 24 22 24 12'], 'dark', 1.6);
+    for (const [x, y, k] of [[14, 15, 4], [34, 15, 4], [24, 10, 5]]) {
+      const arms = [...Array(k)].map((_, n) => { const a = (-90 + (n - (k - 1) / 2) * (200 / k)) * Math.PI / 180, l = 8; return `M${x} ${y} L${(x + l * Math.cos(a)).toFixed(1)} ${(y + l * Math.sin(a)).toFixed(1)}`; });
+      p.limbs(arms, 'spike', 2.2);
+      p.dots([[x, y, 1.6]], 'light', { outline: true });
+    }
+    p.limbs(['M20 44 C19 40 17 37 14 35', 'M28 44 C29 40 31 37 34 35'], 'light', 1.4);
+  },
   gazelle(p) { // Thomson's Gazelle: tan face, white eye rings, ringed horns
     p.limbs(['M20 10 C18 5 17 2 18.5 0.8', 'M28 10 C30 5 31 2 29.5 0.8'], 'horn', 2.2);
     p.detail('M17.8 5 L19.6 4.6 M17.6 7.4 L19.6 7 M30.2 5 L28.4 4.6 M30.4 7.4 L28.4 7', 'light');
@@ -690,7 +702,7 @@ if (require.main === module) {
   if (i < 0) { process.stdout.write(symbols()); }
   else {
     const fs = require('fs');
-    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', chipmunk: 'Chipmunk', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache', zebra: 'Zebra', red_oat_grass: 'Red Oat Grass', gazelle: 'Gazelle', giraffe: 'Giraffe', wildebeest: 'Wildebeest', acacia: 'Acacia', baobab: 'Baobab', meerkat: 'Meerkat', cheetah: 'Cheetah', oxpecker: 'Oxpecker', dung_beetle: 'Dung Beetle', hyena: 'Hyena', lion: 'Lion', crocodile: 'Crocodile', waterhole: 'Waterhole', elephant: 'Elephant', kopje: 'Kopje' };
+    const names = { scallop: 'Conch', oyster: 'Oyster', kelp: 'Sargassum', crab: 'Hermit Crab', shrimp: 'Giant Clam', anemone: 'Anemone', clown: 'Clownfish', jelly: 'Seagrass', coral: 'Staghorn', urn: 'Shipwreck', puffer: 'Pufferfish', star: 'Sea Star', otter: 'Mantis Shrimp', octo: 'Octopus', whale: 'Manta Ray', dolphin: 'Dolphin', turtle: 'Sea Turtle', rock: 'Rock', oak: 'Oak', maple: 'Maple', beech: 'Beech', birch: 'Birch', seedling: 'Seedling', trillium: 'Trillium', laurel: 'Laurel', hazel: 'Witch Hazel', ginger: 'Wild Ginger', squirrel: 'Squirrel', chipmunk: 'Chipmunk', bear: 'Bear', deer: 'Deer', frog: 'Wood Frog', bee: 'Bumblebee', thrush: 'Wood Thrush', beaver: 'Beaver', stash: 'Stash', log: 'Log', cache: 'Cache', zebra: 'Zebra', red_oat_grass: 'Red Oat Grass', star_grass: 'Star Grass', gazelle: 'Gazelle', giraffe: 'Giraffe', wildebeest: 'Wildebeest', acacia: 'Acacia', baobab: 'Baobab', meerkat: 'Meerkat', cheetah: 'Cheetah', oxpecker: 'Oxpecker', dung_beetle: 'Dung Beetle', hyena: 'Hyena', lion: 'Lion', crocodile: 'Crocodile', waterhole: 'Waterhole', elephant: 'Elephant', kopje: 'Kopje' };
     const cells = Object.keys(DRAW).map(id => `<figure><div class="c"><svg viewBox="0 0 48 48">${art(id)}</svg></div><figcaption>${names[id]}</figcaption></figure>`).join('');
     fs.writeFileSync(process.argv[i + 1], `<style>:root{--shell:#F2B85C;--pearl:#B7AAF5}body{background:#0F2C38;color:#9DBEC6;font:13px system-ui;margin:0;padding:16px}.g{display:grid;grid-template-columns:repeat(6,80px);gap:10px}.c{width:80px;height:80px;border-radius:14px;background:#2a4757;display:grid;place-items:center}.c svg{width:58px;height:58px}figure{margin:0;text-align:center}.cur svg{width:40px;height:40px}.sm svg{width:11px;height:11px}</style><svg width="0" height="0" style="position:absolute"><defs>${CURRENCY}</defs></svg><div class="g">${cells}</div><p class="cur"><svg><use href="#i-shell"/></svg><svg><use href="#i-pearl"/></svg><svg style="--shell:#A86B2D"><use href="#i-seed"/></svg><svg style="--pearl:#D98C10"><use href="#i-amber"/></svg> <span class="sm"><svg><use href="#i-shell"/></svg>3 <svg><use href="#i-pearl"/></svg>2</span></p>`);
   }

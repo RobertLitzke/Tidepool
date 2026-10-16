@@ -1,7 +1,7 @@
 // Serengeti: an East African savanna. Two ideas. Seasons: rounds alternate Wet (odd) and Dry (even);
 // every Wet round starts with the rain turning all flora Lush, Dry rounds don't. Grazing: Gazelles and
 // Wildebeest graze touching Lush flora for amber and leave it Grazed until something restores it
-// (the next rain, a Waterhole, a Dung Beetle, an Oxpecker, a Crocodile in the wet, an Elephant).
+// (the next rain, a Waterhole, a Dung Beetle, an Elephant).
 // Tile ids are the spec's (zebra, red_oat_grass, ...); flora carry `grazed` (false = Lush).
 (function (root) {
   const SEASONS = {
@@ -24,7 +24,7 @@
       shopSize: 3,
       rerollBase: 2,
       rerollStep: 2,
-      disabled: [],
+      disabled: ['crocodile'], // v22: Crocodile parked (kept for saved runs)
       // Kopjes (rock outcrops) rest on the bottom, like the reef's rocks.
       rockLayouts: [
         { cells: [12, 13, 14, 15], weight: 2 },
@@ -41,7 +41,7 @@
       sellRate: 0.5,
       checkpoints: { 4: 12, 8: 110 },   // goals fall on Dry rounds
       // Amber held at the end for 1, 2, 3 stars. The spec said 500/1000/1500; calibrated like the other ecosystems so the planner bot gets 0/1/2/3 about 30/35/25/10%.
-      stars: [950, 1800, 2850],
+      stars: [710, 1200, 1760],
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
@@ -59,7 +59,7 @@
       // (dryWilt), and a Waterhole waters only the three cells above it (waterUp).
       // Grazing tuning knobs: how many Grazed flora a restore can turn Lush (per level of the restoring tile),
       // and whether Zebras graze. Infinity = every touching flora, the spec's rule.
-      graze: { waterhole: Infinity, dung: Infinity, croc: Infinity, zebra: false, waterUp: true, dryWilt: true, herdRain: false },
+      graze: { waterhole: Infinity, dung: Infinity, zebra: false, waterUp: true, dryWilt: true, herdRain: false },
     };
 
     const KINDS = {
@@ -88,6 +88,7 @@
       const f = state.grid[j], out = { s: 0, p: 0 };
       f.grazed = true;
       if (f.kind === 'acacia') out.s += 2 * f.lvl;
+      if (f.kind === 'star_grass') out.p += 2 * f.lvl;
       if (has(state, 'ruminant')) out.p += 2 * f.lvl;
       return out;
     }
@@ -117,6 +118,9 @@
       red_oat_grass: { name: 'Red Oat Grass', emoji: '🌾', cost: 2, rarity: 'common', tag: 'flora', stack: true, flat: true,
         text: (L) => `+${L} seed and +${L} amber.`,
         fire: (c, L) => ({ s: L, p: L }) },
+      star_grass: { name: 'Star Grass', emoji: '🌱', cost: 3, rarity: 'common', tag: 'flora',
+        text: (L) => `+${L} amber. Sweet: a grazer that grazes it makes +${2 * L} amber more.`,
+        fire: (c, L) => ({ s: 0, p: L }) },
 
       // ---------- Grazers ----------
       gazelle: { name: 'Gazelle', emoji: '🦌', cost: 3, rarity: 'common', tag: 'grazer',
@@ -166,14 +170,8 @@
         boosts: (c) => { for (let j = c.i + 1; j < c.grid.length; j++) if (c.grid[j]) return [j]; return []; },
         fire: (c, L) => { c.state._mult = Math.max(c.state._mult, 1 + L); return { s: 0, p: 0 }; } },
       oxpecker: { name: 'Oxpecker', emoji: '🐦', cost: 5, rarity: 'uncommon', tag: 'predator', echo: true,
-        text: (L) => `Restores 1 Grazed flora touching the tile above it to Lush, then fires that tile again${L > 1 ? `, ${L} times` : ''}.`,
-        targets: (i) => [i - CONFIG.cols].filter(j => j >= 0),
-        beforeEcho: (state, i) => {
-          const up = i - CONFIG.cols;
-          if (up < 0 || !state.grid[up]) return {};
-          const j = neighbors(up).filter(k => grazed(state.grid[k])).sort((a, b) => state.grid[b].lvl - state.grid[a].lvl || a - b)[0];
-          return j == null ? {} : { p: restore(state, j) };
-        } },
+        text: (L) => `If the tile above it is a grazer, fires that grazer again${L > 1 ? `, ${L} times` : ''}.`,
+        targets: (i, state) => [i - CONFIG.cols].filter(j => j >= 0 && isGrazer(state.grid[j])) },
       dung_beetle: { name: 'Dung Beetle', emoji: '🪲', cost: 4, rarity: 'rare', tag: 'predator',
         text: (L) => `Restores all touching Grazed flora to Lush for +${2 * L} amber each, then trades up to ${6 * L} seeds for 2 amber each.`,
         reads: (c) => c.nb.filter(j => grazed(c.grid[j])),
@@ -200,7 +198,7 @@
           if (col < CONFIG.cols - 1) out.push(i + 1);
           return out;
         },
-        beforeEcho: (state, i, t) => wet(state) ? { p: restoreSome(state, neighbors(i), CONFIG.graze.croc * t.lvl) } : {} },
+        beforeEcho: (state, i, t) => wet(state) ? { p: restoreSome(state, neighbors(i), Infinity) } : {} },
 
       // ---------- Object ----------
       waterhole: { name: 'Waterhole', emoji: '💧', cost: 3, rarity: 'uncommon', tag: 'object',
@@ -287,13 +285,13 @@
         onBuy: (state) => { if (wet(state)) E.addOffer(state); } },
       flood: { name: 'Flash Flood', emoji: '🌊', base: 4, text: 'Dry turns bring 3 seeds, like Wet turns.', income: (state) => dry(state) ? 2 : 0 },
       taproot: { name: 'Deep Taproot', emoji: '🌱', base: 5, text: 'Flora at ★3 or more turn Lush at the start of every turn, Dry ones too.' },
-      sprouts: { name: 'Fresh Sprouts', emoji: '🌿', base: 5, text: `Each time a Waterhole, Dung Beetle, Oxpecker, Crocodile or Elephant turns Grazed flora Lush, +${CONFIG.sproutAmber} amber.` },
+      sprouts: { name: 'Fresh Sprouts', emoji: '🌿', base: 5, text: `Each time a Waterhole, Dung Beetle or Elephant turns Grazed flora Lush, +${CONFIG.sproutAmber} amber.` },
       oasis: { name: 'Oasis Mirage', emoji: '🏝️', base: 6, text: 'Waterholes and Baobabs fire twice in Dry turns.' },
       ruminant: { name: 'Ruminant Herd', emoji: '🐄', base: 6, text: 'Grazing a Lush flora makes +2 amber more per level of that flora.' },
       vulture: { name: 'Vulture Kettle', emoji: '🦅', base: 6, text: `After the savanna fires, +${CONFIG.vultureAmber} amber for each Grazed flora.` },
       termite: { name: 'Termite Symbiosis', emoji: '🐜', base: 7, text: 'Flora and objects cost 1 seed less (minimum 1), and buying or leveling one makes +2 amber.',
         costDelta: (kind) => ['flora', 'object'].includes(TILES[kind].tag) ? -1 : 0 },
-      echo: { name: 'Savanna Echo', emoji: '🔔', base: 7, text: 'Oxpeckers and Crocodiles echo one extra time.', echoExtra: 1 },
+      echo: { name: 'Savanna Echo', emoji: '🔔', base: 7, text: 'Oxpeckers echo one extra time.', echoExtra: 1 },
       rains: { name: 'Second Rains', emoji: '🌦️', base: 8, text: 'After each Wet turn fires, the first Grazed flora turns Lush and the grazers touching it fire again.' },
     };
 

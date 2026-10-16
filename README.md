@@ -76,5 +76,9 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
   Share of flora Grazed at the start of Dry turns (planner, 60 runs, seeds 50000+): v20 27%; Waterhole three cells only 31%; no Waterholes at all 33% (so Waterholes weren't the main cause: grazers just touch few flora); Zebras also grazing 31%; the rain skipping flora beside a grazer 39%; Dry turns starting Grazed + three-cell Waterhole 66% (chosen).
   Stars 950/1700/2700 → 950/1800/2850. Planner 1000 runs: seeds 40000+ avg 1605, 0/1/2/3 = 29.7/35.5/24.7/10.1% (at 2950); seeds 80000+ 96.8% finish, avg 1524, 30.8/37.4/23.5/8.3%. Greedy (40000+) 91% finish, avg 750. Random 25% finish.
 
+- v22 (2026-10-16, Rob: more plants, one tile out to make room, at least one tile losing its Lush-restoring effect, echoes weaker since they ignored seasons and grazing): Crocodile parked (`CONFIG.disabled`, kept in `TILES` for saved runs). Oxpecker only fires the tile above it again if that tile is a grazer, and no longer restores flora. New flora Star Grass (common, 3): +L amber, and a grazer that grazes it makes +2L amber more.
+  Planner, 2000 runs, seeds 50001+, v21 → v22: finish 97.2 → 96.4%, avg 1514 → 1047, p30/p65/p90 926/1738/2741 → 698/1208/1799. In the 2000-run prototype batch, grazers' share of amber rose 21 → 37% and flora kinds on the final board 2.39 → 3.17.
+  Stars 950/1800/2850 → 710/1200/1760: planner 0/1/2/3 = 30.9/33.5/24.8/10.9% (seeds 50001+; 48.4/42.5/8.6/0.6% at the old cutoffs on seeds 1+). Greedy 500 runs: 84% finish, p10/p50/p90 302/555/1077. Random 21% finish.
+
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

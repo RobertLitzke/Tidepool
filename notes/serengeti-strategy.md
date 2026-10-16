@@ -1,5 +1,7 @@
 # Serengeti: what the planner bot builds (v21)
 
+> Written for v21. v22 parked the Crocodile and limited the Oxpecker to grazers, so the echo chains below no longer exist as described.
+
 600 planner runs, seeds 40000+, after v21 (Dry turns start Grazed, Waterhole waters the 3 cells above). Average 1576 amber; top quarter 2124+ (avg 2981), bottom quarter 815 or less (avg 532). Raw output and scripts: `notes/serengeti-sims/` in the project's shared folder (`node run.js 600 40000 4 && node an.js`).
 Echo and multiplier tiles (Cheetah, Oxpecker, Crocodile) earn nothing themselves: their amber is credited to the tile they fire again.
 

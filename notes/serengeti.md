@@ -12,13 +12,13 @@ Reef and forest give byte-identical bot runs on the same seeds before and after.
 
 ## Rules
 - Odd turns Wet: start of turn, all flora Lush; +3 seeds at turn end. Even turns Dry: no reset; +1 seed. Goals (12 amber at turn 4, 110 at turn 8) fall on Dry turns.
-- Grazed flora still fire normally. Grazing: Gazelle (1 touching Lush flora, highest level then reading order), Wildebeest (all). Restoring: Wet start, placement/level-up, Oxpecker, Dung Beetle, Crocodile (wet), Waterhole (turn end), Elephant.
+- Grazed flora still fire normally. Grazing: Gazelle (1 touching Lush flora, highest level then reading order), Wildebeest (all). Restoring: Wet start, placement/level-up, Dung Beetle, Waterhole (turn end), Elephant (v22: the Oxpecker and the Crocodile no longer do).
 - 16 tiles, 3 events, 10 Treasures exactly as in the spec table; tile ids are the spec's (`red_oat_grass`, `dung_beetle`, ...).
 
 ## Calls made where the spec was open
 - Flash Flood: Dry turns pay 3 seeds total (the same as Wet), not 1 + 3.
 - Oasis Mirage "fires twice" = the tile activates twice in a row (`repeats`), so a Cheetah only boosts the first.
-- Oxpecker restores one Grazed flora (highest level) touching the tile above it, once, then echoes L times.
+- (v20-v21) Oxpecker restores one Grazed flora (highest level) touching the tile above it, once, then echoes L times. v22: see below.
 - Great Migration: every grazer marches, Zebra and Giraffe included. Whatever a grazer steps onto takes the spot it left. Their graze is cleared again by the turn 11 rain; the +5 amber each is the payoff.
 - Brushfire: ties between rows go to the higher row.
 - Fresh Sprouts amber from mid-turn restores (Dung Beetle) is part of that tile's output, so a Cheetah multiplies it.
@@ -37,3 +37,10 @@ The bots value a Treasure only by the next turn's frozen yield, so they never bu
 - A Waterhole waters only the three touching cells in the row above it (end of turn, and at the start of Dry turns).
 - Stars 950/1800/2850. Flora Grazed at the start of Dry turns: 27% -> 66%.
 - `CONFIG.graze` keeps the other tested knobs (off): `zebra` (Zebras graze 1 Lush flora), `herdRain` (the rain skips flora beside a grazer), `dung`/`croc`/`waterhole` (max flora restored per level).
+
+## v22: more flora, weaker echoes (Rob)
+Rob wanted one more plant, one fewer tile, at least one tile losing its turn-Lush effect, and echoes toned down (they ignored the seasons and grazing themes).
+- Crocodile parked (`CONFIG.disabled`, still in `TILES` so saved runs load). It was a 9-cost rare echo of two tiles that also restored flora in the wet.
+- Oxpecker only fires the tile above it again when that tile is a grazer, and no longer restores flora. Savanna Echo now only mentions Oxpeckers.
+- Star Grass (new flora, common, cost 3): +L amber; a grazer that grazes it makes +2L amber more. Gives grazers a flora worth eating.
+- Stars 950/1800/2850 -> 710/1200/1760 (the planner's amber fell by about a third). See the README v22 entry for numbers.
