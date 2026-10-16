@@ -27,6 +27,9 @@ Baseline: average 1022 amber, 98.2% of runs finished, stars 0/1/2/3 = 28/31.5/29
   - Dropping a tile from C: Trillium −0.3% (now pulls its weight), Ginger +2.7%, Squirrel +4.5% (still weak).
   - The greedy bot gets an average of 1136 on C.
 
+## Applied in v19 (2026-10-16): retune C with a 2-seed Squirrel
+Stars are now 1115/1280/1450, so the planner gets 0/1/2/3 stars 30/34/26/10%. The Squirrel still tests weak: dropping it raises the planner's average by 4%.
+
 ## Suggested retune (C), plus stars
 - Mountain Laurel costs 5 seeds instead of 4.
 - Wild Ginger makes +3 amber per level instead of +2.

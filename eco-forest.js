@@ -42,7 +42,7 @@
       sellRate: 0.5,
       checkpoints: { 4: 40, 8: 300 },        // amber held at the end of February and June
       // Amber held at the end for 1, 2, 3 stars, calibrated like the reef: the planner bot gets 0/1/2/3 about 30/35/25/10%.
-      stars: [925, 1080, 1250],
+      stars: [1115, 1280, 1450],
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
@@ -59,7 +59,7 @@
       leafMax: 4,         // leaves an empty spot can hold
       leafSeeds: 2,       // seeds per leaf when a critter moves onto a leafy spot
       // Tile numbers, kept here so tuning variants can change them (TP.CONFIG.k).
-      k: { oak: 2, maple: 3, beech: 1, birch: 1, trillium: 2, laurel: 1, hazelSeeds: 2, hazel: 1, ginger: 2, squirrel: 1, bear: 1, deer: 4, chipmunk: 2 },
+      k: { oak: 2, maple: 3, beech: 1, birch: 1, trillium: 3, laurel: 1, hazelSeeds: 2, hazel: 2, ginger: 3, squirrel: 1, bear: 1, deer: 4, chipmunk: 2 },
     };
 
     const KINDS = {
@@ -106,7 +106,7 @@
       trillium: { name: 'Trillium', emoji: '🌷', cost: 2, rarity: 'common', tag: 'understory', peak: 'spring',
         text: (L) => `+${K.trillium * L} amber.`,
         fire: (c, L) => ({ s: 0, p: K.trillium * L }) },
-      laurel: { name: 'Mountain Laurel', emoji: '🌺', cost: 4, rarity: 'uncommon', tag: 'understory', peak: 'summer',
+      laurel: { name: 'Mountain Laurel', emoji: '🌺', cost: 5, rarity: 'uncommon', tag: 'understory', peak: 'summer',
         text: (L) => `+${K.laurel * L} amber, +1 more for each touching tree.`,
         reads: (c) => c.nb.filter(j => isTree(c.grid[j])),
         fire: (c, L) => ({ s: 0, p: K.laurel * L + count(c, isTree) }) },
@@ -118,10 +118,10 @@
         fire: (c, L) => ({ s: 0, p: K.ginger * L }) },
 
       // ---------- Critters ----------
-      squirrel: { name: 'Gray Squirrel', emoji: '🐿️', cost: 3, rarity: 'common', tag: 'critter', peak: 'fall',
-        text: (L) => `+${K.squirrel * L} seed for each touching tree.`,
+      squirrel: { name: 'Gray Squirrel', emoji: '🐿️', cost: 2, rarity: 'common', tag: 'critter', peak: 'fall',
+        text: (L) => `+${K.squirrel * L} seed, +${K.squirrel * L} more for each touching tree.`,
         reads: (c) => c.nb.filter(j => isTree(c.grid[j])),
-        fire: (c, L) => ({ s: K.squirrel * L * count(c, isTree), p: 0 }) },
+        fire: (c, L) => ({ s: K.squirrel * L * (1 + count(c, isTree)), p: 0 }) },
       chipmunk: { name: 'Chipmunk', emoji: '🐿️', cost: 2, rarity: 'common', tag: 'critter', peak: 'spring',
         text: (L) => `+${K.chipmunk * L} seeds.`,
         fire: (c, L) => ({ s: K.chipmunk * L, p: 0 }) },
