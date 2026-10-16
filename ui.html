@@ -230,10 +230,35 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .tile-head .big.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--sand)); }
 .kind.tree { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
 .kind.understory { color: var(--flower, var(--coral)); background: color-mix(in srgb, var(--flower, var(--coral)) 14%, transparent); }
-/* Serengeti: Grazed flora look cropped and straw-colored until something turns them Lush again. */
-.cell.grazed { background: color-mix(in srgb, #C9A25A 30%, var(--sand)); }
-.cell.grazed .emo { filter: saturate(.25) sepia(.45); opacity: .75; }
-.cell .stubble { position: absolute; top: 3px; right: 6px; font-size: 9px; font-weight: 700; color: color-mix(in srgb, #8A6A2A 80%, var(--ink)); }
+/* Serengeti flora: Lush ones are bright green with a green tag; Grazed ones are straw-colored stubble,
+   faded and dashed, with a brown tag, until something turns them Lush again. */
+.cell.ts-lush { background: color-mix(in srgb, #4FAE4A 34%, var(--sand)); box-shadow: inset 0 0 0 2px color-mix(in srgb, #3E9A3A 55%, transparent), inset 0 -3px 0 rgba(0,0,0,.05); }
+.cell.ts-grazed { background:
+    repeating-linear-gradient(100deg, transparent 0 7px, color-mix(in srgb, #9A7430 35%, transparent) 7px 9px) bottom / 100% 26% no-repeat,
+    color-mix(in srgb, #D9B060 42%, var(--sand));
+  box-shadow: inset 0 0 0 2px transparent; outline: 2px dashed color-mix(in srgb, #9A7430 70%, transparent); outline-offset: -4px; }
+.cell.ts-grazed .emo { filter: grayscale(.85) sepia(.5) brightness(.95); opacity: .6; transform: scale(.82) translateY(4px); }
+.cell .tstate { position: absolute; top: 4px; right: 5px; font-size: 9px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; padding: 1px 5px; border-radius: 99px; line-height: 13px; }
+.cell .tstate.lush { background: #3E9A3A; color: #fff; }
+.cell .tstate.grazed { background: #8A6424; color: #FFF3D6; }
+
+/* Seasons: the board tray, its glow and the round pill take the season's color (--season), and Wet and
+   Winter add a faint rain or snow texture. Colors match the year strip. */
+:root[data-season="fall"] { --season: #E08A2E; }
+:root[data-season="winter"] { --season: #7FA7C9; }
+:root[data-season="spring"] { --season: #E58BC6; }
+:root[data-season="summer"] { --season: #5FAE5A; }
+:root[data-season="wet"] { --season: #4C9FC4; }
+:root[data-season="dry"] { --season: #E0A63A; }
+:root[data-season] .reef { background: color-mix(in srgb, var(--season) 32%, var(--sand-edge)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--season) 35%, transparent), 0 10px 26px color-mix(in srgb, var(--season) 30%, transparent); transition: background .6s, box-shadow .6s; }
+:root[data-season="wet"] .reef { background: repeating-linear-gradient(110deg, transparent 0 11px, rgba(255,255,255,.16) 11px 13px), color-mix(in srgb, var(--season) 32%, var(--sand-edge)); }
+:root[data-season="winter"] .reef { background: radial-gradient(circle, rgba(255,255,255,.35) 1.2px, transparent 1.6px) 0 0 / 14px 14px, color-mix(in srgb, var(--season) 32%, var(--sand-edge)); }
+:root[data-season] .tide-pill { background: color-mix(in srgb, var(--season) 26%, var(--panel)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--season) 55%, transparent); }
+/* A banner over the board when the season turns. */
+.season-banner { position: absolute; left: 50%; top: 50%; z-index: 5; transform: translate(-50%, -50%); padding: 10px 18px; border-radius: 99px; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--ink); background: color-mix(in srgb, var(--season) 35%, var(--panel));
+  box-shadow: 0 0 0 3px var(--season), 0 8px 20px rgba(0,0,0,.18); pointer-events: none; animation: banner 1.9s ease-out forwards; }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -40%) scale(.9); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%); } }
 /* Forest board states: resting tiles, leaves on tiles and empty spots, tiles in season. */
 .cell.dormant .emo { opacity: .5; filter: grayscale(.6); }
 .cell .litter { position: absolute; bottom: 3px; right: 4px; font-size: 9px; letter-spacing: -3px; }
@@ -729,7 +754,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
         if (t.lvl > 1 && !(costs && i in costs)) html += `<span class="lvl">${t.lvl <= 3 ? '★'.repeat(t.lvl) : '★' + t.lvl}</span>`;
         if (def.showAge) html += `<span class="age">${t.age}</span>`;
         if (t.leaves) html += `<span class="litter" title="Leaves">${'🍂'.repeat(t.leaves)}</span>`;
-        if (ts && ts.cls === 'grazed') html += `<span class="stubble">${ts.label.toLowerCase()}</span>`;
+        if (ts) html += `<span class="tstate ${ts.cls}">${ts.label}</span>`;
       } else if (sel && sel.type === 'move' && sel.cell === i) {
         html += `<span class="emo ghost">${art(G.offers[sel.i])}</span>`;
       } else {
@@ -756,7 +781,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       el.classList.toggle('threat', threat.has(i));
       el.classList.toggle('rock', !!G.rock[i]);
       el.classList.toggle('dormant', !!t && TP.dormant(G, i));
-      el.classList.toggle('grazed', !!ts && ts.cls === 'grazed');
+      el.classList.toggle('ts-grazed', !!ts && ts.cls === 'grazed');
+      el.classList.toggle('ts-lush', !!ts && ts.cls === 'lush');
       el.classList.toggle('peak', !!t && inPeak(def) && !TP.dormant(G, i));
       el.classList.toggle('reads', !!hint && hint.reads.has(i) && !hint.boosts.has(i));
       el.classList.toggle('boosts', !!hint && hint.boosts.has(i));
@@ -843,7 +869,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const tip = rocks && open <= 1 ? `Your ${T.board} is nearly full. Tap a ${T.rock} to ${T.clear.toLowerCase()} it with ${unit('pearl')} and open a new spot.`
       : rocks && G.tide <= 2 ? `The striped ${T.rock}s are locked spots. Later you can ${T.clear.toLowerCase()} them with ${unit('pearl')} to grow your ${T.board}.`
       : CONFIG.calendar && G.tide <= 2 ? 'Every tile keeps its own calendar. Tap one to see what it does in each season, and watch the year strip above.'
-      : CONFIG.cycle && G.tide <= 2 ? `Odd ${T.round}s are Wet: the rain turns every flora Lush. Grazers eat Lush flora and leave it Grazed (faded) until something waters it.`
+      : CONFIG.cycle && G.tide <= 2 ? `Odd ${T.round}s are Wet: the rain turns every flora Lush. Grazers eat Lush flora and leave it Grazed (straw-colored) until something waters it.`
       : `Tap a tile to see what it does. Tiles fire in order, 1 to 16.`;
     el.innerHTML = `<div class="txt">${tip}</div>`;
   }
@@ -1077,6 +1103,12 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     save();
     render();
     const earned = G.lastTide.earned;
+    // The season turned: say so over the board ("🌧️ Wet season", "🍂 Fall").
+    if (TP.phased && !G.over && TP.season(G) !== TP.season(before)) {
+      const sn = ECO.seasons[TP.season(G)], b = document.createElement('div');
+      b.className = 'season-banner'; b.textContent = `${sn.emoji} ${sn.name}${CONFIG.calendar ? '' : ' season'}`;
+      $('reef').appendChild(b); setTimeout(() => b.remove(), 2000);
+    }
     if (G.grew && G.grew.tide === before.tide) G.grew.cells.forEach(j => G.grid[j] && floatAt(j, `🍂 ★${G.grid[j].lvl}`, 'm'));
     if (G.over) { endRun(before); return; }
     const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
@@ -1183,7 +1215,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       <ol>
         <li>Buy tiles with seeds and place them on the savanna. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple. Zebra and Red Oat Grass stack without limit.</li>
         <li><b>Seasons.</b> Turns alternate: odd turns are 🌧️ Wet, even turns ☀️ Dry. Each Wet turn starts with rain that turns every flora Lush, and ends with ${w(CONFIG.phaseIncome.wet, 'shell')}. Dry turns bring no rain and only ${w(CONFIG.phaseIncome.dry, 'shell')}. Some tiles do different things in each.</li>
-        <li><b>Grazing.</b> Gazelles and Wildebeest graze touching Lush flora for amber, leaving it Grazed (faded). Grazed flora still fire as normal, but can't be grazed again until something turns them Lush: the next rain, a Waterhole at the end of the turn, a Dung Beetle, an Oxpecker, a Crocodile in the wet, or an Elephant. Tiles fire in order 1 to 16, so put grazers after the tiles that want Lush flora.</li>
+        <li><b>Grazing.</b> Gazelles and Wildebeest graze touching Lush flora for amber, leaving it Grazed (straw-colored, with a brown GRAZED tag; Lush flora are green with a LUSH tag). Grazed flora still fire as normal, but can't be grazed again until something turns them Lush: the next rain, a Waterhole at the end of the turn, a Dung Beetle, an Oxpecker, a Crocodile in the wet, or an Elephant. Tiles fire in order 1 to 16, so put grazers after the tiles that want Lush flora.</li>
         <li>Amber is your score and your money. Spend it on Treasures (offered at turns ${CONFIG.charmTides.join(', ')}) and to clear kopjes for more space, but hold enough to meet the goals at turns ${Object.keys(CONFIG.checkpoints).join(' and ')} (both Dry).</li>
         <li>At turn ${CONFIG.eventRevealTide} you learn the forecast: an Endless Drought, Brushfire or Great Migration after turn ${CONFIG.eventTide}.</li>
         <li>Your score is the amber you hold after turn ${CONFIG.tides}.</li>
