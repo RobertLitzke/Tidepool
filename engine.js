@@ -271,11 +271,20 @@
     const tileCost = (state, kind) => Math.max(1, TILES[kind].cost + charmSum(state, 'costDelta', kind, state)
       + (stackPriced(kind) ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
 
+    // Rolls the shop, and rolls again (up to a cap) while every offer is the same kind, if the shop could hold more than one kind.
     function rollOffers(state) {
       const kinds = Object.keys(TILES);
+      const tags = new Set(kinds.filter(k => inShop(state, k) && CONFIG.rarityWeight(TILES[k].rarity, state.tide) > 0).map(k => TILES[k].tag));
+      for (let n = 0; n < 50; n++) {
+        rollOnce(state, kinds);
+        if (tags.size < 2 || state.offers.length < 2 || new Set(state.offers.map(k => TILES[k].tag)).size > 1) return;
+      }
+    }
+
+    function rollOnce(state, kinds) {
       const pick = (ok) => {
         const pool = kinds.filter(k => ok(k) && inShop(state, k));
-        const weights = pool.map(k => CONFIG.rarityWeight(TILES[k].rarity, state.tide));
+        const weights = pool.map(k => CONFIG.rarityWeight(TILES[k].rarity, state.tide) * ((CONFIG.kindWeight || {})[TILES[k].tag] || 1));
         let r = rand(state) * weights.reduce((a, b) => a + b, 0), k = 0;
         while (k < pool.length - 1 && r >= weights[k]) r -= weights[k++];
         return pool[k];

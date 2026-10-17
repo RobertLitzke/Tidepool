@@ -46,6 +46,7 @@
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
       rareFromTide: 3,
+      kindWeight: { flora: 1.22 },   // v24: flora share of shop draws up about 15% (29% -> 33%)
       affordableOffers: 2,
       earlyPearlTiles: ['gazelle', 'giraffe', 'red_oat_grass', 'acacia', 'baobab'],
       pearlOfferUntil: 4,
