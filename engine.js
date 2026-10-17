@@ -349,8 +349,12 @@
     }
 
     // Mover tiles: which spots can take the mover, which tiles it can move, and where to.
-    const moverSpots = (state) => state.grid.map((t, i) => !t && !state.rock[i] && moverTargets(state, i).length ? i : -1).filter(i => i >= 0);
-    const moverTargets = (state, cell) => neighbors(cell).filter(j => state.grid[j] && moverDests(state, j).length);
+    // A `direct` mover (the Elephant) needs no spot: it picks any tile, so its spot is the tile itself.
+    const direct = (kind) => !!(kind && TILES[kind] && TILES[kind].direct);
+    const moverSpots = (state, kind) => state.grid.map((t, i) =>
+      (direct(kind) ? t && moverDests(state, i).length : !t && !state.rock[i] && moverTargets(state, i).length) ? i : -1).filter(i => i >= 0);
+    const moverTargets = (state, cell, kind) => direct(kind) ? (state.grid[cell] && moverDests(state, cell).length ? [cell] : [])
+      : neighbors(cell).filter(j => state.grid[j] && moverDests(state, j).length);
     function moverDests(state, from) {
       const { cols } = CONFIG, col = from % cols, out = [];
       if (from - cols >= 0) out.push(from - cols);
@@ -360,14 +364,15 @@
       return out.filter(j => !state.rock[j]);
     }
 
-    // Buy a mover, place it on an empty cell touching tile `from`, and move that tile to `to`.
+    // Buy a mover, place it on an empty cell touching tile `from` (a direct mover: cell === from), and move that tile to `to`.
     // The mover leaves the board right away; every play is logged in state.moves for playtesting.
     function useMover(state, offerIdx, cell, from, to) {
       const kind = state.offers[offerIdx];
       if (state.over || !kind || !TILES[kind].mover) return false;
       const cost = tileCost(state, kind);
-      if (state.shells < cost || state.grid[cell] || state.rock[cell]) return false;
-      if (!neighbors(cell).includes(from) || !state.grid[from] || !moverDests(state, from).includes(to)) return false;
+      if (state.shells < cost) return false;
+      if (direct(kind) ? cell !== from : state.grid[cell] || state.rock[cell] || !neighbors(cell).includes(from)) return false;
+      if ( !state.grid[from] || !moverDests(state, from).includes(to)) return false;
       state.shells -= cost;
       const moved = state.grid[from], other = state.grid[to];
       state.grid[to] = moved; state.grid[from] = other;

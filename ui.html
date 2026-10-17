@@ -753,9 +753,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     // Mover steps: pick a spot for it, then the touching tile to move, then where that tile goes.
     // A feller (the Beaver) just needs the tile it takes.
     let moveOk = null;
-    if (offerKind && TILES[offerKind].mover) moveOk = new Set(TP.moverSpots(G));
+    if (offerKind && TILES[offerKind].mover) moveOk = new Set(TP.moverSpots(G, offerKind));
     else if (offerKind && TILES[offerKind].feller) moveOk = new Set(TP.fellTargets(G, offerKind));
-    else if (sel && sel.type === 'move' && sel.from == null) moveOk = new Set(TP.moverTargets(G, sel.cell));
+    else if (sel && sel.type === 'move' && sel.from == null) moveOk = new Set(TP.moverTargets(G, sel.cell, G.offers[sel.i]));
     const fc = !busy ? yieldOf(G) : null;
     // Hint overlay for a selected tile: what it counts, what it powers, and who counts it.
     let hint = null;
@@ -859,7 +859,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   // placing, selling, felling or clearing a rock re-enables tiles as soon as a spot opens.
   function placeable(k) {
     const def = TILES[k];
-    if (def.mover) return TP.moverSpots(G).length > 0;
+    if (def.mover) return TP.moverSpots(G, k).length > 0;
     if (def.feller) return TP.fellTargets(G, k).length > 0;
     return G.grid.some((_, i) => TP.canPlace(G, k, i));
   }
@@ -909,9 +909,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
         return;
       }
       if (def.mover) {
-        const spots = TP.moverSpots(G).length;
+        const spots = TP.moverSpots(G, k).length;
         el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}</div>` +
-          (need || (spots ? '' : `<span class="chip">No empty spot beside a tile</span>`));
+          (need || (spots ? '' : `<span class="chip">${def.direct ? 'No tile to move' : 'No empty spot beside a tile'}</span>`));
         return;
       }
       // Only prices of placements that are legal on the board right now: a new spot, and each level-up available.
@@ -978,8 +978,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
         return;
       }
       if (TILES[k].mover) {
-        if (!TP.moverSpots(G).includes(i)) { toast(`Put the ${TILES[k].name} on an empty spot beside a tile`); return; }
-        sel = { type: 'move', i: sel.i, cell: i, from: null }; buzz(5); render();
+        if (!TP.moverSpots(G, k).includes(i)) { toast(TILES[k].direct ? `Tap a tile for the ${TILES[k].name} to move` : `Put the ${TILES[k].name} on an empty spot beside a tile`); return; }
+        // A direct mover (the Elephant) picks the tile itself, so go straight to choosing where it goes.
+        sel = { type: 'move', i: sel.i, cell: i, from: TILES[k].direct ? i : null }; buzz(5); render();
         return;
       }
       if (!TP.canPlace(G, k, i)) { toast(G.grid[i] ? 'Only a twin can stack there' : 'Can’t place there'); return; }
@@ -1078,11 +1079,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const name = TILES[G.offers[sel.i]].name;
     if (sel.from == null) {
       if (i === sel.cell) { sel = { type: 'offer', i: sel.i }; render(); return; }
-      if (!TP.moverTargets(G, sel.cell).includes(i)) { toast(`The ${name} can only move a tile it touches`); return; }
+      if (!TP.moverTargets(G, sel.cell, G.offers[sel.i]).includes(i)) { toast(`The ${name} can only move a tile it touches`); return; }
       sel.from = i; buzz(5); render();
       return;
     }
-    if (i === sel.from) { sel.from = null; render(); return; }
+    if (i === sel.from) { sel = TILES[G.offers[sel.i]].direct ? { type: 'offer', i: sel.i } : { ...sel, from: null }; render(); return; }
     if (!TP.moverDests(G, sel.from).includes(i)) { toast('One space up, down, left or right'); return; }
     undo.push(TP.clone(G));
     const { from, cell } = sel, swapped = !!G.grid[i];

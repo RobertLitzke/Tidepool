@@ -88,5 +88,8 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - v24 (2026-10-17, Rob: reroll the shop when every tile is the same kind; flora about 15% more common on the Serengeti all game): `rollOffers` rolls again (up to 50 times) while all offers share one kind, unless only one kind can show up. That happened in 8% (reef), 11% (forest) and 7.6% (Serengeti) of shops before, 0% now. Serengeti `CONFIG.kindWeight` = {flora: 1.22}, which lifts flora's share of shop draws from about 29% to 33-35%. Stars unchanged.
   Planner, 2000 runs, seeds 5001+, v23 → v24 (reef and forest only; Rob said to skip the planner after that): reef avg 912 → 886, 0/1/2/3 30.4/37/21.4/11.2 → 30.6/37.9/22.1/9.4%; forest 1205 → 1212, 31.1/34.8/25.2/8.9 → 29.3/34.4/27.3/9.1%. Greedy 100 runs finish: reef 92%, forest 100%, Serengeti 74%.
 
+- v25 (2026-10-17, Rob: let the Elephant target any tile instead of needing an empty spot beside one): the Elephant (`direct: true`) now picks any tile and moves it one space, swapping with a filled spot, same as before. The Dolphin keeps the old empty-spot rule. Engine: `moverSpots`/`moverTargets` take the mover kind; `useMover` for a direct mover expects `cell === from`.
+  Serengeti greedy, 300 runs, same seeds, before → after: Elephant plays per run 0.31 → 0.68 (in 25% → 40% of runs), finish 76% → 76%, avg final 582 → 600. Small enough to leave stars as they are; planner skipped.
+
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

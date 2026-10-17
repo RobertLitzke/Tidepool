@@ -210,8 +210,8 @@
         fire: (c, L) => wet(c.state) ? { s: L * Math.min(6, Math.floor(c.state.shells / 4)), p: 0 } : { s: 0, p: L * count(c, isGrazer) } },
 
       // ---------- Mover ----------
-      elephant: { name: 'Elephant', emoji: '🐘', cost: 7, rarity: 'rare', tag: 'mover', mover: true, afterFirstGoal: true,
-        text: () => 'Place it beside a tile, then move that tile one space (a filled spot swaps). Flora touching where it lands turn Lush. Walks on after.',
+      elephant: { name: 'Elephant', emoji: '🐘', cost: 7, rarity: 'rare', tag: 'mover', mover: true, direct: true, afterFirstGoal: true,
+        text: () => 'Pick any tile and move it one space (a filled spot swaps). Flora touching where it lands turn Lush. Walks on after.',
         onMove: (state, to) => { const p = restoreAll(state, neighbors(to)); state.pearls += p; state.earned += p; } },
     };
 

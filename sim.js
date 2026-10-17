@@ -95,7 +95,7 @@ function buyLoop(state, value, shellW, opts = {}) {
         return;
       }
       if (TILES[k].mover) {
-        for (const cell of TP.moverSpots(state)) for (const from of TP.moverTargets(state, cell)) for (const to of TP.moverDests(state, from)) {
+        for (const cell of TP.moverSpots(state, k)) for (const from of TP.moverTargets(state, cell, k)) for (const to of TP.moverDests(state, from)) {
           const c = TP.clone(state);
           if (!TP.useMover(c, oi, cell, from, to)) continue;
           const gain = value(c) - base - shellW * TP.tileCost(state, k);
@@ -168,7 +168,7 @@ const bots = {
         }
         if (TILES[k].mover) {
           // Try every spot, touching tile and direction; the mover leaves, so only the move matters.
-          for (const cell of TP.moverSpots(state)) for (const from of TP.moverTargets(state, cell)) for (const to of TP.moverDests(state, from)) {
+          for (const cell of TP.moverSpots(state, k)) for (const from of TP.moverTargets(state, cell, k)) for (const to of TP.moverDests(state, from)) {
             const c = TP.clone(state);
             if (!TP.useMover(c, oi, cell, from, to)) continue;
             const gain = score(tideYield(c)) - base - shellW * TP.tileCost(state, k);
