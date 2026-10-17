@@ -1,4 +1,5 @@
 // Bot simulator for balance tuning. Usage: node sim.js [runs=500] [bot=random|greedy|planner|all]
+// MODS=noInvasive,noEvent starts every run with those modifiers on (engine.js MODIFIERS).
 // Skill ladder: random (no plan) < greedy (one-tide lookahead, rerolls, charms) < planner (plays each buy out to the end).
 const TP = require('./engine.js').forEco(process.env.ECO || 'reef');
 const { CONFIG, TILES } = TP;
@@ -222,7 +223,7 @@ bots.planner = function (state) {
 };
 
 function play(botName, seed) {
-  const state = TP.newGame(seed);
+  const state = TP.newGame(seed, (process.env.MODS || '').split(',').filter(Boolean));
   const picks = {}, pearlsBy = {};
   while (!state.over) {
     // Picks = new levels of each kind on the reef (moves and swaps don't count), plus mover plays.

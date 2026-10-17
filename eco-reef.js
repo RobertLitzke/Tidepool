@@ -35,7 +35,7 @@
       // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
       checkpoints: { 4: 12, 8: 110 },
       // Pearls held at the end for 1, 2, 3 stars. The planner bot gets 0/1/2/3 stars about 20/39/25/16% of runs (fails count as 0).
-      stars: [500, 1000, 1500],
+      stars: [550, 1050, 1600],
       // Shop weights by rarity; rare weight ramps up as tides pass.
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
@@ -179,7 +179,14 @@
       riptide: { name: 'Riptide', emoji: '🌀', base: 4, text: 'Your first New tiles each tide is free.', freeRerolls: 1 },
     };
 
-    return { CONFIG, KINDS, TILES, EVENTS, CHARMS };
+    // Invasives (v23, notes/predator.md): one arrives at tide 5 and bites tiles of the kind it eats.
+    const INVASIVES = {
+      lionfish: { name: 'Lionfish', emoji: '🦁', eats: 'critter', verb: 'eats', blurb: 'The classic reef invader, hunting small reef animals.' },
+      urchin: { name: 'Sea Urchin', emoji: '🟣', eats: 'plant', verb: 'grazes', blurb: 'Urchins graze seaweed and seagrass down to bare rock.' },
+      drill: { name: 'Drill Snail', emoji: '🐌', eats: 'shellfish', verb: 'drills', blurb: 'Oyster drills bore through shells.' },
+    };
+
+    return { CONFIG, KINDS, TILES, EVENTS, CHARMS, INVASIVES };
   }
 
   const eco = {

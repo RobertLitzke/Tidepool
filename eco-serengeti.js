@@ -41,7 +41,7 @@
       sellRate: 0.5,
       checkpoints: { 4: 12, 8: 110 },   // goals fall on Dry rounds
       // Amber held at the end for 1, 2, 3 stars. The spec said 500/1000/1500; calibrated like the other ecosystems so the planner bot gets 0/1/2/3 about 30/35/25/10%.
-      stars: [710, 1200, 1760],
+      stars: [650, 1100, 1650],
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
@@ -335,7 +335,13 @@
       tileState: (state, i) => grazed(state.grid[i]) ? { cls: 'grazed', label: 'Grazed' } : isFlora(state.grid[i]) ? { cls: 'lush', label: 'Lush' } : null,
     };
 
-    return { CONFIG, KINDS, TILES, EVENTS, CHARMS, hooks };
+    // Invasives (v23): one arrives at turn 5 and bites tiles of the kind it eats (see engine.js).
+    const INVASIVES = {
+      pear: { name: 'Prickly Pear', emoji: '🌵', eats: 'flora', verb: 'crowds out', blurb: 'A cactus from the Americas that spreads across the plains and crowds out the grass.' },
+      dogs: { name: 'Stray Dogs', emoji: '🐶', eats: 'grazer', verb: 'chases off', blurb: 'Dogs from nearby villages run down the herds and spread disease.' },
+    };
+
+    return { CONFIG, KINDS, TILES, EVENTS, CHARMS, INVASIVES, hooks };
   }
 
   const eco = {

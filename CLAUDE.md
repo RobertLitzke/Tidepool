@@ -11,6 +11,8 @@ Ecosystems (v17): the app opens on a picker. `reef` is the game above. `forest` 
 
 `serengeti` (v20, Rob's spec in `notes/serengeti.md`): turns alternate Wet (odd) and Dry (even); grazers graze Lush flora and leave it Grazed (`tile.grazed`) until something restores it. Seeds and amber, bonuses called Treasures, kopjes for rocks. Phases are shared engine code: `CONFIG.calendar` (forest months) or `CONFIG.cycle` (`['wet','dry']`), `TP.phase(state, tide)`, `state.phaseAt` overrides, `CONFIG.phaseIncome`. Reuse these for any new ecosystem with alternating turns. v22 parked the Crocodile (`CONFIG.disabled`) and limited Oxpecker echoes to grazers: Rob wants echoes to stay weak next to the seasons and grazing themes.
 
+Modifiers and invasives (v23): new runs start on a modifiers sheet (`showSetup` in ui.html, `MODIFIERS` in engine.js: `noEvent`, `noInvasive`); `state.mods` lists them and `rated(state)` is false when any is on (no stars, no best). Each eco module may export `INVASIVES` ({name, emoji, eats: kind tag, verb, blurb}); the engine's walk-and-bite rule (`invasiveTurn`, `invasivePlan`) runs them from round `CONFIG.invasiveTide` (default `eventRevealTide`). Bots: `MODS=noInvasive node sim.js ...` (also tune.js).
+
 Play: https://robertlitzke.github.io/Tidepool/ . Repo: github.com/RobertLitzke/Tidepool.
 
 ## File map
@@ -30,7 +32,7 @@ Play: https://robertlitzke.github.io/Tidepool/ . Repo: github.com/RobertLitzke/T
 | `.github/workflows/pages.yml` | On push to main: `node sim.js 100 greedy` as a smoke test, `sh build.sh`, deploy `dist/` to Pages. |
 
 ## Rules anchors (grep the names; reef data is in eco-reef.js, the flow in engine.js)
-- `CONFIG`: board size, tides, income, `startKinds`, `disabled` (parked tiles: `clown`, `anemone`), goals/checkpoints, `stars` (currently 500/1000/1500), price steps (`stackPriceEvery`, `levelUpStep`, `charmPriceStep`), event settings, `rockLayouts`.
+- `CONFIG`: board size, tides, income, `startKinds`, `disabled` (parked tiles: `clown`, `anemone`), goals/checkpoints, `stars` (currently 550/1050/1600), price steps (`stackPriceEvery`, `levelUpStep`, `charmPriceStep`), event settings, `rockLayouts`.
 - `KINDS` and `kindNames(tag)` (~L55-65): kind labels; rules text names kind members through `kindNames`.
 - `TILES` (~L70): every tile: `name`, `emoji`, `cost`, `rarity`, `tag` (kind), `text(L)`, `fire(c, L)` returning `{s, p}`, optional `reads`, `stack`, `flat`, `afterFirstGoal`.
 - `EVENTS` (~L141), `CHARMS` (~L151).

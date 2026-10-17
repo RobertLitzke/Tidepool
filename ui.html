@@ -222,6 +222,17 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .cell .threat-mark { position: absolute; top: 2px; left: 4px; font-size: 12px; }
 .charms .forecast { font-family: var(--font-display); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
 .forecast-big { font-size: 48px; text-align: center; }
+/* Invasive: a chip on its cell, a dashed outline on its next bite, a faded copy on the tile it heads for */
+.cell .inv-mark { position: absolute; top: 50%; left: 2px; transform: translateY(-60%); font-size: 18px; z-index: 2; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.cell .inv-goal { position: absolute; top: 50%; left: 3px; transform: translateY(-60%); font-size: 13px; opacity: .5; }
+.cell.bite { outline: 3px dotted var(--bad); outline-offset: -5px; }
+.mod-list { display: grid; gap: 8px; max-height: 42svh; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+.mod { display: grid; grid-template-columns: 30px 1fr 26px; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 16px; background: var(--sand); text-align: left; cursor: pointer; }
+.mod .e { font-size: 22px; }
+.mod b { font-family: var(--font-display); font-weight: 600; font-size: 16px; display: block; }
+.mod span { font-size: 13px; color: var(--ink-soft); line-height: 1.35; }
+.mod input { width: 22px; height: 22px; accent-color: var(--coral); }
+.mod:has(input:checked) { box-shadow: inset 0 0 0 2px var(--coral); }
 .cell.k-plant, .cell.k-tree, .cell.k-flora { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
 .cell.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--sand)); }
 .card.k-tree { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); }
@@ -533,7 +544,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   const rounds = (n) => `${n} ${T.round}${n === 1 ? '' : 's'}`;
   function useEco(id) {
     TP = TPX.forEco(id);
-    ({ CONFIG, TILES, CHARMS, KINDS, EVENTS } = TP);
+    ({ CONFIG, TILES, CHARMS, KINDS, EVENTS, INVASIVES } = TP);
     ECO = TP.eco; T = ECO.terms;
     ({ words: WORDS, icon: ICON } = REALM[ECO.realm]);
     document.documentElement.dataset.eco = id;
@@ -560,13 +571,13 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   const fx = (txt) => txt.replace(/([+-]?\d+) (shell|pearl|seed|amber)s?\b/g, (_, n, r) => amt(n, ROLE[r]));
   const yieldTxt = (y) => (y.p || y.s) ? [y.p ? amt('+' + y.p, 'pearl') : '', y.s ? amt('+' + y.s, 'shell') : ''].filter(Boolean).join(' ') : '';
 
-  let G, sel = null, undo = [], busy = false, skip = false, dealt = true;
+  let G, sel = null, undo = [], busy = false, skip = false, dealt = true, fresh = false;
 
   const todaySeed = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 
   function start(data, quiet) {
     G = (data && data.G) || store.get('run');
-    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows || (G.eco || 'reef') !== ECO.id || G.grid.some(t => t && !TILES[t.kind]) || G.offers.some(k => k && !TILES[k])) G = TP.newGame(Math.floor(Math.random() * 1e9));
+    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows || (G.eco || 'reef') !== ECO.id || G.grid.some(t => t && !TILES[t.kind]) || G.offers.some(k => k && !TILES[k])) { G = TP.newGame(Math.floor(Math.random() * 1e9)); fresh = true; }
     sel = null; undo = []; busy = false;
     buildReef();
     render();
@@ -576,7 +587,14 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   function prompts() {
     if (G.over) endRun();
     else if (!store.get('seenHelp')) showHelp();
+    else if (fresh) showSetup(G.seed);
     else if (eventPending() && !G.forecastSeen) showForecast(true);
+    else nextSheet();
+  }
+  // After the forecast: a newly arrived invasive, then the bonus market.
+  const invNew = () => !G.over && G.inv && !G.invSeen;
+  function nextSheet() {
+    if (invNew()) showInvasive(true);
     else if (G.charmOffers.length && G.charmSeen !== G.tide) showCharms();
   }
 
@@ -610,8 +628,32 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   // The run's forecast event is shown from CONFIG.eventRevealTide until it strikes.
   const eventPending = () => !G.over && TP.eventKnown(G) && !G.struck;
 
-  function newRun(seed, daily) {
-    G = TP.newGame(seed);
+  // New runs start on the modifiers sheet; the last picks are remembered per ecosystem.
+  function newRun(seed, daily) { showSetup(seed, daily); }
+
+  function showSetup(seed, daily) {
+    fresh = false;
+    const on = new Set((store.get('mods') || []).filter(id => TP.MODIFIERS[id]));
+    const rows = Object.entries(TP.MODIFIERS).map(([id, m]) => `<label class="mod"><span class="e">${m.emoji}</span><span><b>${m.name}</b>${m.text()}</span><input type="checkbox" data-mod="${id}" ${on.has(id) ? 'checked' : ''}></label>`).join('');
+    $('overlay').innerHTML = `<div class="sheet-bg" id="setupBg"><div class="sheet" role="dialog" aria-label="New run">
+      <h2>${daily ? 'Daily' : 'New'} ${T.board}</h2>
+      <p>Modifiers change this run. Leave them all off for the standard game.</p>
+      <div class="mod-list">${rows}</div>
+      <p id="setupNote"></p>
+      <div class="row"><button class="btn" id="setupBack">Back</button><button class="btn go" id="setupGo">Start</button></div>
+    </div></div>`;
+    const picked = () => [...$('overlay').querySelectorAll('[data-mod]')].filter(b => b.checked).map(b => b.dataset.mod);
+    const note = () => { $('setupNote').textContent = picked().length ? 'With a modifier on, this run gets no star rating and doesn\'t count for your best.' : 'Standard game: this run earns stars.'; };
+    $('overlay').querySelectorAll('[data-mod]').forEach(b => b.addEventListener('change', note));
+    note();
+    $('setupGo').addEventListener('click', () => { const mods = picked(); store.set('mods', mods); beginRun(seed, daily, mods); });
+    const back = () => { closeOverlay(); if (G.over) endRun(); };
+    $('setupBack').addEventListener('click', back);
+    $('setupBg').addEventListener('click', (e) => { if (e.target.id === 'setupBg') back(); });
+  }
+
+  function beginRun(seed, daily, mods) {
+    G = TP.newGame(seed, mods);
     G.daily = !!daily;
     sel = null; undo = []; dealt = true;
     closeOverlay();
@@ -673,6 +715,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       $('goalNum').textContent = `${Math.min(G.pearls, cp.need)} / ${cp.need}`;
       bar.querySelector('i').style.width = Math.min(100, 100 * G.pearls / cp.need) + '%';
       bar.classList.toggle('met', G.pearls >= cp.need);
+    } else if (!TP.rated(G)) {
+      $('goalText').innerHTML = 'Modifiers on: <b>no stars</b> this run';
+      $('goalNum').textContent = G.pearls;
+      bar.querySelector('i').style.width = '100%';
+      bar.classList.remove('met');
     } else {
       const next = CONFIG.stars.find(x => G.pearls < x);
       const st = TP.starsFor(G.pearls);
@@ -687,14 +734,17 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const el = $('charms');
     const owned = G.charms.map(id => `<button data-charm="${id}" aria-label="${CHARMS[id].name}">${CHARMS[id].emoji}</button>`).join('');
     const ev = eventPending() ? EVENTS[TP.eventOf(G)] : null;
+    const inv = !G.over && G.inv ? INVASIVES[G.inv.id] : null;
     const market = G.charmOffers.length && !G.over;
-    el.classList.toggle('empty', !owned && !ev && !market);
+    el.classList.toggle('empty', !owned && !ev && !inv && !market);
     el.innerHTML = `<div class="owned">${owned}</div><div class="spacer"></div>` +
+      (inv ? `<button class="forecast" id="invBtn" aria-label="${inv.name}" title="${inv.name}">${inv.emoji}</button>` : '') +
       (ev ? `<button class="forecast" id="forecastBtn">${ev.emoji} ${ev.name} after ${roundName(CONFIG.eventTide)}</button>` : '') +
       (market ? `<button class="market" id="marketBtn">${T.bonus}</button>` : '');
     el.querySelectorAll('[data-charm]').forEach(b => b.addEventListener('click', () => showCharmInfo(b.dataset.charm)));
     if ($('marketBtn')) $('marketBtn').addEventListener('click', showCharms);
     if ($('forecastBtn')) $('forecastBtn').addEventListener('click', () => showForecast());
+    if ($('invBtn')) $('invBtn').addEventListener('click', () => showInvasive());
   }
 
   function renderReef() {
@@ -744,6 +794,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       }
     }
     const threat = new Set(eventPending() ? TP.eventThreat(G) : []);
+    const plan = !G.over ? TP.invasivePlan(G) : null, invE = plan && INVASIVES[plan.id].emoji;
     [...$('reef').children].forEach((el, i) => {
       const t = G.grid[i];
       const def = t && TILES[t.kind], ts = TP.tileState(G, i);
@@ -780,8 +831,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
         if (tag) html += `<span class="tag">${tag}</span>`;
       }
       if (threat.has(i)) html += `<span class="threat-mark">${EVENTS[TP.eventOf(G)].emoji}</span>`;
+      if (plan && plan.at === i) html += `<span class="inv-mark">${invE}</span>`;
+      else if (plan && plan.goal === i) html += `<span class="inv-goal">${invE}</span>`;
       el.innerHTML = html;
       el.classList.toggle('threat', threat.has(i));
+      el.classList.toggle('bite', !!plan && plan.bite === i);
       el.classList.toggle('rock', !!G.rock[i]);
       el.classList.toggle('dormant', !!t && TP.dormant(G, i));
       el.classList.toggle('ts-grazed', !!ts && ts.cls === 'grazed');
@@ -1126,11 +1180,14 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     if (G.grew && G.grew.tide === before.tide) G.grew.cells.forEach(j => G.grid[j] && floatAt(j, `🍂 ★${G.grid[j].lvl}`, 'm'));
     if (G.over) { endRun(before); return; }
     const passed = Object.keys(CONFIG.checkpoints).map(Number).find(t => t === before.tide);
-    toast(passed ? `Goal reached! +${w(earned, 'pearl')} this ${T.round}` : `+${w(earned, 'pearl')} · ${T.incomeWord} ${w(G.lastTide.income, 'shell')}`);
+    const bit = G.lastTide.inv && G.lastTide.inv.bit, iv = bit && INVASIVES[G.lastTide.inv.id];
+    if (bit) floatAt(bit.cell, `${iv.emoji} ${bit.lvl > 1 ? '★' + (bit.lvl - 1) : 'gone'}`, 'm');
+    toast((passed ? `Goal reached! +${w(earned, 'pearl')} this ${T.round}` : `+${w(earned, 'pearl')} · ${T.incomeWord} ${w(G.lastTide.income, 'shell')}`)
+      + (bit ? ` · The ${iv.name} ${iv.verb} your ${TILES[bit.kind].name}` : ''));
     const struck = G.lastTide.struck;
     if (struck) setTimeout(() => showStrike(struck), 700);
     else if (eventPending() && !G.forecastSeen) setTimeout(() => showForecast(true), 700);
-    else if (G.charmOffers.length) setTimeout(showCharms, 700);
+    else if (invNew() || G.charmOffers.length) setTimeout(nextSheet, 700);
   }
 
   // Forecast sheet: first shown when the event is revealed, then from the forecast chip. Leads into the charm market.
@@ -1146,9 +1203,31 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       <p>${Cap(rounds(left))} to get ready. ${extra}</p>
       <div class="row"><button class="btn go" id="fcClose">Got it</button></div>
     </div></div>`;
-    const done = () => { closeOverlay(); if (first && G.charmOffers.length && G.charmSeen !== G.tide) showCharms(); };
+    const done = () => { closeOverlay(); if (first) nextSheet(); };
     $('fcClose').addEventListener('click', done);
     $('fcBg').addEventListener('click', (e) => { if (e.target.id === 'fcBg') done(); });
+  }
+
+  // The invasive: what it does, and what it's about to do. First shown when it arrives.
+  function showInvasive(first) {
+    const v = INVASIVES[G.inv.id], plan = TP.invasivePlan(G), kind = KINDS[v.eats].name.toLowerCase();
+    G.invSeen = true; save();
+    const tileName = (i) => `${TILES[G.grid[i].kind].name}${G.grid[i].lvl > 1 ? ' ★' + G.grid[i].lvl : ''}`;
+    const now = plan.bite != null ? `At the end of this ${T.round} it ${v.verb} your ${tileName(plan.bite)} (dotted red outline).`
+      : plan.resting ? `It's resting this ${T.round}.`
+      : plan.goal != null ? `It's heading for your ${tileName(plan.goal)} (marked with a faded ${v.emoji}).`
+      : `There's no ${kind} tile for it yet, so it waits.`;
+    $('overlay').innerHTML = `<div class="sheet-bg" id="invBg"><div class="sheet" role="dialog" aria-label="${v.name}">
+      <h2>${first ? 'An invasive arrived' : v.name}</h2>
+      <div class="forecast-big">${v.emoji}</div>
+      <p><b>${v.name}.</b> ${v.blurb}</p>
+      <p>After each ${T.round}, it ${v.verb} the ${kind} tile it sits on: that tile loses a level, and a ★1 tile is gone. Then it crawls one space, diagonals too, toward your cheapest other ${kind} tile. On your last ${kind} tile it bites only every other ${T.round}. It stays until the end of the run.</p>
+      <p>${now} Selling or moving a tile keeps it out of reach.</p>
+      <div class="row"><button class="btn go" id="invClose">Got it</button></div>
+    </div></div>`;
+    const done = () => { closeOverlay(); if (first && G.charmOffers.length && G.charmSeen !== G.tide) showCharms(); };
+    $('invClose').addEventListener('click', done);
+    $('invBg').addEventListener('click', (e) => { if (e.target.id === 'invBg') done(); });
   }
 
   function showStrike(st) {
@@ -1178,19 +1257,20 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   }
 
   function endRun(before) {
-    const best = store.get('best') || 0;
-    const isBest = G.won && G.pearls > best;
+    const best = store.get('best') || 0, rated = TP.rated(G);
+    const isBest = rated && G.won && G.pearls > best;
     if (isBest) store.set('best', G.pearls);
     const st = G.won ? TP.starsFor(G.pearls) : 0;
+    const mods = (G.mods || []).map(id => TP.MODIFIERS[id].name.toLowerCase()).join(', ');
     buzz(G.won ? [20, 60, 20, 60, 40] : [40]);
-    const title = G.won ? (st === 3 ? `A legendary ${T.board}` : st === 2 ? `A lively ${T.board}` : st === 1 ? `A cozy ${T.board}` : T.zeroStar) : `Missed the goal at the end of ${roundName(G.failedAt)}`;
+    const title = G.won && !rated ? `Your ${T.board} made it` : G.won ? (st === 3 ? `A legendary ${T.board}` : st === 2 ? `A lively ${T.board}` : st === 1 ? `A cozy ${T.board}` : T.zeroStar) : `Missed the goal at the end of ${roundName(G.failedAt)}`;
     const need = CONFIG.checkpoints[G.failedAt];
     $('overlay').innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-label="Run summary">
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
-      ${G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${w(need, 'pearl')} at the end of ${roundName(G.failedAt)}. ${T.failHint}</p>`}
+      ${G.won && !rated ? `<p>Modifiers on (${mods}), so no star rating.</p>` : G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${w(need, 'pearl')} at the end of ${roundName(G.failedAt)}. ${T.failHint}</p>`}
       ${G.moves && G.moves.length ? `<p>Moves made with a ${TILES[G.moves[0].mover].name} this run: ${G.moves.length}.</p>` : ''}
-      <p>${isBest ? `New best ${T.board}!` : `Best ${T.board}: ${w(Math.max(best, 0), 'pearl')}.`} ${G.daily ? `Daily ${T.board} for today.` : ''}</p>
+      <p>${!rated ? `Runs with modifiers don't count for your best (${w(best, 'pearl')}).` : isBest ? `New best ${T.board}!` : `Best ${T.board}: ${w(Math.max(best, 0), 'pearl')}.`} ${G.daily ? `Daily ${T.board} for today.` : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily ${T.board}</button><button class="btn go" id="againBtn">New ${T.board}</button></div>
       <div class="row"><button class="btn" id="ecoBtn">Ecosystems</button></div>
     </div></div>`;
@@ -1263,12 +1343,21 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 `;
   }
 
+  // Invasives and modifiers work the same in every ecosystem.
+  function helpExtras() {
+    const inv = Object.values(INVASIVES).map(v => `${v.emoji} ${v.name} (${KINDS[v.eats].name.toLowerCase()})`).join(', ');
+    const on = (G && G.mods || []).map(id => TP.MODIFIERS[id].name).join(', ');
+    return (inv ? `<p><b>Invasives.</b> At the start of ${roundName(TP.invasiveTide())} one invasive species arrives: ${inv}. After each ${T.round} it bites the tile of its kind it sits on (one level; a ★1 tile is gone), then crawls one space toward your cheapest other tile of that kind. Its next bite has a dotted red outline; tap its chip above the board for details.</p>` : '')
+      + `<p><b>Modifiers.</b> When you start a new ${T.board} you can turn the forecast event or the invasive off. Runs with a modifier on get no star rating.${on ? ` This run: ${on}.` : ''}</p>`;
+  }
+
   function showHelp() {
     store.set('seenHelp', true);
     const dex = Object.entries(TILES).filter(([k]) => !CONFIG.disabled.includes(k)).map(([k, d]) => `<div><span class="e">${art(k)}</span><span><b>${d.name}</b> ${kindChip(d.tag)} ${fx(d.text(1))} ${d.stack ? `<i>Stacks without limit${d.flat ? ' at the same price' : `. Costs 1 more for every ${CONFIG.stackPriceEvery} you place`}.</i>` : ''}${d.afterFirstGoal ? ' <i>In the shop after the first goal.</i>' : ''}</span><span class="c">${amt(d.cost, 'shell')}</span></div>`).join('');
     const kinds = Object.keys(KINDS).map(tag => [tag, TP.kindNames(tag)]).filter(([, n]) => n).map(([tag, n]) => `<div>${kindChip(tag)}<span>${n}</span></div>`).join('');
     $('overlay').innerHTML = `<div class="sheet-bg" id="helpBg"><div class="sheet" role="dialog" aria-label="How to play">
       ${helpText()}
+      ${helpExtras()}
       <div class="kinds">${kinds}</div>
       <div class="dex">${dex}</div>
       <p class="build">Build __BUILD__</p>

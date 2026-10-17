@@ -9,7 +9,7 @@ Built on main at 5867991 (v16 reef, sticker art, stars 500/1000/1500), the "Mech
 
 ## As built (v17, 2026-10-15)
 The live numbers are in `eco-forest.js` (`CONFIG` and `CONFIG.k`); tile texts there are the source of truth. Where the build differs from the outline below:
-- **Not built yet:** the invasives (Spongy Moth, Garlic Mustard, Jumping Worm). Event pool is Derecho, Drought, Mast Year.
+- **Invasives** shipped in v23 in a simpler form: the shared walk-and-bite rule from notes/predator.md (Spongy Moth eats trees, Garlic Mustard understory; no Jumping Worm). Event pool is Derecho, Drought, Mast Year.
 - **Economy:** 3 seeds a month; starters are a White Oak plus one of Wild Ginger, Mountain Laurel or Witch Hazel; 2 fallen logs at random spots, cleared for 4/8/12/18/24/30 amber. Goals 14 amber in February, 100 in June (greedy bots can't plan seasons, so June is lenient); stars 500/650/850.
 - **Litter:** up to 3 per spot. Trees drop it September to November, the Beech in April, and any tile that leaves (sold, felled, eaten) leaves litter equal to its level (not a migrating Thrush).
 - **Caches:** you can dig one up for 4 amber; placing a tile on it gives back its 3 seeds. Squirrels earn +1 amber per touching cache from December to March instead of digging them up. Caches sprout at the end of March.

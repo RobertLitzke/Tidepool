@@ -231,7 +231,13 @@
       onClear(state, cell) { leavesOf(state)[cell] = 0; },
     };
 
-    return { CONFIG, KINDS, TILES, EVENTS, CHARMS, hooks, leafDrop };
+    // Invasives (v23): one arrives in March and bites tiles of the kind it eats (see engine.js).
+    const INVASIVES = {
+      moth: { name: 'Spongy Moth', emoji: '🐛', eats: 'tree', verb: 'strips', blurb: 'Its caterpillars strip the leaves off oaks and their neighbors.' },
+      mustard: { name: 'Garlic Mustard', emoji: '🧄', eats: 'understory', verb: 'smothers', blurb: 'It spreads over the forest floor and poisons the soil wildflowers grow in.' },
+    };
+
+    return { CONFIG, KINDS, TILES, EVENTS, CHARMS, INVASIVES, hooks, leafDrop };
   }
 
   const eco = {

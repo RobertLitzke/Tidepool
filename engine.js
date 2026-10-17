@@ -10,7 +10,7 @@
   }
 
   function make(eco) {
-    let CONFIG, KINDS, TILES, EVENTS, CHARMS, HOOKS;
+    let CONFIG, KINDS, TILES, EVENTS, CHARMS, INVASIVES, HOOKS;
     const has = (state, id) => state.charms.includes(id);
     // Sum of one numeric hook over the charms you own.
     const charmSum = (state, key, ...a) => state.charms.reduce((n, id) => {
@@ -75,7 +75,16 @@
       addOffer: (state) => { const o = state.offers; rollOffers(state); state.offers = o.concat(state.offers[0]).slice(0, shopSize(state)); },
       get CONFIG() { return CONFIG; }, get TILES() { return TILES; },
     };
-    ({ CONFIG, KINDS, TILES, EVENTS, CHARMS, hooks: HOOKS = {} } = eco.def(E));
+    ({ CONFIG, KINDS, TILES, EVENTS, CHARMS, INVASIVES = {}, hooks: HOOKS = {} } = eco.def(E));
+
+    // Modifiers, picked when a run starts: each one takes something out of the run. A run with any modifier
+    // on gets no stars (rated() is false). state.mods lists their ids; saves from before v23 have none.
+    const MODIFIERS = {
+      noEvent: { name: 'No forecast event', emoji: '🌈', text: () => `Nothing strikes after ${eco.terms.round} ${CONFIG.eventTide}.` },
+      noInvasive: { name: 'No invasives', emoji: '🛡️', text: () => `No invasive species arrives in ${eco.terms.round} ${invasiveTide()}.` },
+    };
+    const modOn = (state, id) => !!(state.mods && state.mods.includes(id));
+    const rated = (state) => !(state.mods && state.mods.length);
 
     // Tiles marked afterFirstGoal stay out of the shop until the first goal is behind you;
     // tiles with `months` are only in the shop in those months; noShop tiles never are.
@@ -84,8 +93,62 @@
       && !(TILES[k].months && !TILES[k].months.includes(month(state)));
 
     // The run's event, picked from the seed so it doesn't disturb the shop's random stream.
-    const eventOf = (state) => state.event || (state.event = CONFIG.events[(state.seed >>> 0) % CONFIG.events.length]);
-    const eventKnown = (state) => state.tide >= CONFIG.eventRevealTide;
+    const eventOf = (state) => state.event !== undefined ? state.event
+      : (state.event = modOn(state, 'noEvent') ? null : CONFIG.events[(state.seed >>> 0) % CONFIG.events.length]);
+    const eventKnown = (state) => !!eventOf(state) && state.tide >= CONFIG.eventRevealTide;
+
+    // Invasives: one per run (unless the noInvasive modifier is on) arrives on a center cell at the start of
+    // invasiveTide, picked from the seed. After each round fires it bites the tile it sits on if that tile is
+    // its kind (one level; a ★1 tile is gone), then crawls one cell (diagonals too, over anything) toward the
+    // cheapest other tile of its kind by shells spent, nearest first on ties. The target stays locked until it
+    // arrives or the tile is gone. On the last tile of its kind it stays and bites every other round.
+    const invasiveTide = () => CONFIG.invasiveTide || CONFIG.eventRevealTide;
+    const dist = (a, b) => { const c = CONFIG.cols; return Math.max(Math.abs(a % c - b % c), Math.abs(Math.floor(a / c) - Math.floor(b / c))); };
+    const edible = (state, i) => { const t = state.grid[i]; return !!t && TILES[t.kind].tag === INVASIVES[state.inv.id].eats; };
+    function invasiveGoal(state) {
+      const v = state.inv;
+      if (!v) return null;
+      if (v.goal != null && v.goal !== v.at && edible(state, v.goal)) return v.goal;
+      const c = state.grid.map((_, i) => i).filter(i => i !== v.at && edible(state, i));
+      c.sort((a, b) => invested(state.grid[a]) - invested(state.grid[b]) || dist(v.at, a) - dist(v.at, b) || a - b);
+      return c.length ? c[0] : null;
+    }
+    // What the invasive does at the end of this round: the cell it bites (or null) and where it heads.
+    function invasivePlan(state) {
+      const v = state.inv;
+      if (!v) return null;
+      const bite = !v.full && edible(state, v.at) ? v.at : null;
+      return { id: v.id, at: v.at, bite, goal: invasiveGoal(state), resting: !!v.full };
+    }
+    function arriveInvasive(state) {
+      const ids = Object.keys(INVASIVES);
+      if (!ids.length || modOn(state, 'noInvasive') || state.inv || !state.mods) return;
+      const h = Math.imul(state.seed >>> 0, 2654435761) >>> 0, centers = centerCells();
+      state.inv = { id: ids[(h >>> 8) % ids.length], at: centers[(h >>> 16) % centers.length], goal: null, full: false, bites: 0, eaten: 0 };
+    }
+    function invasiveTurn(state) {
+      const v = state.inv;
+      if (!v) return null;
+      const out = { id: v.id, from: v.at, bit: null };
+      if (v.full) v.full = false;
+      else if (edible(state, v.at)) {
+        const t = state.grid[v.at];
+        out.bit = { cell: v.at, kind: t.kind, lvl: t.lvl };
+        v.bites++;
+        if (t.lvl <= 1) { removeTile(state, v.at, 'invasive'); v.eaten++; }
+        else { const before = invested(t); t.lvl--; t.paid = Math.floor(before * t.lvl / (t.lvl + 1)); }
+      }
+      const goal = invasiveGoal(state);
+      v.goal = goal;
+      if (goal == null) { if (out.bit && edible(state, v.at)) v.full = true; }
+      else {
+        const c = CONFIG.cols, r = Math.floor(v.at / c), col = v.at % c, gr = Math.floor(goal / c), gc = goal % c;
+        v.at = (r + Math.sign(gr - r)) * c + col + Math.sign(gc - col);
+        if (v.at === goal) v.goal = null;
+      }
+      out.to = v.at;
+      return out;
+    }
 
     // Cells the event would take if it struck now (an event that moves things takes nothing).
     function eventThreat(state) {
@@ -114,9 +177,9 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
-    function newGame(seed) {
+    function newGame(seed, mods = []) {
       const state = {
-        eco: eco.id, seed, rng: seed | 0, tide: 1, shells: CONFIG.startShells, pearls: 0,
+        eco: eco.id, seed, mods: mods.filter(id => MODIFIERS[id]), inv: null, rng: seed | 0, tide: 1, shells: CONFIG.startShells, pearls: 0,
         grid: Array(CONFIG.cols * CONFIG.rows).fill(null),
         offers: [], rerolls: 0, over: false, won: false, lastTide: null, history: [],
         rock: Array(CONFIG.cols * CONFIG.rows).fill(false), rocksBroken: 0,
@@ -154,6 +217,7 @@
 
     function startTide(state) {
       state.rerolls = 0;
+      if (state.tide === invasiveTide()) arriveInvasive(state);
       if (HOOKS.startTide) HOOKS.startTide(state);
       rollOffers(state);
       state.charmOffers = [];
@@ -392,15 +456,16 @@
       // afterFire may fire tiles again (fire(i), animated like the rest) after the board's pass.
       if (HOOKS.afterFire) HOOKS.afterFire(state, events, (i) => { state._mult = 1; activate(i, 0, 'bonus'); });
       delete state._mult;
+      const inv = state.tide >= invasiveTide() && state.tide < CONFIG.tides ? invasiveTurn(state) : null;
       // Income per round, or per phase (CONFIG.phaseIncome: the Serengeti's wet rounds pay more than dry ones).
       const ph = phase(state), base = CONFIG.phaseIncome && CONFIG.phaseIncome[ph] != null ? CONFIG.phaseIncome[ph] : CONFIG.tideIncome;
       const income = base + charmSum(state, 'income', state);
       state.shells += income;
       const earned = events.reduce((a, e) => a + e.p, 0);
       state.history.push({ tide: state.tide, earned, pearls: state.pearls, shells: state.shells });
-      state.lastTide = { tide: state.tide, earned, income };
+      state.lastTide = { tide: state.tide, earned, income, inv };
       state.charmOffers = [];
-      if (state.tide === CONFIG.eventTide) state.lastTide.struck = strikeEvent(state);
+      if (state.tide === CONFIG.eventTide && eventOf(state)) state.lastTide.struck = strikeEvent(state);
 
       const need = CONFIG.checkpoints[state.tide];
       if (need != null && state.pearls < need) { state.over = true; state.won = false; state.failedAt = state.tide; }
@@ -444,7 +509,7 @@
 
     const clone = (s) => JSON.parse(JSON.stringify(s));
 
-    return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, eventOf, eventKnown, eventThreat, invested, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
+    return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventKnown, eventThreat, invested, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
       maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
       inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season, phase, tileState,
       phased: !!(CONFIG.calendar || CONFIG.cycle) };
