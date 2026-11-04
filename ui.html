@@ -459,6 +459,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .facts .v { color: var(--ink); }
 .sheet .legend { color: var(--ink-soft); }
 .sheet .build { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
+.link { font: inherit; color: var(--coral); text-decoration: underline; padding: 0; }
+.copybox { width: 100%; min-height: 120px; font: 12px monospace; border-radius: 12px; border: 1px solid var(--sand-edge); padding: 8px; box-sizing: border-box; background: var(--sand); color: var(--ink); }
 .big-score { font-family: var(--font-display); font-weight: 700; font-size: 54px; line-height: 1; display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
 .big-score svg { width: 40px; height: 40px; }
 .stars { font-size: 34px; letter-spacing: 4px; color: var(--shell); }
@@ -565,7 +567,10 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     $('brandBtn').innerHTML = `${ECO.name}<small>▾</small>`;
     $('goWord').textContent = T.go;
     document.title = `Tidepool · ${ECO.name}`;
+    themeColor();
   }
+  // The browser chrome follows the board's water color (ecosystem and season).
+  const themeColor = () => { const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--water').trim() || '#CFEDEA'); };
   const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
   const icon = (n) => `<svg><use href="#i-${(ICON && ICON[n]) || n}"/></svg>`;
   const art = (k) => `<svg class="art" aria-hidden="true"><use href="#t-${k}"/></svg>`;
@@ -585,7 +590,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   const todaySeed = () => { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 
   function start(data, quiet) {
-    G = (data && data.G) || store.get('run');
+    G = store.get('run');
     if (!TP.validSave(G)) { G = TP.newGame(Math.floor(Math.random() * 1e9)); fresh = true; }
     sel = null; undo = []; busy = false;
     buildReef();
@@ -698,7 +703,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   function render() {
     if (TP.phased) {
       const sn = TP.season(G);
-      document.documentElement.dataset.season = sn;
+      if (document.documentElement.dataset.season !== sn) { document.documentElement.dataset.season = sn; themeColor(); }
       // "🍂 November" in the forest; "🌧️ Turn 3" where the phases simply alternate (the strip below names them).
       $('tidePill').textContent = G.over ? 'Run over' : `${ECO.seasons[sn].emoji} ${CONFIG.calendar ? roundName(G.tide) : `${T.Round} ${G.tide}`}`;
       $('tidePill').title = ECO.seasons[sn].name;
@@ -1114,12 +1119,38 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     floatAt(cell, `${art(G.moves[G.moves.length - 1].mover)} bye!`, 'm');
   }
 
-  // Playtest record: every mover play, kept across runs (the run itself also keeps G.moves).
+  // Playtest record: every mover and item play, kept across runs (the run itself also keeps G.moves).
   function logPlaytest(m) {
     const log = store.get('playlog') || [];
     log.push({ ...m, seed: G.seed, when: new Date().toISOString() });
     store.set('playlog', log.slice(-500));
   }
+  // One row per finished run (the last 200 per ecosystem), so real play can sit next to the bot numbers in the balance log.
+  function logRun() {
+    if (G.logged) return;
+    G.logged = true;
+    const by = {};
+    for (const m of G.moves || []) by[m.mover] = (by[m.mover] || 0) + 1;
+    const log = store.get('runlog') || [];
+    log.push({ when: new Date().toISOString(), build: '__BUILD__', seed: G.seed, daily: !!G.daily, mods: G.mods || [], won: G.won, failedAt: G.failedAt || 0,
+      pearls: G.pearls, shells: G.shells, stars: G.won && TP.rated(G) ? TP.starsFor(G.pearls) : null, event: G.event, start: G.start && (G.start.kinds || G.start.kind), options: G.start && G.start.options,
+      charms: G.charms, board: G.grid.map(t => t ? t.kind + ':' + t.lvl : null), rocks: G.rocksBroken, uses: by, curve: (G.history || []).map(h => h.pearls) });
+    store.set('runlog', log.slice(-200));
+    save();
+  }
+  const copyText = async (text, what) => {
+    try { await navigator.clipboard.writeText(text); toast(`${what} copied`); return; } catch {}
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch {}
+    lowSheet('Copy', `<div class="effect">Select and copy:</div><textarea class="copybox" readonly>${text.replace(/</g, '&lt;')}</textarea><div class="row"><button class="btn go" data-close>Done</button></div>`);
+  };
+  // Every ecosystem's run log and mover/item log in one JSON blob, for the balance log.
+  function exportLog() {
+    const out = {};
+    for (const e of TPX.list()) out[e.id] = { runs: raw.get(keyFor(e.id, 'runlog')) || [], plays: raw.get(keyFor(e.id, 'playlog')) || [] };
+    const n = Object.values(out).reduce((a, o) => a + o.runs.length, 0);
+    copyText(JSON.stringify(out), `Play log (${n} run${n === 1 ? '' : 's'})`);
+  }
+  const shareLine = () => `Tidepool ${ECO.name} · ${G.daily ? 'daily ' + String(G.seed).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : 'seed ' + G.seed} · ${G.won ? `${G.pearls} ${unit('pearl', G.pearls)}` : `out at ${roundName(G.failedAt)}`}${G.won && TP.rated(G) ? ' ' + '★'.repeat(TP.starsFor(G.pearls)) + '☆'.repeat(3 - TP.starsFor(G.pearls)) : ''}${(G.mods || []).length ? ' · ' + G.mods.map(id => TP.MODIFIERS[id].name.toLowerCase()).join(', ') : ''}`;
 
   $('undoBtn').addEventListener('click', () => {
     if (busy || !undo.length) return;
@@ -1280,6 +1311,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     const best = store.get('best') || 0, rated = TP.rated(G);
     const isBest = rated && G.won && G.pearls > best;
     if (isBest) store.set('best', G.pearls);
+    logRun();
     const st = G.won ? TP.starsFor(G.pearls) : 0;
     const mods = (G.mods || []).map(id => TP.MODIFIERS[id].name.toLowerCase()).join(', ');
     buzz(G.won ? [20, 60, 20, 60, 40] : [40]);
@@ -1293,8 +1325,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       ${G.moves && G.moves.length ? `<p>Moves made with a ${TILES[G.moves[0].mover].name} this run: ${G.moves.length}.</p>` : ''}
       <p>${!rated ? `Runs with modifiers don't count for your best (${w(best, 'pearl')}).` : isBest ? `New best ${T.board}!` : `Best ${T.board}: ${w(Math.max(best, 0), 'pearl')}.`} ${G.daily ? `Daily ${T.board} for today.` : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily ${T.board}</button><button class="btn go" id="againBtn">New ${T.board}</button></div>
-      <div class="row"><button class="btn" id="ecoBtn">Ecosystems</button></div>
+      <div class="row"><button class="btn" id="ecoBtn">Ecosystems</button><button class="btn" id="shareBtn">Share</button></div>
     </div></div>`;
+    $('shareBtn').addEventListener('click', () => copyText(shareLine(), 'Result'));
     $('againBtn').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
     $('dailyBtn').addEventListener('click', () => newRun(todaySeed(), true));
     $('ecoBtn').addEventListener('click', showPicker);
@@ -1323,47 +1356,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     $('charmBg').addEventListener('click', (e) => { if (e.target.id === 'charmBg') closeOverlay(); });
   }
 
-  function helpText() {
-    const M = (t) => CONFIG.calendar.names[TP.month(G, t)];
-    if (ECO.id === 'serengeti') return `
-      <h2>${T.title}</h2>
-      <ol>
-        <li>Buy tiles with seeds and place them on the savanna. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple. Zebra and Red Oat Grass stack without limit.</li>
-        <li><b>Seasons.</b> Turns alternate: odd turns are 🌧️ Wet, even turns ☀️ Dry. Each Wet turn starts with rain that turns every flora Lush, and ends with ${w(CONFIG.phaseIncome.wet, 'shell')}. Each Dry turn starts with every flora Grazed except the ones a Waterhole waters (the three cells above it), and ends with only ${w(CONFIG.phaseIncome.dry, 'shell')}. Some tiles do different things in each.</li>
-        <li><b>Grazing.</b> Gazelles and Wildebeest graze touching Lush flora for amber, leaving it Grazed (straw-colored, with a brown GRAZED tag; Lush flora are green with a LUSH tag). Grazed flora still fire as normal, but can't be grazed again until something turns them Lush: the next rain, a Waterhole at the end of the turn (the three cells above it), a Dung Beetle, or an Elephant. Star Grass pays extra amber when it's grazed. Tiles fire in order 1 to 16, so put grazers after the tiles that want Lush flora.</li>
-        <li>Amber is your score and your money. Spend it on Treasures (offered at turns ${CONFIG.charmTides.join(', ')}) and to clear kopjes for more space, but hold enough to meet the goals at turns ${Object.keys(CONFIG.checkpoints).join(' and ')} (both Dry).</li>
-        <li>At turn ${CONFIG.eventRevealTide} you learn the forecast: an Endless Drought, Brushfire or Great Migration after turn ${CONFIG.eventTide}.</li>
-        <li>Your score is the amber you hold after turn ${CONFIG.tides}.</li>
-      </ol>
-      <p>When you pick a shop tile, each spot shows its price and what it would add next turn. Tap a placed tile to see what it does and whether it's Lush. Daily savanna and New savanna start over from here.</p>
-      <p>Every tile has a kind. When a rule says flora, grazer or predator, it means these tiles:</p>`;
-    if (ECO.id === 'forest') return `
-      <h2>Grow a forest through the year</h2>
-      <ol>
-        <li>The year runs from ${M(1)} to ${M(CONFIG.tides)}, one month a turn. Buy tiles with seeds and place them in the forest. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple.</li>
-        <li><b>Seasons.</b> Every tile makes ×2 in its season (its shop card shows the season emoji, and it glows on the board while in season). The Bumblebee is the exception: it's on in spring and summer, when touching understory plants make ×2, and off the rest of the year.</li>
-        <li><b>Leaves.</b> In fall (September to November) each tree drops a leaf on every touching understory plant and empty spot. Every 2 leaves grow a plant a level for free, and leaves can take a plant past ★3 (seeds stop at ★3). On an empty spot they wait: place a critter there for ${w(CONFIG.leafSeeds, 'shell')} a leaf, or a plant to grow it.</li>
-        <li>Next month: every tile fires in order, 1 to 16, making seeds and amber.</li>
-        <li>Amber is your score and your money. Spend it on Heirlooms (offered in ${CONFIG.charmTides.map(M).join(', ')}) and to clear fallen logs (or pay seeds instead), but hold enough to meet the goals in ${Object.keys(CONFIG.checkpoints).map(Number).map(M).join(' and ')}.</li>
-        <li>In ${M(CONFIG.eventRevealTide)} you learn the forecast: a Derecho, Drought or Mast Year that comes after ${M(CONFIG.eventTide)}.</li>
-        <li>Your score is the amber you hold after ${M(CONFIG.tides)}, plus 1 amber for every ${TP.endShellsPer(G)} seeds left over.</li>
-      </ol>
-      <p>When you pick a shop tile, each spot shows its price and what it would add next month. Tap a placed tile to see what it does and how close it is to growing. Daily forest and New forest start over from here.</p>
-      <p>Every tile has a kind. When a rule says tree, understory or critter, it means these tiles:</p>`;
-    return `
-      <h2>Grow a reef that pays you back</h2>
-      <ol>
-        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Sargassum counts as two flora for its neighbors. Most tiles stop at ★3, and each level-up costs ${CONFIG.levelUpStep} more than the last. Sargassum and Conch stack without limit: Sargassum always costs the same, Conch costs 1 more for every ${CONFIG.stackPriceEvery} you place.</li>
-        <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
-        <li>Pearls are your score and your money. Spend them to break rocks for more space and on Tide Charms (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
-        <li>At tide ${CONFIG.eventRevealTide} you learn the forecast: a Storm Surge, Hungry Shark or Undertow that hits after tide ${CONFIG.eventTide}. Build so your reef survives it.</li>
-        <li>From tide ${CONFIG.itemsFrom} the shop has a fourth slot with an item (${TP.kindNames('item')}): a one-shot you use on a tile of your choice. It doesn't take a spot.</li>
-        <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
-      </ol>
-      <p>When you pick a shop tile, each spot shows its price and what it would add to your next tide. Spots you can't afford yet are dimmed. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
-      <p>Every tile has a kind. When a rule says flora, shellfish or critter, it means these tiles:</p>
-`;
-  }
+  // The rules text lives with the rules: each ecosystem module's help(h) builds its own.
+  function helpText() { return ECO.help({ w, unit, M: roundName, T, CONFIG, TP, G }); }
 
   // Invasives and modifiers work the same in every ecosystem.
   function helpExtras() {
@@ -1382,25 +1376,24 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       ${helpExtras()}
       <div class="kinds">${kinds}</div>
       <div class="dex">${dex}</div>
-      <p class="build">Build __BUILD__</p>
+      <p class="build">Build __BUILD__ · <button class="link" id="exportLog">Copy play log</button></p>
       <div class="row"><button class="btn" id="helpDaily">Daily ${T.board}</button><button class="btn" id="helpNew">New ${T.board}</button></div>
       <div class="row"><button class="btn go" id="helpClose">${G && !G.over && (G.tide > 1 || G.grid.filter(Boolean).length > 1) ? 'Keep playing' : 'Play'}</button></div>
     </div></div>`;
     $('helpClose').addEventListener('click', closeOverlay);
+    $('exportLog').addEventListener('click', exportLog);
     $('helpDaily').addEventListener('click', () => newRun(todaySeed(), true));
     $('helpNew').addEventListener('click', () => newRun(Math.floor(Math.random() * 1e9)));
     $('helpBg').addEventListener('click', (e) => { if (e.target.id === 'helpBg') closeOverlay(); });
   }
 
-  // Boot: open on the ecosystem you played last, behind the picker (a hot reload keeps the run instead).
-  function boot(data) {
-    const id = (data && data.G && data.G.eco) || raw.get('tidepool.eco') || 'reef';
-    useEco(TPX.forEco(id) ? id : 'reef');
-    if (data && data.G) { start(data); return; }
+  // Boot: open on the ecosystem you played last, behind the picker.
+  function boot() {
+    const id = raw.get('tidepool.eco') || 'reef';
+    useEco(TPX.list().some(e => e.id === id) ? id : 'reef');
     start(null, true);
     showPicker();
   }
-  window.claude?.hot?.snapshot?.(() => ({ G }));
-  window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+  boot();
 })();
 </script>

@@ -1,6 +1,6 @@
 // Tidepool rules engine. Pure logic, no DOM: shared by the game page and the bot simulator.
-// The rules are generic; each ecosystem (eco-reef.js, eco-forest.js) brings its own tiles, numbers,
-// events, bonuses ("charms" in code) and any house rules as hooks. forEco(id) builds one engine per ecosystem.
+// The rules are generic; each ecosystem (eco-reef.js, eco-forest.js, eco-serengeti.js) brings its own tiles, numbers,
+// events, bonuses ("charms" in code), help text and any house rules as hooks. forEco(id) builds one engine per ecosystem.
 (function (root) {
   const ECOS = root.TidepoolEcos || {};
   if (typeof require !== 'undefined' && typeof module !== 'undefined') {
@@ -431,10 +431,6 @@
       return true;
     }
 
-    // Extra things a player can do on the board (dig up a cache, trade at a stash). Ecosystem-defined.
-    const actions = (state) => !state.over && HOOKS.actions ? HOOKS.actions(state) : [];
-    const act = (state, a) => !state.over && HOOKS.act ? HOOKS.act(state, a) : false;
-
     // Is this tile resting this round (bare, frozen, asleep, underground)? Display only.
     const dormant = (state, i) => {
       const t = state.grid[i], d = t && TILES[t.kind];
@@ -568,7 +564,7 @@
 
     return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventDef, eventKnown, validSave, eventThreat, invested, kindNames, starterOptions, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
       maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
-      inShop, moverSpots, moverTargets, moverDests, useMover, itemTargets, useItem, actions, act, dormant, month, season, phase, inSeason, endShellsPer, tileState,
+      inShop, moverSpots, moverTargets, moverDests, useMover, itemTargets, useItem, dormant, month, season, phase, inSeason, endShellsPer, tileState,
       phased: !!(CONFIG.calendar || CONFIG.cycle) };
   }
 

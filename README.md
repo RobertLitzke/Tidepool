@@ -5,13 +5,16 @@ A cozy engine builder for phones. Pick an ecosystem: a reef over twelve tides, a
 Play and install: https://robertlitzke.github.io/Tidepool/ (open in Chrome on Android, then Install app).
 Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 
-- `engine.js`: the shared rules engine (`forEco(id)` builds one per ecosystem).
-- `eco-reef.js`, `eco-forest.js`, `eco-serengeti.js`: one module per ecosystem with its `CONFIG`, `TILES`, events, bonuses (Treasures, Heirlooms), terms and hooks.
-- `ui.html`: touch UI and the ecosystem picker; `/*ENGINE*/` gets replaced by the eco files plus engine.js.
-- `build.sh`: `sh build.sh` writes `tidepool.html` (the published single file).
-- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates. Set `ECO=forest` or `ECO=serengeti` (sim.js and tune.js).
-- `tune.js`: `node tune.js planner 2000 [variant.js] [seed0]` runs bots in parallel for big batches and variant tests (drop-one, cost tweaks); `DUMP=out.json` saves per-run rows.
-- `notes/tile-report.md`: per-tile effectiveness, drop-one tests and proposed changes (latest round).
+- `engine.js`: the shared rules engine (`forEco(id)` builds one per ecosystem): shop, placing, items, movers, phases, invasives, end of run.
+- `eco-reef.js`, `eco-forest.js`, `eco-serengeti.js`: one module per ecosystem with its `CONFIG`, `TILES`, events, bonuses (Treasures, Heirlooms), invasives, terms, help text and hooks.
+- `ui.html`: touch UI, ecosystem picker, setup sheet (starter choice, modifiers), help; `/*ENGINE*/` gets replaced by the eco files plus engine.js.
+- `art.js`: SVG stickers for every tile; `build.sh`: `sh build.sh` writes `tidepool.html` (single file) and `dist/` (the PWA that Pages serves).
+- `sim.js`: `node sim.js 500 [random|greedy|planner|all]` prints finish rate, score spread, stars, pearl curve, tile pick rates. Set `ECO=forest` or `ECO=serengeti` (same for tune.js, ablate.js and test.js); `MODS=noInvasive` turns a modifier on.
+- `tune.js`: `node tune.js planner 2000 [variant.js|-] [seed0] [workers]` runs bots in parallel for big batches and variant tests; `DUMP=out.json` saves per-run rows.
+- `ablate.js`: `ECO=reef node ablate.js [runs] [seed0] [bot] [workers]` drop-one tile test (which tiles the bot can't do without, which are traps).
+- `test.js`: `node test.js` checks golden-seed hashes (`tests/golden.json`), replays old save fixtures (`tests/saves/`) and tile data; CI runs it before the build. `node test.js --update` rewrites the goldens after a deliberate rule change.
+- `notes/tile-report.md`: per-tile effectiveness and drop-one tests (v13, historical). The latest audit lives in the project folder (`notes/audit-2026-11.md`).
+- In the game: the help screen's **Copy play log** button copies every finished run (seed, ecosystem, starter, modifiers, final board, score) as JSON; the summary's **Copy result** button copies a one-line result.
 
 ## Balance log
 - v1 (2026-10-14): Pufferfish multipliers stacked exponentially, so now max(). Octopus 2→1 per kind. Checkpoints 8 by tide 4, 80 by tide 8; stars 300/600/1000.
@@ -103,6 +106,8 @@ Every push to `main` builds and deploys through `.github/workflows/pages.yml`.
 - v29 (2026-11-04, audit: the reef's last tides were a grind with 57 spare shells and no pearl tile worth its slot; `notes/late-game.md` option 2): **Items.** From tide 9 the shop has a fourth slot with a one-shot item that acts on a tile of your choice and takes no spot (engine: `TILES[k].item`, `targets`, `use`, `fromTide`, `priceStep`; `TP.itemTargets`/`useItem` replace the forest's old feller hooks). Message in a Bottle (7 shells, +1 per use): the tile fires twice at the next tide (`tile.encore`). Golden Polish (9, +3 per use): a tile at its ★3 cap grows to ★4, and again later. Shipwreck now pays +L pearl per 6 shells held (up to +4L) instead of shells for shells. Sea Star 5 → 4 shells, Dolphin 7 → 5.
   Planner, 1000 runs, seeds 5001+: without items (same rules otherwise) avg 904, p30/p65/p90 538/977/1713; with items 1047, 548/1006/2088. Items lift the top of the spread (p90 +22%) and leave the bottom alone. Pricing variants (600 runs): bottle 5 avg 1067, bottle 7 +1 per use 1058 (chosen), bottle 8 +2 and polish 10 +4 1036; the bot buys about 2 bottles and 1.5 polishes a run whatever the price, since it has the shells. Shells spent on items 38 a run; Shipwreck makes 25 pearls a run for 6 shells; Dolphin plays 0.30 a run (was 0.32 at 7 shells: the price wasn't the reason). Events: Shark median 693, Undertow 791, Surge 817. Greedy 500 runs: 95% finish, avg 492.
   Stars 580/1050/1725 → 550/1005/2090 (planner 0/1/2/3 = 30/35/25/10 from p30/p65/p90).
+
+- v30 (2026-11-04, audit tech items; no rule change, goldens unchanged): help text moved out of ui.html into each ecosystem module (`eco.help(h)`), so a rule change and its help live in one file. Dead code from cut features removed (`actions`/`act` hooks and the forest feller path in sim.js, the v21 Serengeti experiment knobs `graze.zebra`/`herdRain`, the hot-reload hook). The page keeps a `runlog` of finished runs (last 200 per ecosystem: seed, starter, modifiers, final board, score) and the help screen's **Copy play log** copies all of it as JSON, so real runs can feed this log the way the bots do; the summary gets a **Copy result** line. The browser theme color follows the ecosystem's water color; manifest gets an `id` and a description covering all three ecosystems.
 
 ## Installable app (PWA)
 `sh build.sh` also writes `dist/`: index.html, manifest, offline service worker (cache-first, version-stamped per build), icons from `pwa/icons` (rendered by a canvas script). GitHub Pages hosts `dist/`, open it in Chrome on the Pixel, then Install app.

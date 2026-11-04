@@ -58,9 +58,9 @@
       vultureAmber: 3,     // Vulture Kettle: amber per Grazed flora after the board fires
       // v21 (Rob: Grazed was too easy to avoid): Dry turns start with every flora a Waterhole doesn't water Grazed
       // (dryWilt), and a Waterhole waters only the three cells above it (waterUp).
-      // Grazing tuning knobs: how many Grazed flora a restore can turn Lush (per level of the restoring tile),
-      // and whether Zebras graze. Infinity = every touching flora, the spec's rule.
-      graze: { waterhole: Infinity, dung: Infinity, zebra: false, waterUp: true, dryWilt: true, herdRain: false },
+      // Grazing knobs: how many Grazed flora a restore can turn Lush (per level of the restoring tile; Infinity = all,
+      // the spec's rule). The v21 experiments' other knobs (Zebras grazing, rain skipping flora beside a grazer) are gone.
+      graze: { waterhole: Infinity, dung: Infinity, waterUp: true, dryWilt: true },
     };
 
     const KINDS = {
@@ -112,10 +112,7 @@
       // ---------- Stackers ----------
       zebra: { name: 'Zebra', emoji: '🦓', cost: 2, rarity: 'common', tag: 'grazer', stack: true,
         text: (L) => `+${2 * L} seeds.`,
-        fire: (c, L) => {
-          if (CONFIG.graze.zebra) { const j = lushNear(c.state, c.i)[0]; if (j != null) { const x = graze(c.state, j); return { s: 2 * L + x.s, p: x.p }; } }
-          return { s: 2 * L, p: 0 };
-        } },
+        fire: (c, L) => ({ s: 2 * L, p: 0 }) },
       red_oat_grass: { name: 'Red Oat Grass', emoji: '🌾', cost: 2, rarity: 'common', tag: 'flora', stack: true, flat: true,
         text: (L) => `+${L} seed and +${L} amber.`,
         fire: (c, L) => ({ s: L, p: L }) },
@@ -310,8 +307,7 @@
         const w = wet(state), deep = has(state, 'taproot');
         state.grid.forEach((t, i) => {
           if (!isFlora(t)) return;
-          // herdRain: the rain can't regrow flora a grazer is standing beside.
-          if (w && !(CONFIG.graze.herdRain && neighbors(i).some(j => isGrazer(state.grid[j])))) t.grazed = false;
+          if (w) t.grazed = false;
           else if (deep && t.lvl >= 3) t.grazed = false;
           // dryWilt: Dry turns start with every flora a Waterhole doesn't water turning Grazed.
           else if (!w && CONFIG.graze.dryWilt && !state.grid.some((u, k) => u && u.kind === 'waterhole' && waterCells(k).includes(i))) t.grazed = true;
@@ -354,6 +350,18 @@
       failHint: 'Gazelles grazing Lush grass and Giraffes beside it make amber early.' },
     icon: 'zebra', rockArt: 'kopje',
     seasons: SEASONS,
+    help: (h) => { const { CONFIG, T, w } = h; return `
+      <h2>${T.title}</h2>
+      <ol>
+        <li>Buy tiles with seeds and place them on the savanna. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple. Zebra and Red Oat Grass stack without limit.</li>
+        <li><b>Seasons.</b> Turns alternate: odd turns are 🌧️ Wet, even turns ☀️ Dry. Each Wet turn starts with rain that turns every flora Lush, and ends with ${w(CONFIG.phaseIncome.wet, 'shell')}. Each Dry turn starts with every flora Grazed except the ones a Waterhole waters (the three cells above it), and ends with only ${w(CONFIG.phaseIncome.dry, 'shell')}. Some tiles do different things in each.</li>
+        <li><b>Grazing.</b> Gazelles and Wildebeest graze touching Lush flora for amber, leaving it Grazed (straw-colored, with a brown GRAZED tag; Lush flora are green with a LUSH tag). Grazed flora still fire as normal, but can't be grazed again until something turns them Lush: the next rain, a Waterhole at the end of the turn (the three cells above it), a Dung Beetle, or an Elephant. Star Grass pays extra amber when it's grazed. Tiles fire in order 1 to 16, so put grazers after the tiles that want Lush flora.</li>
+        <li>Amber is your score and your money. Spend it on Treasures (offered at turns ${CONFIG.charmTides.join(', ')}) and to clear kopjes for more space, but hold enough to meet the goals at turns ${Object.keys(CONFIG.checkpoints).join(' and ')} (both Dry).</li>
+        <li>At turn ${CONFIG.eventRevealTide} you learn the forecast: an Endless Drought, Brushfire or Great Migration after turn ${CONFIG.eventTide}.</li>
+        <li>Your score is the amber you hold after turn ${CONFIG.tides}.</li>
+      </ol>
+      <p>Every new savanna offers two starter tiles; pick one. When you pick a shop tile, each spot shows its price and what it would add next turn. Tap a placed tile to see what it does and whether it's Lush. Daily savanna and New savanna start over from here.</p>
+      <p>Every tile has a kind. When a rule says flora, grazer or predator, it means these tiles:</p>`; },
     def,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = eco;

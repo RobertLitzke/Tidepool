@@ -1,7 +1,8 @@
 {
+  "id": "tidepool",
   "name": "Tidepool",
   "short_name": "Tidepool",
-  "description": "A cozy reef engine builder. Twelve tides, one tiny reef.",
+  "description": "A cozy engine builder: a reef over twelve tides, a forest over one year, or the Serengeti's wet and dry seasons.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -209,6 +209,19 @@
       title: 'Grow a reef that pays you back', zeroStar: 'The tide goes out', incomeWord: 'the tide brings',
       failHint: 'Oysters beside Conches and Giant Clams beside Sargassum make pearls early.' },
     icon: 'scallop',
+    // How to play, for the help sheet. h: { w(n, role), unit(role), M(round) -> round name, T (terms), CONFIG, TP }.
+    help: (h) => { const { CONFIG, TP } = h; return `
+      <h2>Grow a reef that pays you back</h2>
+      <ol>
+        <li>Buy tiles with shells and place them on the reef. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple, and a ★2 Sargassum counts as two flora for its neighbors. Most tiles stop at ★3, and each level-up costs ${CONFIG.levelUpStep} more than the last. Sargassum and Conch stack without limit: Sargassum always costs the same, Conch costs 1 more for every ${CONFIG.stackPriceEvery} you place.</li>
+        <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
+        <li>Pearls are your score and your money. Spend them to break rocks for more space and on Treasures (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
+        <li>At tide ${CONFIG.eventRevealTide} you learn the forecast: a Storm Surge, Hungry Shark or Undertow that hits after tide ${CONFIG.eventTide}. Build so your reef survives it.</li>
+        <li>From tide ${CONFIG.itemsFrom} the shop has a fourth slot with an item (${TP.kindNames('item')}): a one-shot you use on a tile of your choice. It doesn't take a spot.</li>
+        <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
+      </ol>
+      <p>Every new reef offers two starter tiles; pick one. When you pick a shop tile, each spot shows its price and what it would add to your next tide. Spots you can't afford yet are dimmed. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily reef and New reef start over from here.</p>
+      <p>Every tile has a kind. When a rule says flora, shellfish or critter, it means these tiles:</p>`; },
     def,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = eco;

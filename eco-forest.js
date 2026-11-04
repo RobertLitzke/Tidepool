@@ -257,6 +257,19 @@
       failHint: 'Sugar Maples and Wild Ginger make ×2 amber in winter, and plants beside trees grow from fall leaves.' },
     icon: 'oak',
     seasons: SEASONS, months: MONTHS,
+    help: (h) => { const { CONFIG, TP, M, w, G } = h; return `
+      <h2>Grow a forest through the year</h2>
+      <ol>
+        <li>The year runs from ${M(1)} to ${M(CONFIG.tides)}, one month a turn. Buy tiles with seeds and place them in the forest. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple.</li>
+        <li><b>Seasons.</b> Every tile makes ×2 in its season (its shop card shows the season emoji, and it glows on the board while in season). The Bumblebee is the exception: it's on in spring and summer, when touching understory plants make ×2, and off the rest of the year.</li>
+        <li><b>Leaves.</b> In fall (September to November) each tree drops a leaf on every touching understory plant and empty spot. Every 2 leaves grow a plant a level for free, and leaves can take a plant past ★3 (seeds stop at ★3). On an empty spot they wait: place a critter there for ${w(CONFIG.leafSeeds, 'shell')} a leaf, or a plant to grow it.</li>
+        <li>Next month: every tile fires in order, 1 to 16, making seeds and amber.</li>
+        <li>Amber is your score and your money. Spend it on Heirlooms (offered in ${CONFIG.charmTides.map(M).join(', ')}) and to clear fallen logs (or pay seeds instead), but hold enough to meet the goals in ${Object.keys(CONFIG.checkpoints).map(Number).map(M).join(' and ')}.</li>
+        <li>In ${M(CONFIG.eventRevealTide)} you learn the forecast: a Derecho, Drought or Mast Year that comes after ${M(CONFIG.eventTide)}.</li>
+        <li>Your score is the amber you hold after ${M(CONFIG.tides)}, plus 1 amber for every ${TP.endShellsPer(G)} seeds left over.</li>
+      </ol>
+      <p>Every new forest starts with a White Oak and one of two understory plants; pick one. When you pick a shop tile, each spot shows its price and what it would add next month. Tap a placed tile to see what it does and how close it is to growing. Daily forest and New forest start over from here.</p>
+      <p>Every tile has a kind. When a rule says tree, understory or critter, it means these tiles:</p>`; },
     def,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = eco;
