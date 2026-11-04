@@ -1,7 +1,8 @@
 // Bot simulator for balance tuning. Usage: node sim.js [runs=500] [bot=random|greedy|planner|all]
 // MODS=noInvasive,noEvent starts every run with those modifiers on (engine.js MODIFIERS).
 // Skill ladder: random (no plan) < greedy (one-tide lookahead, rerolls, charms) < planner (plays each buy out to the end).
-const TP = require('./engine.js').forEco(process.env.ECO || 'reef');
+// makeSim(TP) builds the bots for one engine (test.js uses several); the module's own exports are for process.env.ECO.
+function makeSim(TP) {
 const { CONFIG, TILES } = TP;
 
 // Value of one tide's output if this board were frozen, measured on a clone.
@@ -129,7 +130,9 @@ function buyLoop(state, value, shellW, opts = {}) {
 }
 
 const bots = {
+  // Seeded (mulberry32 on the run's seed), so random runs are reproducible like the other bots.
   random(state) {
+    const rnd = () => { let t = (state._r = ((state._r == null ? state.seed : state._r) + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     for (let tries = 0; tries < 6; tries++) {
       const opts = [];
       state.offers.forEach((k, oi) => {
@@ -137,7 +140,7 @@ const bots = {
         state.grid.forEach((_, cell) => { if (TP.canPlace(state, k, cell)) opts.push([oi, cell]); });
       });
       if (!opts.length) return;
-      const [oi, cell] = opts[Math.floor(Math.random() * opts.length)];
+      const [oi, cell] = opts[Math.floor(rnd() * opts.length)];
       TP.buy(state, oi, cell);
     }
   },
@@ -292,10 +295,14 @@ function report(botName, runs) {
   for (const r of rows) console.log(`${TILES[r.k].name.padEnd(13)} ${(100 * r.pick / totalPicks).toFixed(1).padStart(5)}  ${(r.pearls / runs).toFixed(1).padStart(8)}  ${late[r.k] ? (late[r.k].v / late[r.k].lv).toFixed(1).padStart(8) : '       -'}`);
 }
 
-module.exports = { bots, play };
+return { TP, bots, play, report };
+}
+
+const SIM = makeSim(require('./engine.js').forEco(process.env.ECO || 'reef'));
+module.exports = Object.assign({ makeSim }, SIM);
 
 if (require.main === module) {
   const runs = +process.argv[2] || 500;
   const which = process.argv[3] || 'all';
-  for (const b of which === 'all' ? Object.keys(bots) : [which]) report(b, runs);
+  for (const b of which === 'all' ? Object.keys(SIM.bots) : [which]) SIM.report(b, runs);
 }

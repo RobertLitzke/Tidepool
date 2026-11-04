@@ -95,7 +95,9 @@
     // The run's event, picked from the seed so it doesn't disturb the shop's random stream.
     const eventOf = (state) => state.event !== undefined ? state.event
       : (state.event = modOn(state, 'noEvent') ? null : CONFIG.events[(state.seed >>> 0) % CONFIG.events.length]);
-    const eventKnown = (state) => !!eventOf(state) && state.tide >= CONFIG.eventRevealTide;
+    // The run's event definition, or null (also when a saved run names an event this version no longer has).
+    const eventDef = (state) => EVENTS[eventOf(state)] || null;
+    const eventKnown = (state) => !!eventDef(state) && state.tide >= CONFIG.eventRevealTide;
 
     // Invasives: one per run (unless the noInvasive modifier is on) arrives on a center cell at the start of
     // invasiveTide, picked from the seed. After each round fires it bites the tile it sits on if that tile is
@@ -235,7 +237,7 @@
       const price = charmPrice(state, id);
       if (state.pearls < price) return false;
       state.pearls -= price;
-      state.charms.push(id);
+      (state.charms || (state.charms = [])).push(id);
       state.charmOffers = [];
       if (CHARMS[id].onBuy) CHARMS[id].onBuy(state);
       return true;
@@ -476,10 +478,10 @@
       const income = base + charmSum(state, 'income', state);
       state.shells += income;
       const earned = events.reduce((a, e) => a + e.p, 0);
-      state.history.push({ tide: state.tide, earned, pearls: state.pearls, shells: state.shells });
+      (state.history || (state.history = [])).push({ tide: state.tide, earned, pearls: state.pearls, shells: state.shells });
       state.lastTide = { tide: state.tide, earned, income, inv };
       state.charmOffers = [];
-      if (state.tide === CONFIG.eventTide && eventOf(state)) state.lastTide.struck = strikeEvent(state);
+      if (state.tide === CONFIG.eventTide && eventDef(state)) state.lastTide.struck = strikeEvent(state);
 
       const need = CONFIG.checkpoints[state.tide];
       if (need != null && state.pearls < need) { state.over = true; state.won = false; state.failedAt = state.tide; }
@@ -523,7 +525,15 @@
 
     const clone = (s) => JSON.parse(JSON.stringify(s));
 
-    return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventKnown, eventThreat, invested, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
+    // Can this engine load a saved run? True when the board matches this ecosystem and every tile and offer is
+    // still known. Fields added since the save was made are read with defaults, so old saves stay valid.
+    // Keep tile ids and event ids stable; renaming one makes every saved run with it fail here.
+    const validSave = (g) => !!(g && Array.isArray(g.grid) && Array.isArray(g.rock) && Array.isArray(g.offers)
+      && g.grid.length === CONFIG.cols * CONFIG.rows && (g.eco || 'reef') === eco.id
+      && g.grid.every(t => !t || TILES[t.kind]) && g.offers.every(k => !k || TILES[k])
+      && (g.charms || []).every(id => CHARMS[id]));
+
+    return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventDef, eventKnown, validSave, eventThreat, invested, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
       maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
       inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season, phase, tileState,
       phased: !!(CONFIG.calendar || CONFIG.cycle) };

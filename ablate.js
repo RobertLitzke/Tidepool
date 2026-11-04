@@ -1,64 +1,45 @@
-// Tile strength experiment: tally tiles bought over N games, then remove each tile
-// from the shop for M games and compare average score with the full game.
-// Usage: node ablate.js [tallyGames=100] [dropGames=50] [bot=greedy|random|all]
-const TP = require('./engine.js');
-const { play } = require('./sim.js');
-const { CONFIG, TILES } = TP;
-
-const tallyGames = +process.argv[2] || 100;
-const dropGames = +process.argv[3] || 50;
-const which = process.argv[4] || 'all';
-
-// Count every purchase (new tile or level-up) by kind.
-let bought = null;
-const realBuy = TP.buy;
-TP.buy = (state, oi, cell) => {
-  const kind = state.offers[oi];
-  const ok = realBuy(state, oi, cell);
-  if (ok && bought && !state._sim) bought[kind] = (bought[kind] || 0) + 1;
-  return ok;
-};
-// Bots buy on clones while searching; only count buys on the real game state.
-const realClone = TP.clone;
-TP.clone = (s) => { const c = realClone(s); c._sim = true; return c; };
-
-function batch(bot, n, seed0) {
-  let score = 0, wins = 0;
-  for (let r = 0; r < n; r++) {
-    const { state } = play(bot, seed0 + r);
-    score += state.pearls; if (state.won) wins++;
+// Drop-one tile test for any ecosystem, in parallel worker processes.
+// Usage: [ECO=forest] node ablate.js [runs=200] [seed0=9000] [bot=planner] [workers=4]
+// Plays the same seeds with the full shop, then once per tile with that tile removed from the shop
+// (CONFIG.disabled). A negative change means the game is worse without the tile, so the tile is strong;
+// a positive change means the bot does better without it, so it is weaker than the shop slot it takes.
+// Noise at 200 runs is about ±5%.
+const { fork } = require('child_process');
+const eco = process.env.ECO || 'reef';
+if (process.argv[2] === '__worker') {
+  const [, , , drop, from, to, bot] = process.argv;
+  const TP = require('./engine.js').forEco(eco);
+  if (drop !== '-') TP.CONFIG.disabled.push(drop);
+  const { play } = require('./sim.js').makeSim(TP);
+  let sum = 0, won = 0; const fails = {};
+  for (let s = +from; s < +to; s++) {
+    const { state } = play(bot, s);
+    if (state.won) { won++; sum += state.pearls; } else fails[state.failedAt] = (fails[state.failedAt] || 0) + 1;
   }
-  return { avg: score / n, win: wins / n };
+  process.send({ drop, avg: sum / (to - from), win: won / (to - from), fails });
+  return;
 }
-
-for (const bot of which === 'all' ? ['greedy', 'random'] : [which]) {
-  bought = {};
-  const finals = {};
-  let boardTiles = 0;
-  for (let r = 0; r < tallyGames; r++) {
-    const { state } = play(bot, 5000 + r);
-    for (const t of state.grid) if (t) { finals[t.kind] = (finals[t.kind] || 0) + t.lvl; boardTiles += t.lvl; }
+const [runs = '200', seed0 = '9000', bot = 'planner', W = '4'] = process.argv.slice(2);
+const TP = require('./engine.js').forEco(eco);
+const tiles = ['-'].concat(Object.keys(TP.TILES).filter(k => !TP.CONFIG.disabled.includes(k) && !TP.TILES[k].noShop));
+const results = {};
+let running = 0, next = 0;
+function launch() {
+  while (running < +W && next < tiles.length) {
+    const drop = tiles[next++]; running++;
+    const ch = fork(__filename, ['__worker', drop, seed0, String(+seed0 + +runs), bot]);
+    ch.on('message', (m) => { results[m.drop] = m; running--; if (next >= tiles.length && !running) finish(); else launch(); });
   }
-  const totalBought = Object.values(bought).reduce((a, b) => a + b, 0);
-  const tally = bought; bought = null;
-
-  const base = batch(bot, dropGames, 9000);
-  console.log(`\n== ${bot} bot: ${tallyGames}-game tally, ${dropGames}-game drop-one test ==`);
-  console.log(`baseline (all tiles) over the drop seeds: avg score ${base.avg.toFixed(0)}, finish ${(100 * base.win).toFixed(0)}%`);
-  console.log(`total tiles bought: ${totalBought} (${(totalBought / tallyGames).toFixed(1)} per game)`);
-  console.log('tile           cost  bought  per game  on final board  avg w/o tile  change  finish w/o');
-  const rows = [];
-  const parked = CONFIG.disabled.slice();
-  for (const k of Object.keys(TILES)) {
-    if (parked.includes(k)) continue;
-    CONFIG.disabled = parked.concat(k);
-    const d = batch(bot, dropGames, 9000);
-    CONFIG.disabled = parked;
-    rows.push({ k, n: tally[k] || 0, fin: finals[k] || 0, d });
-  }
-  rows.sort((a, b) => a.d.avg - b.d.avg); // biggest drop first = strongest tile
+}
+function finish() {
+  const base = results['-'];
+  console.log(`== ${eco} ${bot} drop-one, ${runs} runs, seeds ${seed0}+ ==`);
+  console.log(`baseline (all tiles): avg ${base.avg.toFixed(0)}, finish ${(100 * base.win).toFixed(1)}%, fails ${JSON.stringify(base.fails)}`);
+  console.log('tile                avg w/o   change   finish w/o');
+  const rows = tiles.filter(t => t !== '-').map(t => results[t]).sort((a, b) => a.avg - b.avg);
   for (const r of rows) {
-    const ch = 100 * (r.d.avg - base.avg) / base.avg;
-    console.log(`${TILES[r.k].name.padEnd(14)} ${String(TILES[r.k].cost).padStart(4)}  ${String(r.n).padStart(6)}  ${(r.n / tallyGames).toFixed(2).padStart(8)}  ${String(r.fin).padStart(14)}  ${r.d.avg.toFixed(0).padStart(12)}  ${((ch >= 0 ? '+' : '') + ch.toFixed(0) + '%').padStart(6)}  ${(100 * r.d.win).toFixed(0).padStart(9)}%`);
+    const ch = 100 * (r.avg - base.avg) / base.avg;
+    console.log(`${TP.TILES[r.drop].name.padEnd(18)} ${r.avg.toFixed(0).padStart(8)}  ${((ch >= 0 ? '+' : '') + ch.toFixed(1) + '%').padStart(7)}  ${(100 * r.win).toFixed(1).padStart(9)}%`);
   }
 }
+launch();

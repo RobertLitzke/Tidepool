@@ -577,7 +577,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   function start(data, quiet) {
     G = (data && data.G) || store.get('run');
-    if (!G || !G.grid || !G.rock || G.grid.length !== CONFIG.cols * CONFIG.rows || (G.eco || 'reef') !== ECO.id || G.grid.some(t => t && !TILES[t.kind]) || G.offers.some(k => k && !TILES[k])) { G = TP.newGame(Math.floor(Math.random() * 1e9)); fresh = true; }
+    if (!TP.validSave(G)) { G = TP.newGame(Math.floor(Math.random() * 1e9)); fresh = true; }
     sel = null; undo = []; busy = false;
     buildReef();
     render();
@@ -1193,7 +1193,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   // Forecast sheet: first shown when the event is revealed, then from the forecast chip. Leads into the charm market.
   function showForecast(first) {
-    const ev = EVENTS[TP.eventOf(G)];
+    const ev = TP.eventDef(G);
     G.forecastSeen = true; save();
     const left = CONFIG.eventTide - G.tide + 1;
     const extra = ev.moves ? 'Plan for the new neighbors.' : ev.threat ? `Tiles it would ${ev.spares ? 'hit' : 'take'} right now have a dashed red outline.` : '';
