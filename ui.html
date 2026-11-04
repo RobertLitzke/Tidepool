@@ -313,7 +313,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .kind.plant, .kind.flora { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
 .kind.shellfish { color: var(--shell); background: color-mix(in srgb, var(--shell) 16%, transparent); }
 .kind.critter { color: var(--pearl); background: color-mix(in srgb, var(--pearl) 16%, transparent); }
-.kind.object, .kind.mover { color: var(--ink-soft); background: color-mix(in srgb, var(--ink-soft) 14%, transparent); }
+.kind.object, .kind.mover, .kind.item { color: var(--ink-soft); background: color-mix(in srgb, var(--ink-soft) 14%, transparent); }
+.card.k-item { background: color-mix(in srgb, var(--glow) 35%, var(--panel)); }
 .kinds { display: grid; gap: 6px; font-size: 13px; line-height: 1.35; }
 .kinds div { display: flex; gap: 8px; align-items: baseline; }
 .kinds .kind { flex: none; min-width: 64px; text-align: center; }
@@ -766,12 +767,12 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 
   function renderReef() {
     const offerKind = sel && sel.type === 'offer' ? G.offers[sel.i] : null;
-    const kind = offerKind && !TILES[offerKind].mover && !TILES[offerKind].feller ? offerKind : null;
+    const kind = offerKind && !TILES[offerKind].mover && !TILES[offerKind].item ? offerKind : null;
     // Mover steps: pick a spot for it, then the touching tile to move, then where that tile goes.
-    // A feller (the Beaver) just needs the tile it takes.
+    // An item just needs the tile it acts on.
     let moveOk = null;
     if (offerKind && TILES[offerKind].mover) moveOk = new Set(TP.moverSpots(G, offerKind));
-    else if (offerKind && TILES[offerKind].feller) moveOk = new Set(TP.fellTargets(G, offerKind));
+    else if (offerKind && TILES[offerKind].item) moveOk = new Set(TP.itemTargets(G, offerKind));
     else if (sel && sel.type === 'move' && sel.from == null) moveOk = new Set(TP.moverTargets(G, sel.cell, G.offers[sel.i]));
     const fc = !busy ? yieldOf(G) : null;
     // Hint overlay for a selected tile: what it counts, what it powers, and who counts it.
@@ -873,11 +874,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   }
 
   // Whether a tile has anywhere to go on the board right now. Checked on every render, so
-  // placing, selling, felling or clearing a rock re-enables tiles as soon as a spot opens.
+  // placing, selling, using an item or clearing a rock re-enables tiles as soon as a spot opens.
   function placeable(k) {
     const def = TILES[k];
     if (def.mover) return TP.moverSpots(G, k).length > 0;
-    if (def.feller) return TP.fellTargets(G, k).length > 0;
+    if (def.item) return TP.itemTargets(G, k).length > 0;
     return G.grid.some((_, i) => TP.canPlace(G, k, i));
   }
 
@@ -900,8 +901,8 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       const peak = peaksOf(def).length ? ECO.seasons[peaksOf(def)[0]] : null;
       if (peak && inPeak(def)) b.classList.add('inpeak');
       b.innerHTML = (twin ? `<span class="twin">★${twin.lvl + 1}</span>` : '') + `<span class="rar ${def.rarity}"></span><span class="emo">${art(k)}</span><span class="nm">${def.name}</span><span class="cost">${peak ? `<span class="peak" title="Peaks in ${peak.name.toLowerCase()}">${peak.emoji}</span>` : ''}${icon('shell')}${cost}</span>`;
-      b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${w(cost, 'shell')}. ${def.text(1)}${blocked ? ' No spot for it on the board.' : twin ? ' Can level up a tile you own.' : ''}`);
-      b.addEventListener('click', () => blocked ? toast(`No spot for the ${def.name} on your ${T.board}`) : onOffer(i));
+      b.setAttribute('aria-label', `${def.name}, ${KINDS[def.tag].name.toLowerCase()}, costs ${w(cost, 'shell')}. ${def.text(1)}${blocked ? (def.item ? ' No tile it can act on right now.' : ' No spot for it on the board.') : twin ? ' Can level up a tile you own.' : ''}`);
+      b.addEventListener('click', () => blocked ? toast(def.item ? `No tile the ${def.name} can act on right now` : `No spot for the ${def.name} on your ${T.board}`) : onOffer(i));
       shop.appendChild(b);
     });
     dealt = false;
@@ -920,9 +921,9 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       const k = G.offers[sel.i], def = TILES[k];
       const cost = TP.tileCost(G, k), poor = cost > G.shells;
       const need = poor ? `<span class="chip">Need ${amt(cost - G.shells, 'shell')} more</span>` : '';
-      if (def.feller) {
-        const n = TP.fellTargets(G, k).length;
-        el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}</div>` + (need || (n ? '' : `<span class="chip">No tree to fell</span>`));
+      if (def.item) {
+        const n = TP.itemTargets(G, k).length;
+        el.innerHTML = `<div class="txt"><span class="name">${def.name}</span> ${fx(def.text(1))}</div>` + (need || (n ? '' : `<span class="chip">No tile it can act on</span>`));
         return;
       }
       if (def.mover) {
@@ -983,15 +984,16 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     if (sel && sel.type === 'offer') {
       const k = G.offers[sel.i];
       if (TP.tileCost(G, k) > G.shells) { toast(`You need ${w(TP.tileCost(G, k), 'shell')}`); return; }
-      if (TILES[k].feller) {
-        if (!TP.fellTargets(G, k).includes(i)) { toast(`Tap a tree for the ${TILES[k].name}`); return; }
+      if (TILES[k].item) {
+        if (!TP.itemTargets(G, k).includes(i)) { toast(`Tap a tile the ${TILES[k].name} can act on (outlined)`); return; }
         undo.push(TP.clone(G));
         const name = TILES[G.grid[i].kind].name;
-        if (!TP.useFeller(G, sel.i, i)) { undo.pop(); return; }
+        if (!TP.useItem(G, sel.i, i)) { undo.pop(); return; }
+        logPlaytest(G.moves[G.moves.length - 1]);
         sel = null; buzz([10, 30, 10]); save(); render();
         pulse($('reef').children[i], 'placed');
-        floatAt(i, `${art(k)} timber!`, 'm');
-        toast(`${name} felled into a ${T.rock}`);
+        floatAt(i, `${art(k)} ${TILES[k].cheer || 'done!'}`, 'm');
+        toast(`${TILES[k].name} used on your ${name}`);
         return;
       }
       if (TILES[k].mover) {
@@ -1355,6 +1357,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
         <li>Let the tide in: every tile fires in order, 1 to 16, making shells and pearls.</li>
         <li>Pearls are your score and your money. Spend them to break rocks for more space and on Tide Charms (offered at tides ${CONFIG.charmTides.join(', ')}), but hold enough to meet the goals at tides ${Object.keys(CONFIG.checkpoints).join(' and ')}.</li>
         <li>At tide ${CONFIG.eventRevealTide} you learn the forecast: a Storm Surge, Hungry Shark or Undertow that hits after tide ${CONFIG.eventTide}. Build so your reef survives it.</li>
+        <li>From tide ${CONFIG.itemsFrom} the shop has a fourth slot with an item (${TP.kindNames('item')}): a one-shot you use on a tile of your choice. It doesn't take a spot.</li>
         <li>Your score is the pearls you hold after tide ${CONFIG.tides}.</li>
       </ol>
       <p>When you pick a shop tile, each spot shows its price and what it would add to your next tide. Spots you can't afford yet are dimmed. Tap a placed tile to see what it does, what feeds it and what it feeds. Daily reef and New reef start over from here.</p>

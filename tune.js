@@ -15,6 +15,8 @@ if (process.argv[2] === '__worker') {
   TP.buy = (state, oi, cell) => { const k = state.offers[oi], s0 = state.shells; const ok = realBuy(state, oi, cell); if (ok && !state._sim) state._spent = state._spent || {}, state._spent[k] = (state._spent[k] || 0) + s0 - state.shells; return ok; };
   const realMover = TP.useMover;
   TP.useMover = (state, ...a) => { const k = state.offers[a[0]], s0 = state.shells; const ok = realMover(state, ...a); if (ok && !state._sim) state._spent = state._spent || {}, state._spent[k] = (state._spent[k] || 0) + s0 - state.shells; return ok; };
+  const realItem = TP.useItem;
+  TP.useItem = (state, ...a) => { const k = state.offers[a[0]], s0 = state.shells; const ok = realItem(state, ...a); if (ok && !state._sim) state._spent = state._spent || {}, state._spent[k] = (state._spent[k] || 0) + s0 - state.shells; return ok; };
   const realClone = TP.clone;
   TP.clone = (s) => { const c = realClone(s); c._sim = true; delete c._spent; return c; };
   const out = [];

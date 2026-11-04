@@ -35,7 +35,7 @@
       // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
       checkpoints: { 4: 12, 8: 110 },
       // Pearls held at the end for 1, 2, 3 stars. The planner bot gets 0/1/2/3 stars about 20/39/25/16% of runs (fails count as 0).
-      stars: [580, 1050, 1725],
+      stars: [550, 1005, 2090],
       // Shop weights by rarity; rare weight ramps up as tides pass.
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
@@ -51,6 +51,7 @@
       eventTide: 10,
       surgeAnchorKelp: 2,     // a center tile touching this many Sargassum tiles survives the Storm Surge
       sharkBites: 2,          // tiles the Hungry Shark eats
+      itemsFrom: 9,           // v29: one-shot items join the shop in their own slot from this tide
     };
 
     // Tile kinds. Effects that count "flora", "shellfish" or "critters" mean exactly the tiles tagged with that kind.
@@ -60,6 +61,7 @@
       critter: { name: 'Critter', emoji: '🐾' },
       object: { name: 'Object', emoji: '📦' },
       mover: { name: 'Mover', emoji: '↔️' },
+      item: { name: 'Item', emoji: '✨' },
     };
 
 
@@ -103,14 +105,15 @@
       coral: { name: 'Staghorn', emoji: '🪸', cost: 3, rarity: 'uncommon', tag: 'plant', showAge: true,
         text: (L) => `Grows each tide. +${L} pearl for each tide it has grown.`,
         fire: (c, L) => ({ s: 0, p: L * c.t.age }) },
+      // v29: pays pearls for shells held, so spare shells late in the run have somewhere to go (it made shells from shells before).
       urn: { name: 'Shipwreck', emoji: '⚓', cost: 3, rarity: 'uncommon', tag: 'object',
-        text: (L) => `+${L} shell for every 4 shells you hold (up to +${6 * L}).`,
-        fire: (c, L) => ({ s: L * Math.min(6, Math.floor(c.state.shells / 4)), p: 0 }) },
+        text: (L) => `+${L} pearl for every 6 shells you hold (up to +${4 * L}).`,
+        fire: (c, L) => ({ s: 0, p: L * Math.min(4, Math.floor(c.state.shells / 6)) }) },
       puffer: { name: 'Pufferfish', emoji: '🐡', cost: 5, rarity: 'uncommon', tag: 'critter', booster: true, cheer: 'puff!',
         text: (L) => `The next tile to fire makes ×${1 + L}.`,
         boosts: (c) => { for (let j = c.i + 1; j < c.grid.length; j++) if (c.grid[j]) return [j]; return []; },
         fire: (c, L) => { c.state._mult = Math.max(c.state._mult, 1 + L); return { s: 0, p: 0 }; } },
-      star: { name: 'Sea Star', emoji: '⭐', cost: 5, rarity: 'uncommon', tag: 'critter', echo: true,
+      star: { name: 'Sea Star', emoji: '⭐', cost: 4, rarity: 'uncommon', tag: 'critter', echo: true,   // v29: 5 -> 4 (drop-one exactly neutral)
         text: (L) => `Echo: fires the tile above it again${L > 1 ? `, ${L} times` : ''}.`,
         targets: (i) => [i - CONFIG.cols].filter(j => j >= 0) },
       otter: { name: 'Mantis Shrimp', emoji: '🦐', cost: 4, rarity: 'rare', tag: 'critter',
@@ -126,7 +129,7 @@
         fire: (c, L) => ({ s: 0, p: L * Math.floor(c.filled / 2) }) },
       // Mover: never sits on the reef. Placed on an empty spot beside a tile, it moves that tile
       // one space up, down, left or right (swapping if that spot is filled), then swims away.
-      dolphin: { name: 'Dolphin', emoji: '🐬', cost: 7, rarity: 'rare', tag: 'mover', mover: true, afterFirstGoal: true,
+      dolphin: { name: 'Dolphin', emoji: '🐬', cost: 5, rarity: 'rare', tag: 'mover', mover: true, afterFirstGoal: true,   // v29: 7 -> 5 (1% of picks)
         text: () => 'Place it beside a tile, then move that tile one space. A filled spot swaps. Swims away after: no pearls or shells.' },
       turtle: { name: 'Sea Turtle', emoji: '🐢', cost: 9, rarity: 'rare', tag: 'critter', echo: true,
         text: (L) => `Echo: fires the tiles to its left and right again${L > 1 ? `, ${L} times` : ''}.`,
@@ -136,6 +139,16 @@
           if (col < CONFIG.cols - 1) out.push(i + 1);
           return out;
         } },
+      // Items (v29, notes/late-game.md option 2): one-shot tiles in their own shop slot from tide itemsFrom. They act on
+      // one tile and are gone, so a full reef still has a choice to make and spare shells a use.
+      bottle: { name: 'Message in a Bottle', emoji: '🍾', cost: 7, rarity: 'rare', tag: 'item', item: true, priceStep: 1, get fromTide() { return CONFIG.itemsFrom; }, cheer: 'again!',
+        text: () => 'Pick a tile: it fires twice when the tide comes in. Then the bottle is gone. Costs 1 more each time.',
+        targets: (state, i) => !!state.grid[i] && !TILES[state.grid[i].kind].echo && !TILES[state.grid[i].kind].booster,
+        use: (state, i) => { state.grid[i].encore = state.tide; } },
+      polish: { name: 'Golden Polish', emoji: '🏅', cost: 9, rarity: 'rare', tag: 'item', item: true, priceStep: 3, get fromTide() { return CONFIG.itemsFrom; }, cheer: 'shiny!',
+        text: () => 'Pick a tile at its top level (★3): it grows one more level, past the cap. Costs 3 more each time.',
+        targets: (state, i) => { const t = state.grid[i]; return !!t && !TILES[t.kind].stack && t.lvl >= (TILES[t.kind].maxLevel || CONFIG.maxLevel); },
+        use: (state, i, cost) => { const t = state.grid[i]; t.paid = E.invested(t) + cost; t.lvl++; } },
     };
 
     // Forecast events. Each strikes once, at the end of CONFIG.eventTide. threat(state) lists the cells it

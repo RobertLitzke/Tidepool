@@ -90,7 +90,7 @@
     // tiles with `months` are only in the shop in those months; noShop tiles never are.
     const firstGoalTide = () => Math.min(...Object.keys(CONFIG.checkpoints).map(Number));
     const inShop = (state, k) => !CONFIG.disabled.includes(k) && !TILES[k].noShop && !(TILES[k].afterFirstGoal && state.tide <= firstGoalTide())
-      && !(TILES[k].months && !TILES[k].months.includes(month(state)));
+      && !(TILES[k].fromTide && state.tide < TILES[k].fromTide);
 
     // The run's event, picked from the seed so it doesn't disturb the shop's random stream.
     const eventOf = (state) => state.event !== undefined ? state.event
@@ -286,7 +286,8 @@
     // Stacking tiles marked flat (Sargassum) keep their list price however many you place.
     const stackPriced = (kind) => TILES[kind].stack && !TILES[kind].flat;
     const tileCost = (state, kind) => Math.max(1, TILES[kind].cost + charmSum(state, 'costDelta', kind, state)
-      + (stackPriced(kind) ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0));
+      + (stackPriced(kind) ? Math.floor(placedCount(state, kind) / CONFIG.stackPriceEvery) : 0)
+      + (TILES[kind].priceStep || 0) * placedCount(state, kind));
 
     // Rolls the shop, and rolls again (up to a cap) while every offer is the same kind, if the shop could hold more than one kind.
     function rollOffers(state) {
@@ -300,7 +301,7 @@
 
     function rollOnce(state, kinds) {
       const pick = (ok) => {
-        const pool = kinds.filter(k => ok(k) && inShop(state, k));
+        const pool = kinds.filter(k => ok(k) && inShop(state, k) && !TILES[k].item);
         const weights = pool.map(k => CONFIG.rarityWeight(TILES[k].rarity, state.tide) * ((CONFIG.kindWeight || {})[TILES[k].tag] || 1));
         let r = rand(state) * weights.reduce((a, b) => a + b, 0), k = 0;
         while (k < pool.length - 1 && r >= weights[k]) r -= weights[k++];
@@ -324,6 +325,9 @@
         while (n > 0 && affordable(state.offers[n]) && state.offers.filter(affordable).length <= CONFIG.affordableOffers) n--;
         state.offers[n] = pick(pearly);
       }
+      // Items (one-shot tiles that act on the board and leave) get their own extra slot once they are in the shop.
+      const items = kinds.filter(k => TILES[k].item && inShop(state, k) && CONFIG.rarityWeight(TILES[k].rarity, state.tide) > 0);
+      if (items.length) state.offers.push(items[Math.floor(rand(state) * items.length)]);
     }
 
     const rerollCost = (state) => {
@@ -342,7 +346,7 @@
     // A tile can go on an empty cell, or onto the same kind below max level to level it up.
     function canPlace(state, kind, cell) {
       const t = state.grid[cell];
-      if (state.rock[cell] || TILES[kind].mover || TILES[kind].feller) return false;
+      if (state.rock[cell] || TILES[kind].mover || TILES[kind].item) return false;
       return !t || (t.kind === kind && t.lvl < maxLevel(kind));
     }
 
@@ -399,18 +403,21 @@
       return true;
     }
 
-    // Feller tiles (the Beaver): buy it and use it on one tile it can take, then it leaves.
-    const fellTargets = (state, kind) => state.grid.map((t, i) => t && TILES[kind].fells(state, i) ? i : -1).filter(i => i >= 0);
-    function useFeller(state, offerIdx, cell) {
+    // Item tiles (v29: Message in a Bottle, Golden Polish): buy one and use it on one tile it can take, then it is gone.
+    // TILES[k].item, targets(state, i) -> can it act on cell i, use(state, i, cost); fromTide keeps it out of early shops,
+    // priceStep raises its price with every use.
+    const itemTargets = (state, kind) => state.grid.map((t, i) => t && TILES[kind].targets(state, i) ? i : -1).filter(i => i >= 0);
+    function useItem(state, offerIdx, cell) {
       const kind = state.offers[offerIdx];
-      if (state.over || !kind || !TILES[kind].feller) return false;
+      if (state.over || !kind || !TILES[kind].item) return false;
       const cost = tileCost(state, kind);
-      if (state.shells < cost || !fellTargets(state, kind).includes(cell)) return false;
+      if (state.shells < cost || !itemTargets(state, kind).includes(cell)) return false;
       state.shells -= cost;
-      const felled = state.grid[cell];
-      TILES[kind].fell(state, cell);
+      const target = state.grid[cell];
+      TILES[kind].use(state, cell, cost);
       state.offers[offerIdx] = null;
-      (state.moves || (state.moves = [])).push({ tide: state.tide, mover: kind, at: cell, kind: felled.kind });
+      (state.placed || (state.placed = {}))[kind] = placedCount(state, kind) + 1;
+      (state.moves || (state.moves = [])).push({ tide: state.tide, mover: kind, at: cell, kind: target.kind });
       return true;
     }
 
@@ -482,8 +489,10 @@
       const twice = charmAny(state, 'firstTwice');
       for (let i = 0; i < state.grid.length; i++) {
         // A tile with repeats(state, t) fires that many extra times in a row (Oasis Mirage's dry-season Waterholes).
-        const t = state.grid[i], reps = t && TILES[t.kind].repeats ? TILES[t.kind].repeats(state, t) : 0;
+        // t.encore (Message in a Bottle) makes a tile fire once more this round.
+        const t = state.grid[i], enc = t && t.encore === state.tide ? 1 : 0, reps = (t && TILES[t.kind].repeats ? TILES[t.kind].repeats(state, t) : 0) + enc;
         for (let k = 0; k <= reps; k++) activate(i, 0, null);
+        if (enc) t.encore = null;
         if (i === first && twice) activate(i, 0, null);
       }
 
@@ -559,7 +568,7 @@
 
     return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventDef, eventKnown, validSave, eventThreat, invested, kindNames, starterOptions, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
       maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
-      inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season, phase, inSeason, endShellsPer, tileState,
+      inShop, moverSpots, moverTargets, moverDests, useMover, itemTargets, useItem, actions, act, dormant, month, season, phase, inSeason, endShellsPer, tileState,
       phased: !!(CONFIG.calendar || CONFIG.cycle) };
   }
 

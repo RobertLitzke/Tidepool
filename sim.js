@@ -86,12 +86,12 @@ function buyLoop(state, value, shellW, opts = {}) {
     let best = null;
     state.offers.forEach((k, oi) => {
       if (!k || TP.tileCost(state, k) > state.shells) return;
-      if (TILES[k].feller) {
-        for (const cell of TP.fellTargets(state, k)) {
+      if (TILES[k].item) {
+        for (const cell of TP.itemTargets(state, k)) {
           const c = TP.clone(state);
-          if (!TP.useFeller(c, oi, cell)) continue;
+          if (!TP.useItem(c, oi, cell)) continue;
           const gain = value(c) - base - shellW * (state.shells - c.shells);
-          if (!best || gain > best.gain) best = { gain, oi, cell, v: 'fell' };
+          if (!best || gain > best.gain) best = { gain, oi, cell, v: 'item' };
         }
         return;
       }
@@ -119,7 +119,7 @@ function buyLoop(state, value, shellW, opts = {}) {
     });
     if (best && best.gain > 0) {
       if (best.v === 'move') { TP.useMover(state, best.oi, best.cell, best.from, best.to); continue; }
-      if (best.v === 'fell') { TP.useFeller(state, best.oi, best.cell); continue; }
+      if (best.v === 'item') { TP.useItem(state, best.oi, best.cell); continue; }
       if (best.v === 'replace') TP.sell(state, best.cell);
       TP.buy(state, best.oi, best.cell);
       continue;
@@ -160,12 +160,12 @@ const bots = {
       let best = null;
       state.offers.forEach((k, oi) => {
         if (!k || TP.tileCost(state, k) > state.shells) return;
-        if (TILES[k].feller) {
-          for (const cell of TP.fellTargets(state, k)) {
+        if (TILES[k].item) {
+          for (const cell of TP.itemTargets(state, k)) {
             const c = TP.clone(state);
-            if (!TP.useFeller(c, oi, cell)) continue;
+            if (!TP.useItem(c, oi, cell)) continue;
             const gain = score(tideYield(c)) - base - shellW * (state.shells - c.shells);
-            if (!best || gain > best.gain) best = { gain, oi, cell, v: 'fell' };
+            if (!best || gain > best.gain) best = { gain, oi, cell, v: 'item' };
           }
           return;
         }
@@ -196,7 +196,7 @@ const bots = {
       });
       if (best && best.gain > 0) {
         if (best.v === 'move') { TP.useMover(state, best.oi, best.cell, best.from, best.to); continue; }
-        if (best.v === 'fell') { TP.useFeller(state, best.oi, best.cell); continue; }
+        if (best.v === 'item') { TP.useItem(state, best.oi, best.cell); continue; }
         if (best.v === 'replace') TP.sell(state, best.cell);
         TP.buy(state, best.oi, best.cell);
         continue;
