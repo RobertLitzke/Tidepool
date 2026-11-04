@@ -35,7 +35,7 @@
       // Pearls you must be holding at the end of a tide, or the run ends. Pearls are also spent, so this is a real tension.
       checkpoints: { 4: 12, 8: 110 },
       // Pearls held at the end for 1, 2, 3 stars. The planner bot gets 0/1/2/3 stars about 20/39/25/16% of runs (fails count as 0).
-      stars: [550, 1050, 1600],
+      stars: [580, 1050, 1725],
       // Shop weights by rarity; rare weight ramps up as tides pass.
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)

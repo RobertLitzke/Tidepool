@@ -233,6 +233,14 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
 .mod span { font-size: 13px; color: var(--ink-soft); line-height: 1.35; }
 .mod input { width: 22px; height: 22px; accent-color: var(--coral); }
 .mod:has(input:checked) { box-shadow: inset 0 0 0 2px var(--coral); }
+.setup-h { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--ink-soft); }
+.starter-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.starter { display: grid; gap: 6px; padding: 10px; border-radius: 16px; background: var(--sand); text-align: left; cursor: pointer; }
+.starter .e { font-size: 30px; line-height: 1; }
+.starter .e .art { width: 40px; height: 40px; }
+.starter b { font-family: var(--font-display); font-weight: 600; font-size: 15px; display: block; }
+.starter .fx { display: block; font-size: 12px; color: var(--ink-soft); line-height: 1.35; margin-top: 3px; }
+.starter.sel { box-shadow: inset 0 0 0 2px var(--coral); }
 .cell.k-plant, .cell.k-tree, .cell.k-flora { background: color-mix(in srgb, var(--ok) 20%, var(--sand)); }
 .cell.k-understory { background: color-mix(in srgb, var(--flower, var(--coral)) 16%, var(--sand)); }
 .card.k-tree { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); }
@@ -562,7 +570,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
   const art = (k) => `<svg class="art" aria-hidden="true"><use href="#t-${k}"/></svg>`;
   // A tile's season(s), and whether this month is one of them.
   const peaksOf = (d) => [].concat((TP.phased && d.peak) || []);
-  const inPeak = (d) => peaksOf(d).includes(TP.season(G));
+  const inPeak = (d) => TP.phased && TP.inSeason(G, d);
   const rockArt = () => ECO.rockArt || (ECO.realm === 'land' ? 'log' : 'rock');
   const peakName = (d) => peaksOf(d).map(p => ECO.seasons[p].emoji + ' ' + ECO.seasons[p].name).join(' and ');
   // An amount with its icon ("3" + shell), and rules text with "+2 pearls" style amounts turned into icons.
@@ -635,25 +643,34 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
     fresh = false;
     const on = new Set((store.get('mods') || []).filter(id => TP.MODIFIERS[id]));
     const rows = Object.entries(TP.MODIFIERS).map(([id, m]) => `<label class="mod"><span class="e">${m.emoji}</span><span><b>${m.name}</b>${m.text()}</span><input type="checkbox" data-mod="${id}" ${on.has(id) ? 'checked' : ''}></label>`).join('');
+    // The first decision of the run: one of two starter tiles drawn from the seed (v27).
+    const opts = TP.starterOptions(seed);
+    const starters = opts ? `<p class="setup-h">Start with</p><div class="starter-list">${opts.kinds.map((k, i) => `<button class="starter${i ? '' : ' sel'}" data-starter="${k}" aria-pressed="${i ? 'false' : 'true'}"><span class="e">${art(k)}</span><span><b>${TILES[k].name}</b>${kindChip(TILES[k].tag)}<span class="fx">${fx(TILES[k].text(1))}</span></span></button>`).join('')}</div>` : '';
     $('overlay').innerHTML = `<div class="sheet-bg" id="setupBg"><div class="sheet" role="dialog" aria-label="New run">
       <h2>${daily ? 'Daily' : 'New'} ${T.board}</h2>
-      <p>Modifiers change this run. Leave them all off for the standard game.</p>
+      ${starters}
+      <p class="setup-h">Modifiers</p>
       <div class="mod-list">${rows}</div>
       <p id="setupNote"></p>
       <div class="row"><button class="btn" id="setupBack">Back</button><button class="btn go" id="setupGo">Start</button></div>
     </div></div>`;
     const picked = () => [...$('overlay').querySelectorAll('[data-mod]')].filter(b => b.checked).map(b => b.dataset.mod);
+    const starter = () => { const b = $('overlay').querySelector('.starter.sel'); return b ? b.dataset.starter : undefined; };
     const note = () => { $('setupNote').textContent = picked().length ? 'With a modifier on, this run gets no star rating and doesn\'t count for your best.' : 'Standard game: this run earns stars.'; };
     $('overlay').querySelectorAll('[data-mod]').forEach(b => b.addEventListener('change', note));
+    $('overlay').querySelectorAll('.starter').forEach(b => b.addEventListener('click', () => {
+      $('overlay').querySelectorAll('.starter').forEach(o => { o.classList.toggle('sel', o === b); o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      buzz(5);
+    }));
     note();
-    $('setupGo').addEventListener('click', () => { const mods = picked(); store.set('mods', mods); beginRun(seed, daily, mods); });
+    $('setupGo').addEventListener('click', () => { const mods = picked(); store.set('mods', mods); beginRun(seed, daily, mods, starter()); });
     const back = () => { closeOverlay(); if (G.over) endRun(); };
     $('setupBack').addEventListener('click', back);
     $('setupBg').addEventListener('click', (e) => { if (e.target.id === 'setupBg') back(); });
   }
 
-  function beginRun(seed, daily, mods) {
-    G = TP.newGame(seed, mods);
+  function beginRun(seed, daily, mods, starter) {
+    G = TP.newGame(seed, mods, starter);
     G.daily = !!daily;
     sel = null; undo = []; dealt = true;
     closeOverlay();
@@ -1034,10 +1051,10 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       <div class="facts">
         <div><span class="k">Next ${T.round}</span><span class="v">${yieldTxt(y) || (TP.dormant(G, i) ? 'Resting this ' + T.round : 'Nothing yet')}</span></div>
         ${peaksOf(def).length ? `<div><span class="k">${def.helper ? 'On in' : '×2 in'}</span><span class="v">${peakName(def)}${inPeak(def) ? ' (now)' : ''}</span></div>` : ''}
-        ${plant && def.tag === 'understory' && canUp ? `<div><span class="k">Leaves</span><span class="v">${t.leaves || 0} of ${needL} to grow to ★${t.lvl + 1}</span></div>` : ''}
+        ${plant && def.tag === 'understory' && (canUp || CONFIG.leafUncapped) ? `<div><span class="k">Leaves</span><span class="v">${t.leaves || 0} of ${needL} to grow to ★${t.lvl + 1}${canUp ? '' : ' (leaves only)'}</span></div>` : ''}
         ${TP.tileState(G, i) ? `<div><span class="k">Now</span><span class="v">${TP.tileState(G, i).label}</span></div>` : ''}
         ${def.showAge ? `<div><span class="k">Grown</span><span class="v">${rounds(t.age)}</span></div>` : ''}
-        <div><span class="k">Level up</span><span class="v">${canUp ? `<span class="star-chip">★${t.lvl + 1}</span>for ${amt(TP.placeCost(G, t.kind, i), 'shell')}: ${fx(def.text(t.lvl + 1))}` : `Max level (★${t.lvl}).`}</span></div>
+        <div><span class="k">Level up</span><span class="v">${canUp ? `<span class="star-chip">★${t.lvl + 1}</span>for ${amt(TP.placeCost(G, t.kind, i), 'shell')}: ${fx(def.text(t.lvl + 1))}` : `Max level for ${unit('shell')} (★${t.lvl}).`}</span></div>
       </div>
       ${legend ? `<div class="legend">${legend}</div>` : ''}
       <div class="row"><button class="btn" id="sellBtn">Sell for ${amt(TP.sellValue(t), 'shell')}</button><button class="btn go" data-close>OK</button></div>`);
@@ -1270,6 +1287,7 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       <h2>${title}</h2>
       <div class="big-score">${icon('pearl')}${G.pearls}</div>
       ${G.won && !rated ? `<p>Modifiers on (${mods}), so no star rating.</p>` : G.won ? `<div class="stars">${[0, 1, 2].map(n => `<span class="${n < st ? '' : 'off'}">★</span>`).join('')}</div>` : `<p>You needed to hold ${w(need, 'pearl')} at the end of ${roundName(G.failedAt)}. ${T.failHint}</p>`}
+      ${G.won && G.lastTide && G.lastTide.endBonus && G.lastTide.endBonus.pearls ? `<p>${w(G.shells, 'shell')} left over counted ${w(G.lastTide.endBonus.pearls, 'pearl')} (1 per ${G.lastTide.endBonus.per}).</p>` : ''}
       ${G.moves && G.moves.length ? `<p>Moves made with a ${TILES[G.moves[0].mover].name} this run: ${G.moves.length}.</p>` : ''}
       <p>${!rated ? `Runs with modifiers don't count for your best (${w(best, 'pearl')}).` : isBest ? `New best ${T.board}!` : `Best ${T.board}: ${w(Math.max(best, 0), 'pearl')}.`} ${G.daily ? `Daily ${T.board} for today.` : ''}</p>
       <div class="row"><button class="btn" id="dailyBtn">Daily ${T.board}</button><button class="btn go" id="againBtn">New ${T.board}</button></div>
@@ -1322,11 +1340,11 @@ svg.art { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -.
       <ol>
         <li>The year runs from ${M(1)} to ${M(CONFIG.tides)}, one month a turn. Buy tiles with seeds and place them in the forest. Drop a tile on its twin to level it up: ★2 makes double, ★3 triple.</li>
         <li><b>Seasons.</b> Every tile makes ×2 in its season (its shop card shows the season emoji, and it glows on the board while in season). The Bumblebee is the exception: it's on in spring and summer, when touching understory plants make ×2, and off the rest of the year.</li>
-        <li><b>Leaves.</b> In fall (September to November) each tree drops a leaf on every touching understory plant and empty spot. Every 2 leaves grow a plant a level for free, up to ★3. On an empty spot they wait: place a critter there for ${w(CONFIG.leafSeeds, 'shell')} a leaf, or a plant to grow it.</li>
+        <li><b>Leaves.</b> In fall (September to November) each tree drops a leaf on every touching understory plant and empty spot. Every 2 leaves grow a plant a level for free, and leaves can take a plant past ★3 (seeds stop at ★3). On an empty spot they wait: place a critter there for ${w(CONFIG.leafSeeds, 'shell')} a leaf, or a plant to grow it.</li>
         <li>Next month: every tile fires in order, 1 to 16, making seeds and amber.</li>
         <li>Amber is your score and your money. Spend it on Heirlooms (offered in ${CONFIG.charmTides.map(M).join(', ')}) and to clear fallen logs (or pay seeds instead), but hold enough to meet the goals in ${Object.keys(CONFIG.checkpoints).map(Number).map(M).join(' and ')}.</li>
         <li>In ${M(CONFIG.eventRevealTide)} you learn the forecast: a Derecho, Drought or Mast Year that comes after ${M(CONFIG.eventTide)}.</li>
-        <li>Your score is the amber you hold after ${M(CONFIG.tides)}.</li>
+        <li>Your score is the amber you hold after ${M(CONFIG.tides)}, plus 1 amber for every ${TP.endShellsPer(G)} seeds left over.</li>
       </ol>
       <p>When you pick a shop tile, each spot shows its price and what it would add next month. Tap a placed tile to see what it does and how close it is to growing. Daily forest and New forest start over from here.</p>
       <p>Every tile has a kind. When a rule says tree, understory or critter, it means these tiles:</p>`;

@@ -225,8 +225,25 @@ bots.planner = function (state) {
   ecoActions(state, (s) => runout(s, opt), shellW);
 };
 
+// A new run, with the starter picked the way each bot judges tiles: the planner by the playout, greedy by next
+// round's yield (shells weighted as on tide 1), random by taking the first option.
+function newRun(botName, seed, mods = (process.env.MODS || '').split(',').filter(Boolean)) {
+  const opts = TP.starterOptions(seed);
+  if (!opts || botName === 'random') return TP.newGame(seed, mods);
+  const states = opts.kinds.map(k => TP.newGame(seed, mods, k));
+  // A frozen board undervalues starters that need neighbors (the Hermit Crab makes nothing alone), so each option
+  // is judged after three rounds of greedy play on a clone: what that board holds plus what it would make from there.
+  const score = (s) => {
+    const c = TP.clone(s);
+    for (let n = 0; n < 3 && !c.over; n++) { bots.greedy(c); TP.runTide(c); }
+    const y = tideYield(c);
+    return c.pearls + 0.6 * c.shells + (botName === 'planner' ? runout(c) : (y.p + 0.6 * y.s) * (CONFIG.tides - c.tide + 1));
+  };
+  return states.reduce((a, b) => score(b) > score(a) ? b : a);
+}
+
 function play(botName, seed) {
-  const state = TP.newGame(seed, (process.env.MODS || '').split(',').filter(Boolean));
+  const state = newRun(botName, seed);
   const picks = {}, pearlsBy = {};
   while (!state.over) {
     // Picks = new levels of each kind on the reef (moves and swaps don't count), plus mover plays.
@@ -295,7 +312,7 @@ function report(botName, runs) {
   for (const r of rows) console.log(`${TILES[r.k].name.padEnd(13)} ${(100 * r.pick / totalPicks).toFixed(1).padStart(5)}  ${(r.pearls / runs).toFixed(1).padStart(8)}  ${late[r.k] ? (late[r.k].v / late[r.k].lv).toFixed(1).padStart(8) : '       -'}`);
 }
 
-return { TP, bots, play, report };
+return { TP, bots, play, newRun, report };
 }
 
 const SIM = makeSim(require('./engine.js').forEco(process.env.ECO || 'reef'));

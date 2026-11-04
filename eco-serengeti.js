@@ -24,7 +24,7 @@
       shopSize: 3,
       rerollBase: 2,
       rerollStep: 2,
-      disabled: ['crocodile'], // v22: Crocodile parked (kept for saved runs)
+      disabled: ['crocodile', 'oxpecker'], // v22: Crocodile parked; v26: Oxpecker parked (both kept in TILES for saved runs)
       // Kopjes (rock outcrops) rest on the bottom, like the reef's rocks.
       rockLayouts: [
         { cells: [12, 13, 14, 15], weight: 2 },
@@ -41,7 +41,7 @@
       sellRate: 0.5,
       checkpoints: { 4: 12, 8: 110 },   // goals fall on Dry rounds
       // Amber held at the end for 1, 2, 3 stars. The spec said 500/1000/1500; calibrated like the other ecosystems so the planner bot gets 0/1/2/3 about 30/35/25/10%.
-      stars: [650, 1100, 1650],
+      stars: [965, 1520, 2120],
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
@@ -53,7 +53,7 @@
       events: ['drought', 'brushfire', 'migration'],
       eventRevealTide: 5,
       eventTide: 10,
-      migrationBonus: 5,   // amber per grazer that grazes after the Great Migration
+      migrationBonus: 8,   // amber per grazer that grazes after the Great Migration (v26: 5 -> 8, it was the harshest event)
       sproutAmber: 3,      // Fresh Sprouts: amber per flora restored mid-round or at round end
       vultureAmber: 3,     // Vulture Kettle: amber per Grazed flora after the board fires
       // v21 (Rob: Grazed was too easy to avoid): Dry turns start with every flora a Waterhole doesn't water Grazed
@@ -119,7 +119,7 @@
       red_oat_grass: { name: 'Red Oat Grass', emoji: '🌾', cost: 2, rarity: 'common', tag: 'flora', stack: true, flat: true,
         text: (L) => `+${L} seed and +${L} amber.`,
         fire: (c, L) => ({ s: L, p: L }) },
-      star_grass: { name: 'Star Grass', emoji: '🌱', cost: 3, rarity: 'common', tag: 'flora',
+      star_grass: { name: 'Star Grass', emoji: '🌱', cost: 2, rarity: 'common', tag: 'flora',   // v26: 3 -> 2 (drop-one said the planner did 28% better without it)
         text: (L) => `+${L} amber. Sweet: a grazer that grazes it makes +${2 * L} amber more.`,
         fire: (c, L) => ({ s: 0, p: L }) },
 
@@ -133,10 +133,11 @@
           const lv = c.grid[j].lvl, x = graze(c.state, j);
           return { s: x.s, p: L + L * lv + x.p };
         } },
+      // v26: counts every touching flora, Lush or Grazed (it browses the treetops, so grazing shouldn't matter to it).
       giraffe: { name: 'Giraffe', emoji: '🦒', cost: 3, rarity: 'common', tag: 'grazer',
-        text: (L) => `Browses the treetops, never grazes. +${L} amber, +${L} more per level of touching Lush flora.`,
-        reads: (c) => c.nb.filter(j => lush(c.grid[j])),
-        fire: (c, L) => ({ s: 0, p: L + L * count(c, lush) }) },
+        text: (L) => `Browses the treetops, never grazes. +${L} amber, +${L} more per level of touching flora, Lush or Grazed.`,
+        reads: (c) => c.nb.filter(j => isFlora(c.grid[j])),
+        fire: (c, L) => ({ s: 0, p: L + L * count(c, isFlora) }) },
       wildebeest: { name: 'Wildebeest', emoji: '🐃', cost: 4, rarity: 'uncommon', tag: 'grazer',
         text: (L) => `Grazes ALL touching Lush flora: +${2 * L} amber per level grazed. With none Lush, +${L} amber.`,
         reads: (c) => c.nb.filter(j => lush(c.grid[j])),
@@ -292,7 +293,7 @@
       vulture: { name: 'Vulture Kettle', emoji: '🦅', base: 6, text: `After the savanna fires, +${CONFIG.vultureAmber} amber for each Grazed flora.` },
       termite: { name: 'Termite Symbiosis', emoji: '🐜', base: 7, text: 'Flora and objects cost 1 seed less (minimum 1), and buying or leveling one makes +2 amber.',
         costDelta: (kind) => ['flora', 'object'].includes(TILES[kind].tag) ? -1 : 0 },
-      echo: { name: 'Savanna Echo', emoji: '🔔', base: 7, text: 'Oxpeckers echo one extra time.', echoExtra: 1 },
+      echo: { name: 'Savanna Echo', emoji: '🔔', base: 7, text: 'Oxpeckers echo one extra time.', echoExtra: 1, retired: true }, // v26: no longer offered (Oxpecker parked); kept for saved runs
       rains: { name: 'Second Rains', emoji: '🌦️', base: 8, text: 'After each Wet turn fires, the first Grazed flora turns Lush and the grazers touching it fire again.' },
     };
 

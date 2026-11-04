@@ -12,7 +12,7 @@
   };
   const LEAF_FALL = [8, 9, 10];   // September to November
   const BEECH_DROP = [2, 3];      // March and April: the Beech lets go of last year's leaves
-  const DRY = [8, 9];             // Drought months: September and October
+  const DRY = [7, 8, 9];          // Drought months: August to October (v28: was September and October)
 
   function def(E) {
     const { count, neighbors, has } = E;
@@ -25,7 +25,7 @@
       // Two starters side by side: a White Oak and an understory plant it drops leaves on.
       starters: [['oak'], ['ginger', 'laurel', 'hazel', 'trillium']],
       startersTouch: true,
-      tideIncome: 3,
+      tideIncome: 2,                         // v28: 3 -> 2; bots ended the year with 360 spare seeds and every seed maker tested weak
       shopSize: 3,
       rerollBase: 2,
       rerollStep: 2,
@@ -40,9 +40,9 @@
       levelUpStep: 2,
       stackPriceEvery: 2,
       sellRate: 0.5,
-      checkpoints: { 4: 40, 8: 300 },        // amber held at the end of February and June
+      checkpoints: { 4: 40, 8: 360 },        // amber held at the end of February and June (v28: June 300 -> 360; 0 of 900 bot runs failed before)
       // Amber held at the end for 1, 2, 3 stars, calibrated like the reef: the planner bot gets 0/1/2/3 about 30/35/25/10%.
-      stars: [1115, 1280, 1450],
+      stars: [1330, 1555, 1895],
       rarityWeight: (rarity, tide) => rarity === 'common' ? 10
         : rarity === 'uncommon' ? (tide < 2 ? 2 : 6)
         : tide < CONFIG.rareFromTide ? 0 : 1 + tide * 0.5,
@@ -53,13 +53,16 @@
       events: ['derecho', 'drought', 'mast'],
       eventRevealTide: 5,
       eventTide: 10,
+      derechoTrees: 3,    // v28: 2 -> 3 (the Derecho cost nothing on average)
       calendar: { firstMonth: 10, seasons: SEASON_OF, names: MONTHS },
       seasonMult: 2,      // every tile makes ×2 in its season
       leavesToGrow: 2,    // leaves a plant needs to grow a level (Wild Ginger: 1)
+      leafUncapped: true, // v28: leaves grow a plant past ★3 (seeds still stop at ★3), so every fall matters
+      endShells: (state) => has(state, 'hoard') ? 3 : 5, // v28: seeds left at the end score 1 amber per this many
       leafMax: 4,         // leaves an empty spot can hold
       leafSeeds: 2,       // seeds per leaf when a critter moves onto a leafy spot
       // Tile numbers, kept here so tuning variants can change them (TP.CONFIG.k).
-      k: { oak: 2, maple: 3, beech: 1, birch: 1, trillium: 3, laurel: 1, hazelSeeds: 2, hazel: 2, ginger: 3, squirrel: 1, bear: 1, deer: 4, chipmunk: 2 },
+      k: { oak: 2, maple: 3, beech: 1, birch: 1, trillium: 3, laurel: 1, hazelSeeds: 2, hazel: 2, ginger: 3, squirrel: 1, bear: 1, deer: 4, chipmunk: 2, chipmunkAmber: 1 },
     };
 
     const KINDS = {
@@ -75,9 +78,10 @@
     const monthOf = (state) => E.month(state);
     // Is a tile in season this month? Long Summer stretches summer into September.
     const seasonsOf = (d) => [].concat(d.peak || []);
+    // Long Summer stretches summer into September; Evergreen keeps the winter plants (Maple, Ginger) in season all year.
     const inSeason = (state, d) => {
       const m = monthOf(state), s = SEASON_OF[m];
-      return seasonsOf(d).includes(s) || (m === 8 && seasonsOf(d).includes('summer') && has(state, 'longsummer'));
+      return seasonsOf(d).includes(s) || (m === 8 && seasonsOf(d).includes('summer') && has(state, 'longsummer')) || (d.evergreen && has(state, 'evergreen'));
     };
     const beeOn = (state) => has(state, 'busybees') || ['spring', 'summer'].includes(SEASON_OF[monthOf(state)]);
     // A plant touching any awake Bumblebee makes ×2 (more bees don't stack).
@@ -91,7 +95,7 @@
         text: (L) => `+${K.oak * L} seeds, +${L} more for each touching White Oak.`,
         reads: (c) => c.nb.filter(j => c.grid[j] && c.grid[j].kind === 'oak'),
         fire: (c, L) => ({ s: K.oak * L + L * count(c, n => n.kind === 'oak'), p: 0 }) },
-      maple: { name: 'Sugar Maple', emoji: '🍁', cost: 3, rarity: 'common', tag: 'tree', peak: 'winter',
+      maple: { name: 'Sugar Maple', emoji: '🍁', cost: 3, rarity: 'common', tag: 'tree', peak: 'winter', evergreen: true,
         text: (L) => `+${K.maple * L} amber.`,
         fire: (c, L) => ({ s: 0, p: K.maple * L }) },
       beech: { name: 'Beech', emoji: '🍃', cost: 4, rarity: 'uncommon', tag: 'tree', peak: 'fall', lateLeaves: true,
@@ -113,7 +117,7 @@
       hazel: { name: 'Witch Hazel', emoji: '🌼', cost: 2, rarity: 'common', tag: 'understory', peak: 'fall',
         text: (L) => `+${K.hazelSeeds * L} seeds and +${K.hazel * L} amber.`,
         fire: (c, L) => ({ s: K.hazelSeeds * L, p: K.hazel * L }) },
-      ginger: { name: 'Wild Ginger', emoji: '🌿', cost: 3, rarity: 'common', tag: 'understory', peak: 'winter',
+      ginger: { name: 'Wild Ginger', emoji: '🌿', cost: 3, rarity: 'common', tag: 'understory', peak: 'winter', evergreen: true,
         text: (L) => `+${K.ginger * L} amber. Grows a level from every leaf, not every 2.`,
         fire: (c, L) => ({ s: 0, p: K.ginger * L }) },
 
@@ -123,8 +127,8 @@
         reads: (c) => c.nb.filter(j => isTree(c.grid[j])),
         fire: (c, L) => ({ s: K.squirrel * L * (1 + count(c, isTree)), p: 0 }) },
       chipmunk: { name: 'Chipmunk', emoji: '🐿️', cost: 2, rarity: 'common', tag: 'critter', peak: 'spring',
-        text: (L) => `+${K.chipmunk * L} seeds.`,
-        fire: (c, L) => ({ s: K.chipmunk * L, p: 0 }) },
+        text: (L) => `+${K.chipmunk * L} seeds and +${K.chipmunkAmber * L} amber.`,   // v28: amber added, it tested weak three reports running
+        fire: (c, L) => ({ s: K.chipmunk * L, p: K.chipmunkAmber * L }) },
       bear: { name: 'Black Bear', emoji: '🐻', cost: 5, rarity: 'rare', tag: 'critter', peak: 'summer',
         text: (L) => `+${K.bear * L} amber for each touching tile.`,
         reads: (c) => c.nb.filter(j => c.grid[j]),
@@ -158,12 +162,12 @@
 
     const EVENTS = {
       derecho: { name: 'Derecho', emoji: '🌪️',
-        text: () => `After August, a windstorm knocks down the 2 trees you spent the most seeds on. Each leaves a fallen log in its spot.`,
+        text: () => `After August, a windstorm knocks down the ${CONFIG.derechoTrees} trees you spent the most seeds on. Each leaves a fallen log in its spot.`,
         threat: (state) => state.grid.map((t, i) => isTree(t) ? i : -1).filter(i => i >= 0)
-          .sort((a, b) => E.invested(state.grid[b]) - E.invested(state.grid[a]) || state.grid[b].lvl - state.grid[a].lvl || a - b).slice(0, 2),
+          .sort((a, b) => E.invested(state.grid[b]) - E.invested(state.grid[a]) || state.grid[b].lvl - state.grid[a].lvl || a - b).slice(0, CONFIG.derechoTrees),
         take: (state, i) => { E.removeTile(state, i, 'event'); state.rock[i] = true; } },
       drought: { name: 'Drought', emoji: '🏜️', spares: true,
-        text: () => `In September and October, understory plants make nothing.`,
+        text: () => `From August to October, understory plants make nothing.`,
         threat: (state) => state.grid.map((t, i) => isPlant(t) ? i : -1).filter(i => i >= 0),
         after: (state) => { state.drought = true; } },
       mast: { name: 'Mast Year', emoji: '🌰', spares: true,
@@ -179,9 +183,12 @@
       richsoil: { name: 'Rich Soil', emoji: '🪨', base: 6, text: 'Understory plants make +1 amber each time they fire.', bonus: (d) => d.tag === 'understory' ? 1 : 0 },
       thicket: { name: 'Thicket', emoji: '🌿', base: 7, text: 'Critters touching 2 or more critters make +1 amber when they fire.',
         bonus: (d, c) => d.tag === 'critter' && count(c, n => tagOf(n) === 'critter') >= 2 ? 1 : 0 },
-      seedrain: { name: 'Seed Rain', emoji: '🌧️', base: 5, text: 'Each month brings 3 more seeds.', income: 3 },
+      evergreen: { name: 'Evergreen', emoji: '🌲', base: 6, text: 'Sugar Maples and Wild Ginger are in season all year.' },
+      hoard: { name: 'Acorn Hoard', emoji: '🌰', base: 5, text: 'Seeds left at the end of October count 1 amber per 3 instead of per 5.' },
       clearing: { name: 'Clearing', emoji: '☀️', base: 4, text: 'The shop shows 4 tiles.', shopBonus: 1, onBuy: (state) => E.addOffer(state) },
-      tailwind: { name: 'Tailwind', emoji: '💨', base: 4, text: 'Your first New tiles each month is free.', freeRerolls: 1 },
+      // v28: retired (seeds were never short, and rerolls are cheap); kept so saved runs that own them still load.
+      seedrain: { name: 'Seed Rain', emoji: '🌧️', base: 5, text: 'Each month brings 3 more seeds.', income: 3, retired: true },
+      tailwind: { name: 'Tailwind', emoji: '💨', base: 4, text: 'Your first New tiles each month is free.', freeRerolls: 1, retired: true },
     };
 
     // Leaves fall from each tree onto every touching understory plant and empty spot.
@@ -197,13 +204,14 @@
     }
     const leavesOf = (state) => state.leaves || (state.leaves = Array(CONFIG.cols * CONFIG.rows).fill(0));
     // Feed n leaves to the tile on cell j: every `need` leaves grow it a level, up to ★3. Leftovers stay on the tile.
+    // CONFIG.leafUncapped: leaves keep growing a plant past ★3 (seeds still stop at ★3).
     function feed(state, j, n) {
-      const t = state.grid[j];
-      if (t.lvl >= CONFIG.maxLevel) return 0;
+      const t = state.grid[j], cap = CONFIG.leafUncapped ? Infinity : CONFIG.maxLevel;
+      if (t.lvl >= cap) return 0;
       t.leaves = (t.leaves || 0) + n;
       let up = 0;
-      while (t.leaves >= need(t) && t.lvl < CONFIG.maxLevel) { t.leaves -= need(t); t.lvl++; up++; }
-      if (t.lvl >= CONFIG.maxLevel) t.leaves = 0;
+      while (t.leaves >= need(t) && t.lvl < cap) { t.leaves -= need(t); t.lvl++; up++; }
+      if (t.lvl >= cap) t.leaves = 0;
       return up;
     }
 
@@ -229,6 +237,7 @@
       },
       // A log that falls (Derecho) or a cleared spot starts bare.
       onClear(state, cell) { leavesOf(state)[cell] = 0; },
+      inSeason: (state, d) => inSeason(state, d),
     };
 
     // Invasives (v23): one arrives in March and bites tiles of the kind it eats (see engine.js).

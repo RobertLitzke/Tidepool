@@ -179,7 +179,21 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
-    function newGame(seed, mods = []) {
+    // Starter choice (v27): the first list in CONFIG.starters (or startKinds) with two or more kinds offers two of
+    // them, drawn from the seed, and the player picks one. Lists with one kind (the forest's oak) are fixed.
+    // Returns { list, kinds: [a, b] } or null when there is nothing to choose.
+    function starterOptions(seed) {
+      const lists = CONFIG.starters || [CONFIG.startKinds];
+      const li = lists.findIndex(l => l.length >= 2);
+      if (li < 0) return null;
+      const pool = lists[li].slice(), h = Math.imul((seed >>> 0) ^ 0x9E3779B9, 2246822519) >>> 0;
+      const a = pool.splice((h >>> 4) % pool.length, 1)[0], b = pool[(h >>> 12) % pool.length];
+      return { list: li, kinds: [a, b] };
+    }
+
+    function newGame(seed, mods = [], starter) {
+      const opts = starterOptions(seed);
+      const pick = opts && opts.kinds.includes(starter) ? starter : opts ? opts.kinds[0] : null;
       const state = {
         eco: eco.id, seed, mods: mods.filter(id => MODIFIERS[id]), inv: null, rng: seed | 0, tide: 1, shells: CONFIG.startShells, pearls: 0,
         grid: Array(CONFIG.cols * CONFIG.rows).fill(null),
@@ -203,15 +217,16 @@
       for (const r of rocks) state.rock[r] = true;
       // One starter from each list, each on a random open spot.
       const kinds = [], cells = [];
-      for (const list of CONFIG.starters || [CONFIG.startKinds]) {
+      (CONFIG.starters || [CONFIG.startKinds]).forEach((list, li) => {
         let open = state.grid.map((_, i) => i).filter(i => !state.rock[i] && !state.grid[i]);
         // startersTouch: later starters go next to the first one when there's room (the forest's oak drops leaves on its plant).
         if (CONFIG.startersTouch && cells.length) { const nb = open.filter(i => neighbors(cells[0]).includes(i)); if (nb.length) open = nb; }
-        const kind = list[Math.floor(rand(state) * list.length)], cell = open[Math.floor(rand(state) * open.length)];
+        const kind = opts && opts.list === li ? pick : list[Math.floor(rand(state) * list.length)], cell = open[Math.floor(rand(state) * open.length)];
         state.grid[cell] = { kind, lvl: 1, age: 1, paid: 0 };
         kinds.push(kind); cells.push(cell);
-      }
+      });
       state.start = kinds.length === 1 ? { kind: kinds[0], cell: cells[0], rocks } : { kind: kinds[0], kinds, cells, rocks };
+      if (opts) state.start.options = opts.kinds;
       eventOf(state);
       startTide(state);
       return state;
@@ -225,7 +240,7 @@
       state.charmOffers = [];
       if (CONFIG.charmTides.includes(state.tide)) {
         state.charmMarkets++;
-        const pool = Object.keys(CHARMS).filter(id => !has(state, id));
+        const pool = Object.keys(CHARMS).filter(id => !has(state, id) && !CHARMS[id].retired);
         for (let n = 0; n < CONFIG.charmOffers && pool.length; n++) state.charmOffers.push(pool.splice(Math.floor(rand(state) * pool.length), 1)[0]);
       }
     }
@@ -419,6 +434,10 @@
       return !!(d && d.dormant && d.dormant(state, t, i));
     };
 
+    // Is this tile in its season this round? Ecosystems with bonuses that stretch seasons answer through hooks.inSeason.
+    const inSeason = (state, def) => HOOKS.inSeason ? HOOKS.inSeason(state, def) : [].concat(def.peak || []).includes(phase(state));
+    const endShellsPer = (state) => typeof CONFIG.endShells === 'function' ? CONFIG.endShells(state) : CONFIG.endShells || 0;
+
     // A tile's extra state to show on the board (the Serengeti's grazed flora): { cls, label } or null.
     const tileState = (state, i) => state.grid[i] && HOOKS.tileState ? HOOKS.tileState(state, i) : null;
 
@@ -485,7 +504,12 @@
 
       const need = CONFIG.checkpoints[state.tide];
       if (need != null && state.pearls < need) { state.over = true; state.won = false; state.failedAt = state.tide; }
-      else if (state.tide >= CONFIG.tides) { state.over = true; state.won = true; }
+      else if (state.tide >= CONFIG.tides) {
+        // CONFIG.endShells: shells left at the end score 1 pearl per that many (the forest's seeds).
+        const per = typeof CONFIG.endShells === 'function' ? CONFIG.endShells(state) : CONFIG.endShells;
+        if (per) { const b = Math.floor(state.shells / per); state.pearls += b; state.earned += b; state.lastTide.endBonus = { pearls: b, per }; }
+        state.over = true; state.won = true;
+      }
       else { state.tide++; startTide(state); }
       return events;
     }
@@ -533,9 +557,9 @@
       && g.grid.every(t => !t || TILES[t.kind]) && g.offers.every(k => !k || TILES[k])
       && (g.charms || []).every(id => CHARMS[id]));
 
-    return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventDef, eventKnown, validSave, eventThreat, invested, kindNames, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
+    return { eco, CONFIG, TILES, CHARMS, EVENTS, KINDS, INVASIVES, MODIFIERS, rated, modOn, invasiveTide, invasivePlan, eventOf, eventDef, eventKnown, validSave, eventThreat, invested, kindNames, starterOptions, newGame, rollOffers, reroll, rerollCost, canPlace, buy, sell, sellValue, runTide, starsFor, nextCheckpoint, neighbors, clone,
       maxLevel, stackPriced, tileCost, placeCost, shopSize, charmPrice, buyCharm, rockCost, breakRock, links, forecast, has,
-      inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season, phase, tileState,
+      inShop, moverSpots, moverTargets, moverDests, useMover, fellTargets, useFeller, actions, act, dormant, month, season, phase, inSeason, endShellsPer, tileState,
       phased: !!(CONFIG.calendar || CONFIG.cycle) };
   }
 
